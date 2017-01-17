@@ -60,6 +60,56 @@ object ModelHelper {
         throw ex
     }
   }
+
+  import org.mongodb.scala.bson._
+  def getOptionTime(key: String)(implicit doc:Document) = {
+    if (doc(key).isNull())
+      None
+    else
+      Some(doc(key).asInt64().getValue)
+  }
+  
+  def getOptionStr(key: String)(implicit doc:Document) = {
+    if (doc(key).isNull())
+      None
+    else
+      Some(doc.getString(key))
+  }
+
+  def getOptionDouble(key: String)(implicit doc:Document) = {
+    if (doc(key).isNull())
+      None
+    else
+      Some(doc(key).asDouble().getValue)
+  }
+
+  def getOptionInt(key: String)(implicit doc:Document) = {
+    if (doc(key).isNull())
+      None
+    else
+      Some(doc(key).asInt32().getValue)
+  }
+  
+  def getOptionDoc(key: String)(implicit doc:Document) = {
+    if (doc(key).isNull())
+      None
+    else
+      Some(doc(key).asDocument())
+  }
+  
+  def getArray[T](key: String, mapper:(BsonValue)=>T)(implicit doc:Document) = {
+    import scala.collection.JavaConversions._
+
+    val array = doc(key).asArray().getValues
+    
+    val result = array map {
+        v => mapper(v)
+      }
+    result.toSeq
+  }
+  
+  
+  
 }
 
 object EnumUtils {

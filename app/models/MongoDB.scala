@@ -16,6 +16,8 @@ object MongoDB {
       User.init(colNames)
       Order.init(colNames)
       Group.init(colNames)
+      DyeCard.init(colNames)
+      WorkCard.init(colNames)
     }
     //Program need to wait before init complete
     import scala.concurrent.Await

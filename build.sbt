@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
   specs2 % Test,
   "com.github.nscala-time" %% "nscala-time" % "2.14.0",
   "org.json4s" %% "json4s-native" % "3.3.0",
-  "org.json4s" %% "json4s-ext" % "3.3.0", 
+  "org.json4s" %% "json4s-ext" % "3.3.0",
   "org.mongodb.scala" %% "mongo-scala-driver" % "1.2.1"
 )
 
