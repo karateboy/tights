@@ -15,7 +15,11 @@ import com.github.nscala_time.time.Imports._
  * Created by user on 2017/1/1.
  */
 
-case class ProductionNotice(department: String, msg: String)
+case class ProductionNotice(department: String, msg: String){
+  def toDocument={
+    Document("department"->department, "msg"->msg)
+  }
+}
 
 case class OrderDetail(color: String, size: String, quantity: Int,
                        workCardIDs: Seq[String], finishedWorkCards: Seq[WorkCard], complete:Boolean) {
@@ -55,11 +59,7 @@ case class Order(_id: String, salesId: String, name: String, expectedDeliverDate
     }
 
     implicit object TransformNotice extends BsonTransformer[ProductionNotice] {
-      def apply(value: ProductionNotice): BsonDocument = {
-        implicit val pnWrite = Json.writes[ProductionNotice]
-        val jsonStr = Json.toJson(value)
-        Document(jsonStr.toString()).toBsonDocument
-      }
+      def apply(pn: ProductionNotice): BsonDocument = pn.toDocument.toBsonDocument
     }
 
     Document("_id" -> _id,

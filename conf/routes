@@ -18,6 +18,7 @@ GET      /testAuthenticated       controllers.Login.testAuthenticated
 GET      /checkOrderId/:orderId   controllers.OrderManager.checkOrderId(orderId)
 POST     /Order                   controllers.OrderManager.upsertOrder
 PUT      /Order                   controllers.OrderManager.upsertOrder
+GET      /Department              controllers.OrderManager.getDepartmentInfoList
 GET      /MyActiveOrder/:userId   controllers.OrderManager.myActiveOrder(userId)
 
 GET      /DyeCardSpec             controllers.OrderManager.getDyeCardSpec

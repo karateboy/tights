@@ -39,9 +39,8 @@ object OrderManager extends Controller {
         })
   }
 
-  def checkOrderId(orderId: String) = Action.async {
+  def checkOrderId(orderId: String) = Security.Authenticated.async {
     implicit request =>
-      Logger.debug("orderId=" + orderId)
       val f = Order.findOrder(orderId)
       f.recover({
         case ex: Throwable =>
@@ -55,7 +54,13 @@ object OrderManager extends Controller {
       }
   }
 
-  def myActiveOrder(userId: String) = Action.async {
+  def getDepartmentInfoList = Security.Authenticated{
+    implicit request =>
+      implicit val writer = Json.writes[DeparmentInfo]
+      Ok(Json.toJson(Department.getInfoList))
+  }
+  
+  def myActiveOrder(userId: String) = Security.Authenticated.async {
     implicit request =>
       val f = Order.myActiveOrder(userId)
       for (orderList <- f) yield {
@@ -67,7 +72,7 @@ object OrderManager extends Controller {
   case class WorkCardSpec(orderId: String, index: Int, detail: OrderDetail, due: Long, need: Int)
   case class DyeCardSpec(color: String, due: Long, workCardSpecList: Seq[WorkCardSpec])
 
-  def getDyeCardSpec = Action.async {
+  def getDyeCardSpec = Security.Authenticated.async {
     implicit request =>
       val f = Order.listActiveOrder()
       val f2 = WorkCard.getActiveWorkCards()
@@ -123,7 +128,7 @@ object OrderManager extends Controller {
       }
   }
 
-  def checkDyeCardId(id: String) = Action.async {
+  def checkDyeCardId(id: String) = Security.Authenticated.async {
     implicit request =>
       val f = DyeCard.getCard(id)
       f.recover({
@@ -138,7 +143,7 @@ object OrderManager extends Controller {
       }
   }
 
-  def checkWorkCardId(id: String) = Action.async {
+  def checkWorkCardId(id: String) = Security.Authenticated.async {
     implicit request =>
       val f = WorkCard.getCard(id)
       f.recover({
@@ -155,7 +160,7 @@ object OrderManager extends Controller {
 
   case class ScheduleParam(dyeCard: DyeCard, workCards: Seq[WorkCard])
 
-  def scheduleDyeWork = Action.async(BodyParsers.parse.json) {
+  def scheduleDyeWork = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val scheduleParamRead = Json.reads[ScheduleParam]
       val result = request.body.validate[ScheduleParam]
