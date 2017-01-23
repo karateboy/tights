@@ -3,8 +3,8 @@ import com.github.nscala_time.time.Imports._
 import scala.language.implicitConversions
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import scala.util.parsing.json.JSONFormat
 import play.api._
+import scala.collection.JavaConversions._
 
 /**
  * @author user
@@ -98,7 +98,6 @@ object ModelHelper {
   }
   
   def getArray[T](key: String, mapper:(BsonValue)=>T)(implicit doc:Document) = {
-    import scala.collection.JavaConversions._
 
     val array = doc(key).asArray().getValues
     
@@ -108,6 +107,12 @@ object ModelHelper {
     result.toSeq
   }
   
+  def getOptionArray[T](key:String, mapper:(BsonValue)=>T)(implicit doc:Document) = {
+    if (doc(key).isNull())
+      None
+    else
+      Some(getArray(key, mapper))    
+  }
   
   
 }

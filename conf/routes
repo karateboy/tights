@@ -18,11 +18,19 @@ GET      /testAuthenticated       controllers.Login.testAuthenticated
 GET      /checkOrderId/:orderId   controllers.OrderManager.checkOrderId(orderId)
 POST     /Order                   controllers.OrderManager.upsertOrder
 PUT      /Order                   controllers.OrderManager.upsertOrder
+GET      /Order/:id               controllers.OrderManager.getOrder(id)
 GET      /Department              controllers.OrderManager.getDepartmentInfoList
 GET      /MyActiveOrder/:userId   controllers.OrderManager.myActiveOrder(userId)
 
 GET      /DyeCardSpec             controllers.OrderManager.getDyeCardSpec
 POST     /ScheduleDyeWork         controllers.OrderManager.scheduleDyeWork
+GET      /DyeCard                 controllers.CardManager.getDyeCardList
+GET      /DyeCard/:id             controllers.CardManager.getDyeCard(id)
+GET      /DyeCardPDF/:id          controllers.CardManager.getDyeCardPdf(id)
+GET      /DyeCardWeb/:id          controllers.CardManager.getDyeCardWeb(id)
+
+POST     /GetWorkCards            controllers.CardManager.getWorkCard
+GET      /barcode/:fileName       controllers.CardManager.getBarcode(fileName)
 
 GET      /UserManagement          controllers.Application.userManagement
 POST     /User                    controllers.Application.newUser

@@ -54,12 +54,30 @@ object OrderManager extends Controller {
       }
   }
 
-  def getDepartmentInfoList = Security.Authenticated{
+  def getOrder(orderId:String) = Security.Authenticated.async {
+    implicit request =>
+      val f = Order.findOrder(orderId)
+      f.recover({
+        case ex: Throwable =>
+          Logger.error("checkOrderId failed", ex)
+          Ok(Json.obj("ok" -> false))
+      })
+
+      for (records <- f) yield {
+        if(records.isEmpty)
+          NoContent
+        else{
+          Ok(Json.toJson(records.head))  
+        }        
+      }
+  }
+
+  def getDepartmentInfoList = Security.Authenticated {
     implicit request =>
       implicit val writer = Json.writes[DeparmentInfo]
       Ok(Json.toJson(Department.getInfoList))
   }
-  
+
   def myActiveOrder(userId: String) = Security.Authenticated.async {
     implicit request =>
       val f = Order.myActiveOrder(userId)
@@ -162,6 +180,7 @@ object OrderManager extends Controller {
 
   def scheduleDyeWork = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
+      import WorkCard._
       implicit val scheduleParamRead = Json.reads[ScheduleParam]
       val result = request.body.validate[ScheduleParam]
       result.fold(
@@ -193,7 +212,7 @@ object OrderManager extends Controller {
           val f3 = Future.sequence(workCards.map {
             workCard =>
               Order.addOrderDetailWorkID(workCard.orderId, workCard.detailIndex, workCard._id)
-            })
+          })
 
           val f4 = Future.sequence(List(f1, f2, f3))
           for (ret <- f3) yield {

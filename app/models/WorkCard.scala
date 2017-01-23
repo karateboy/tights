@@ -104,6 +104,14 @@ object WorkCard {
     }
   }
 
+  def getCards(ids: Seq[String]) = {
+    val f = collection.find(in("_id", ids:_*)).toFuture()
+    f.onFailure { errorHandler }
+    for (cards <- f) yield {
+      cards map { toWorkCard(_)}
+    }    
+  }
+  
   def getActiveWorkCards() = {
     val f = collection.find().toFuture()
     f.onFailure { errorHandler }

@@ -3,7 +3,7 @@ import play.api._
 import com.github.nscala_time.time.Imports._
 import models.ModelHelper._
 import models._
-import org.mongodb.scala.bson.Document
+import org.mongodb.scala.bson._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json
@@ -11,53 +11,87 @@ import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
-case class RefineProcess(refine: Option[Double], refineTime: Option[Int],
-                         milk: Option[Double], refineTemp: Option[Double],
-                         noBubblePotion: Option[Double]) {
+case class RefineProcess(refinePotion: Option[String], refine: Option[Double],
+                         milk: Option[Double], refineTime: Option[Int], refineTemp: Option[Double]) {
   def toDocument =
-    Document("refine" -> refine, "refineTime" -> refineTime,
-      "milk" -> milk, "refineTemp" -> refineTemp,
-      "noBubblePotion" -> noBubblePotion)
+    Document("refinePotion" -> refinePotion, "refine" -> refine,
+      "milk" -> milk, "refineTime" -> refineTime, "refineTemp" -> refineTemp)
 
 }
-case class DyeProcess(evenDye: Option[Double], dyeTime: Option[Int],
-                      vNH3: Option[Double], dyeTemp: Option[Double],
-                      iceV: Option[Double], dyePotion: Option[String]) {
-  def toDocument = Document("evenDye" -> evenDye, "dyeTime" -> dyeTime,
-    "vNH3" -> vNH3, "dyeTemp" -> dyeTemp,
-    "iceV" -> iceV, "dyePotion" -> dyePotion)
+
+case class DyePotion(y: Option[Double], r: Option[Double], b: Option[Double],
+                     Fluorescent: Option[Double], Brightener: Option[Double]) {
+  def toDocument = Document("y" -> y, "r" -> r, "b" -> b,
+    "Fluorescent" -> Fluorescent, "Brightener" -> Brightener)
 }
 
-case class PostProcess(fixedPotion: Option[Double], fixedTime: Option[Int],
-                       postIceV: Option[Double], fixedTemp: Option[Double],
-                       postiveSoftener: Option[Double], softenTime: Option[Int],
-                       silicon: Option[Double],
-                       dryTemp: Option[Double],
-                       dryTime: Option[Int]) {
-  def toDocument = Document("fixedPotion" -> fixedPotion, "fixedTime" -> fixedTime,
-    "postIceV" -> postIceV, "fixedTemp" -> fixedTemp,
-    "postiveSoftener" -> postiveSoftener, "softenTime" -> softenTime,
-    "silicon" -> silicon,
-    "dryTemp" -> dryTemp,
-    "dryTime" -> dryTime)
+case class DyeProcess(evenDye: Option[Double], vNH3: Option[Double], nh3: Option[Double], iceV: Option[Double],
+                      other:Option[String],
+                      dyeTime: Option[Int], dyeTemp: Option[Double],
+                      phStart: Option[Double], phEnd: Option[Double]) {
+  def toDocument = Document("evenDye" -> evenDye, "vNH3" -> vNH3, "nh3" -> nh3,
+    "iceV" -> iceV, "other"->other, "dyeTime" -> dyeTime, "dyeTemp" -> dyeTemp,
+    "phStart" -> phStart, "phEnd" -> phEnd)
+}
+
+case class PostProcess(fixedPotion: Option[Double],
+                       iceV: Option[Double], silicon: Option[Double], postiveSoftener: Option[Double],
+                       softenTime: Option[Int]) {
+  def toDocument = Document("fixedPotion" -> fixedPotion,
+    "iceV" -> iceV, "silicon" -> silicon, "postiveSoftener" -> postiveSoftener,  
+    "softenTime" -> softenTime)
+}
+
+case class SizeChart(size:String, before:Option[Double], after:Option[Double]){
+  def toDocument = Document("size"->size, "before"->before, "after"->after)
+  implicit object TransformBigDecimal extends BsonTransformer[SizeChart] {
+    def apply(value: SizeChart): BsonDocument = value.toDocument.toBsonDocument
+  }
 }
 
 case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
-                   startTime: Option[Long], endTime: Option[Long],
-                   weight: Option[Double], water: Option[Double], operator: Option[String],
+                   startTime: Option[Long], var updateTime: Option[Long],
+                   operator: Option[String], date: Option[Long], pot: Option[String], weight: Option[Double],
                    refineProcess: Option[RefineProcess],
+                   dyePotion: Option[DyePotion],
                    dyeProcess: Option[DyeProcess],
-                   postProcess: Option[PostProcess]) {
-  def toDocument = {
-    Document("_id" -> _id, "workIdList" -> workIdList,
-      "startTime" -> startTime, "endTime" -> endTime,
-      "color" -> color, "weight" -> weight, "water" -> water, "operator" -> operator,
-      "refineProcess" -> refineProcess.map { _.toDocument },
-      "dyeProcess" -> dyeProcess.map(_.toDocument),
-      "postProcess" -> postProcess.map(_.toDocument))
+                   postProcess: Option[PostProcess],
+                   dryTemp: Option[Double], dryTime: Option[Long],
+                   sizeCharts: Option[Seq[SizeChart]]) {
+  
+  implicit object TransformSizeChart extends BsonTransformer[SizeChart] {
+    def apply(value: SizeChart): BsonDocument = value.toDocument.toBsonDocument
   }
 
-  def updateID:Unit = {
+  implicit object TransformDyePotion extends BsonTransformer[DyePotion] {
+    def apply(value: DyePotion): BsonDocument = value.toDocument.toBsonDocument
+  }
+  
+  implicit object TransformRefineProcess extends BsonTransformer[RefineProcess] {
+    def apply(value: RefineProcess): BsonDocument = value.toDocument.toBsonDocument
+  }
+  
+  implicit object TransformDyeProcess extends BsonTransformer[DyeProcess] {
+    def apply(value: DyeProcess): BsonDocument = value.toDocument.toBsonDocument
+  }
+
+  implicit object TransformPostProcess extends BsonTransformer[PostProcess] {
+    def apply(value: PostProcess): BsonDocument = value.toDocument.toBsonDocument
+  }
+
+  def toDocument = {
+    Document("_id" -> _id, "workIdList" -> workIdList, "color" -> color,
+      "startTime" -> startTime, "updateTime" -> updateTime,
+      "operator" -> operator, "date" -> date, "pot" -> pot, "weight" -> weight,
+      "refineProcess" -> refineProcess,
+      "dyePotion" -> dyePotion,
+      "dyeProcess" -> dyeProcess,
+      "postProcess" -> postProcess,
+      "dryTime"->dryTime, "dryTemp"->dryTemp,
+      "sizeCharts"->sizeCharts)
+  }
+
+  def updateID: Unit = {
     import java.util.concurrent.ThreadLocalRandom
     val randomNum = ThreadLocalRandom.current().nextInt(1, 1000000)
     val newID = "%06d".format(randomNum)
@@ -68,7 +102,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       _id = newID
     else
       updateID
-  }  
+  }
 }
 
 object DyeCard {
@@ -76,13 +110,17 @@ object DyeCard {
   val ColName = "dyeCards"
   val collection = MongoDB.database.getCollection(ColName)
 
+  import WorkCard._
   implicit val refineRead = Json.reads[RefineProcess]
   implicit val refineWrite = Json.writes[RefineProcess]
   implicit val dpRead = Json.reads[DyeProcess]
   implicit val dpWrite = Json.writes[DyeProcess]
   implicit val ppRead = Json.reads[PostProcess]
   implicit val ppWrite = Json.writes[PostProcess]
-
+  implicit val dyePread = Json.reads[DyePotion]
+  implicit val dyePwrite = Json.writes[DyePotion]
+  implicit val sizeChartReads = Json.reads[SizeChart]
+  implicit val sizeChartWrites = Json.writes[SizeChart]
   implicit val dyeRead = Json.reads[DyeCard]
   implicit val dyeWrite = Json.writes[DyeCard]
 
@@ -95,64 +133,91 @@ object DyeCard {
 
   import org.mongodb.scala.bson._
   def toRefineProcess(implicit doc: Document) = {
+    val refinePotion = getOptionStr("refinePotion")
     val refine = getOptionDouble("refine")
     val refineTime = getOptionInt("refineTime")
     val milk = getOptionDouble("milk")
     val refineTemp = getOptionDouble("refineTemp")
-    val noBubblePotion = getOptionDouble("noBubblePotion")
 
-    RefineProcess(refine, refineTime, milk, refineTemp, noBubblePotion)
+    RefineProcess(refinePotion = refinePotion, refine = refine,
+      milk = milk,
+      refineTime = refineTime, refineTemp = refineTemp)
+  }
+
+  def toDyePotion(implicit doc: Document) = {
+    val y = getOptionDouble("y")
+    val r = getOptionDouble("r")
+    val b = getOptionDouble("b")
+    val Fluorescent = getOptionDouble("Fluorescent")
+    val Brightener = getOptionDouble("Brightener")
+    DyePotion(y = y, r = r, b = b,
+      Fluorescent = Fluorescent,
+      Brightener = Brightener)
   }
 
   def toDyeProcess(implicit doc: Document) = {
     val evenDye = getOptionDouble("evenDye")
     val dyeTime = getOptionInt("dyeTime")
     val vNH3 = getOptionDouble("vNH3")
+    val nh3 = getOptionDouble("nh3")
+    val other = getOptionStr("other")
     val dyeTemp = getOptionDouble("dyeTemp")
     val iceV = getOptionDouble("iceV")
-    val dyePotion = getOptionStr("dyePotion")
+    val phStart = getOptionDouble("phStart")
+    val phEnd = getOptionDouble("phEnd")
 
-    DyeProcess(evenDye, dyeTime, vNH3, dyeTemp, iceV, dyePotion)
+    DyeProcess(evenDye=evenDye, vNH3=vNH3, nh3=nh3, iceV=iceV, other=other, 
+        dyeTemp=dyeTemp, dyeTime=dyeTime, 
+        phStart=phStart, phEnd=phEnd)
   }
 
   def toPostProcess(implicit doc: Document) = {
     val fixedPotion = getOptionDouble("fixedPotion")
-    val fixedTime = getOptionInt("fixedTime")
-    val postIceV = getOptionDouble("postIceV")
-    val fixedTemp = getOptionDouble("fixedTemp")
+    val iceV = getOptionDouble("iceV")
     val postiveSoftener = getOptionDouble("postiveSoftener")
     val softenTime = getOptionInt("softenTime")
     val silicon = getOptionDouble("silicon")
-    val dryTemp = getOptionDouble("dryTemp")
-    val dryTime = getOptionInt("dryTemp")
 
-    PostProcess(fixedPotion, fixedTime, postIceV, fixedTemp,
-      postiveSoftener, softenTime,
-      silicon, dryTemp, dryTime)
+    PostProcess(fixedPotion=fixedPotion, iceV=iceV, silicon=silicon, 
+      postiveSoftener=postiveSoftener, softenTime=softenTime)
   }
 
+  def toSizeChart(implicit doc:Document) = {
+    val size = doc.getString("size")
+    val before = getOptionDouble("before")
+    val after = getOptionDouble("after")
+    SizeChart(size, before, after)
+  }
+  
   def toDyeCard(implicit doc: Document) = {
     val _id = doc.getString("_id")
     val workIdList = getArray("workIdList", (v: BsonValue) => { v.asString().getValue })
     val startTime = getOptionTime("startTime")
-    val endTime = getOptionTime("endTime")
+    val updateTime = getOptionTime("updateTime")
     val color = doc.getString("color")
-    val weight = getOptionDouble("weight")
-    val water = getOptionDouble("water")
     val operator = getOptionStr("operator")
+    val date = getOptionTime("date")
+    val pot = getOptionStr("pot")
+    val weight = getOptionDouble("weight")
+
     val refineProcess = getOptionDoc("refineProcess") map { toRefineProcess(_) }
+    val dyePotion = getOptionDoc("dyePotion") map { toDyePotion(_) }
     val dyeProcess = getOptionDoc("dyeProcess") map { toDyeProcess(_) }
     val postProcess = getOptionDoc("postProcess") map { toPostProcess(_) }
+    val dryTemp = getOptionDouble("dryTemp")
+    val dryTime = getOptionTime("dryTime")
+    val sizeCharts = getOptionArray("sizeCharts", (v)=>{toSizeChart(v.asDocument())})
 
-    DyeCard(_id = _id, workIdList = workIdList,
-      startTime = startTime, endTime = endTime,
-      color = color,
-      weight = weight,
-      water = water,
-      operator = operator,
+    DyeCard(_id = _id, workIdList = workIdList, color = color,
+      startTime = startTime, updateTime = updateTime,
+      operator = operator, date = date, pot = pot, weight = weight,
       refineProcess = refineProcess,
+      dyePotion = dyePotion,
       dyeProcess = dyeProcess,
-      postProcess = postProcess)
+      postProcess = postProcess,
+      dryTemp = dryTemp,
+      dryTime = dryTime,
+      sizeCharts = sizeCharts)
   }
 
   def newCard(card: DyeCard) = {
