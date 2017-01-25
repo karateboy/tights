@@ -12,6 +12,7 @@ import play.api.libs.json._
 import com.github.nscala_time.time.Imports._
 import models._
 import scala.concurrent.ExecutionContext.Implicits.global
+import models.ModelHelper._
 
 /**
  * Created by user on 2017/1/13.
@@ -28,6 +29,9 @@ object OrderManager extends Controller {
           },
         order => {
           val f = Order.upsertOrder(order)
+          if(order.date.isEmpty)
+            order.date = Some(DateTime.now().getMillis)
+            
           f.recover({
             case ex: Throwable =>
               Logger.error("upsertOrder failed", ex)
@@ -41,7 +45,7 @@ object OrderManager extends Controller {
 
   def checkOrderId(orderId: String) = Security.Authenticated.async {
     implicit request =>
-      val f = Order.findOrder(orderId)
+      val f = Order.getOrder(orderId)
       f.recover({
         case ex: Throwable =>
           Logger.error("checkOrderId failed", ex)
@@ -54,21 +58,21 @@ object OrderManager extends Controller {
       }
   }
 
-  def getOrder(orderId:String) = Security.Authenticated.async {
+  def getOrder(orderId: String) = Security.Authenticated.async {
     implicit request =>
-      val f = Order.findOrder(orderId)
+      val f = Order.getOrder(orderId)
       f.recover({
         case ex: Throwable =>
           Logger.error("checkOrderId failed", ex)
           Ok(Json.obj("ok" -> false))
       })
 
-      for (records <- f) yield {
-        if(records.isEmpty)
+      for (orderOpt <- f) yield {
+        if (orderOpt.isEmpty)
           NoContent
-        else{
-          Ok(Json.toJson(records.head))  
-        }        
+        else {
+          Ok(Json.toJson(orderOpt.get))
+        }
       }
   }
 
@@ -190,22 +194,42 @@ object OrderManager extends Controller {
             BadRequest(JsError.toJson(err).toString())
           },
         param => {
-          val dyeCard = param.dyeCard
-          if (dyeCard._id == "") {
-            dyeCard.updateID
-          }
+          val now = DateTime.now()
+          val rawDyeCard = param.dyeCard
+          val dyeCard = rawDyeCard.init
 
-          val workCards = param.workCards
-          workCards.foreach { workCard =>
-            if (workCard._id == "")
-              workCard.updateID
-
-            if (workCard.dyeCardID.isEmpty)
-              workCard.dyeCardID = Some(dyeCard._id)
+          val rawWorkCards = param.workCards
+          val workCards = rawWorkCards map { raw =>
+            val workCard = raw.init
+            workCard.dyeCardID = Some(dyeCard._id)
+            workCard
           }
 
           val workCardId = workCards.map { _._id }
           dyeCard.workIdList = workCardId
+          def updateDyeCardSizeChart = {
+              var orderSet = Set.empty[String]
+              for (workCard <- workCards)
+                orderSet += (workCard.orderId)
+              
+              val f = Order.findOrders(orderSet.toSeq)
+              for(orders <- f)
+                yield{
+                val pair = orders map {order=> order._id -> order } 
+                pair.toMap
+              }
+          }
+          
+          val orderMap = waitReadyResult(updateDyeCardSizeChart)
+
+          val sizeList = workCards.map {
+            work =>
+              val order = orderMap(work.orderId)
+              order.details(work.detailIndex).size
+          }
+          val sizeSet = Set(sizeList.toSeq: _*)
+          val sizeCharts = sizeSet.toSeq map {SizeChart(_, None, None)}
+          dyeCard.sizeCharts = Some(sizeCharts)
 
           val f1 = DyeCard.newCard(dyeCard)
           val f2 = WorkCard.insertCards(workCards)

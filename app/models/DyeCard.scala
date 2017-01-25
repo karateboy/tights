@@ -18,47 +18,62 @@ case class RefineProcess(refinePotion: Option[String], refine: Option[Double],
       "milk" -> milk, "refineTime" -> refineTime, "refineTemp" -> refineTemp)
 
 }
+object RefineProcess {
+  val default = RefineProcess(None, None, None, None, None)
+}
 
 case class DyePotion(y: Option[Double], r: Option[Double], b: Option[Double],
                      Fluorescent: Option[Double], Brightener: Option[Double]) {
   def toDocument = Document("y" -> y, "r" -> r, "b" -> b,
     "Fluorescent" -> Fluorescent, "Brightener" -> Brightener)
+
+}
+object DyePotion {
+  val default = DyePotion(None, None, None, None, None)
 }
 
 case class DyeProcess(evenDye: Option[Double], vNH3: Option[Double], nh3: Option[Double], iceV: Option[Double],
-                      other:Option[String],
+                      other: Option[String],
                       dyeTime: Option[Int], dyeTemp: Option[Double],
                       phStart: Option[Double], phEnd: Option[Double]) {
   def toDocument = Document("evenDye" -> evenDye, "vNH3" -> vNH3, "nh3" -> nh3,
-    "iceV" -> iceV, "other"->other, "dyeTime" -> dyeTime, "dyeTemp" -> dyeTemp,
+    "iceV" -> iceV, "other" -> other, "dyeTime" -> dyeTime, "dyeTemp" -> dyeTemp,
     "phStart" -> phStart, "phEnd" -> phEnd)
+
+}
+object DyeProcess {
+  val default = DyeProcess(None, None, None, None, None, None, None, None, None)
 }
 
 case class PostProcess(fixedPotion: Option[Double],
                        iceV: Option[Double], silicon: Option[Double], postiveSoftener: Option[Double],
                        softenTime: Option[Int]) {
   def toDocument = Document("fixedPotion" -> fixedPotion,
-    "iceV" -> iceV, "silicon" -> silicon, "postiveSoftener" -> postiveSoftener,  
+    "iceV" -> iceV, "silicon" -> silicon, "postiveSoftener" -> postiveSoftener,
     "softenTime" -> softenTime)
+
+}
+object PostProcess {
+  val default = PostProcess(None, None, None, None, None)
 }
 
-case class SizeChart(size:String, before:Option[Double], after:Option[Double]){
-  def toDocument = Document("size"->size, "before"->before, "after"->after)
+case class SizeChart(size: String, before: Option[Double], after: Option[Double]) {
+  def toDocument = Document("size" -> size, "before" -> before, "after" -> after)
   implicit object TransformBigDecimal extends BsonTransformer[SizeChart] {
     def apply(value: SizeChart): BsonDocument = value.toDocument.toBsonDocument
   }
 }
 
 case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
-                   startTime: Option[Long], var updateTime: Option[Long],
+                   startTime: Option[Long], var updateTime: Option[Long], var active: Boolean,
                    operator: Option[String], date: Option[Long], pot: Option[String], weight: Option[Double],
                    refineProcess: Option[RefineProcess],
                    dyePotion: Option[DyePotion],
                    dyeProcess: Option[DyeProcess],
                    postProcess: Option[PostProcess],
                    dryTemp: Option[Double], dryTime: Option[Long],
-                   sizeCharts: Option[Seq[SizeChart]]) {
-  
+                   var sizeCharts: Option[Seq[SizeChart]]) {
+
   implicit object TransformSizeChart extends BsonTransformer[SizeChart] {
     def apply(value: SizeChart): BsonDocument = value.toDocument.toBsonDocument
   }
@@ -66,11 +81,11 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
   implicit object TransformDyePotion extends BsonTransformer[DyePotion] {
     def apply(value: DyePotion): BsonDocument = value.toDocument.toBsonDocument
   }
-  
+
   implicit object TransformRefineProcess extends BsonTransformer[RefineProcess] {
     def apply(value: RefineProcess): BsonDocument = value.toDocument.toBsonDocument
   }
-  
+
   implicit object TransformDyeProcess extends BsonTransformer[DyeProcess] {
     def apply(value: DyeProcess): BsonDocument = value.toDocument.toBsonDocument
   }
@@ -87,8 +102,9 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "dyePotion" -> dyePotion,
       "dyeProcess" -> dyeProcess,
       "postProcess" -> postProcess,
-      "dryTime"->dryTime, "dryTemp"->dryTemp,
-      "sizeCharts"->sizeCharts)
+      "dryTime" -> dryTime, "dryTemp" -> dryTemp,
+      "sizeCharts" -> sizeCharts,
+      "active" -> active)
   }
 
   def updateID: Unit = {
@@ -102,6 +118,26 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       _id = newID
     else
       updateID
+  }
+  def init = {
+    if (_id == "")
+      updateID
+
+    DyeCard(
+      _id = _id,
+      workIdList = workIdList,
+      color = color,
+      startTime = Some(DateTime.now.getMillis),
+      updateTime = None,
+      active = false,
+      operator = None,
+      date = date, pot = pot, weight = weight,
+      refineProcess = Some(RefineProcess.default),
+      dyePotion = Some(DyePotion.default),
+      dyeProcess = Some(DyeProcess.default),
+      postProcess = Some(PostProcess.default),
+      dryTemp = dryTemp, dryTime = dryTime,
+      sizeCharts = sizeCharts)
   }
 }
 
@@ -125,9 +161,14 @@ object DyeCard {
   implicit val dyeWrite = Json.writes[DyeCard]
 
   def init(colNames: Seq[String]) {
+    import org.mongodb.scala.model.Indexes.ascending
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
+      f.onSuccess({
+        case _: Seq[t] =>
+          val cf2 = collection.createIndex(ascending("active")).toFuture()
+      })
     }
   }
 
@@ -166,9 +207,9 @@ object DyeCard {
     val phStart = getOptionDouble("phStart")
     val phEnd = getOptionDouble("phEnd")
 
-    DyeProcess(evenDye=evenDye, vNH3=vNH3, nh3=nh3, iceV=iceV, other=other, 
-        dyeTemp=dyeTemp, dyeTime=dyeTime, 
-        phStart=phStart, phEnd=phEnd)
+    DyeProcess(evenDye = evenDye, vNH3 = vNH3, nh3 = nh3, iceV = iceV, other = other,
+      dyeTemp = dyeTemp, dyeTime = dyeTime,
+      phStart = phStart, phEnd = phEnd)
   }
 
   def toPostProcess(implicit doc: Document) = {
@@ -178,17 +219,17 @@ object DyeCard {
     val softenTime = getOptionInt("softenTime")
     val silicon = getOptionDouble("silicon")
 
-    PostProcess(fixedPotion=fixedPotion, iceV=iceV, silicon=silicon, 
-      postiveSoftener=postiveSoftener, softenTime=softenTime)
+    PostProcess(fixedPotion = fixedPotion, iceV = iceV, silicon = silicon,
+      postiveSoftener = postiveSoftener, softenTime = softenTime)
   }
 
-  def toSizeChart(implicit doc:Document) = {
+  def toSizeChart(implicit doc: Document) = {
     val size = doc.getString("size")
     val before = getOptionDouble("before")
     val after = getOptionDouble("after")
     SizeChart(size, before, after)
   }
-  
+
   def toDyeCard(implicit doc: Document) = {
     val _id = doc.getString("_id")
     val workIdList = getArray("workIdList", (v: BsonValue) => { v.asString().getValue })
@@ -206,7 +247,8 @@ object DyeCard {
     val postProcess = getOptionDoc("postProcess") map { toPostProcess(_) }
     val dryTemp = getOptionDouble("dryTemp")
     val dryTime = getOptionTime("dryTime")
-    val sizeCharts = getOptionArray("sizeCharts", (v)=>{toSizeChart(v.asDocument())})
+    val sizeCharts = getOptionArray("sizeCharts", (v) => { toSizeChart(v.asDocument()) })
+    val active = doc.getBoolean("active")
 
     DyeCard(_id = _id, workIdList = workIdList, color = color,
       startTime = startTime, updateTime = updateTime,
@@ -217,7 +259,8 @@ object DyeCard {
       postProcess = postProcess,
       dryTemp = dryTemp,
       dryTime = dryTime,
-      sizeCharts = sizeCharts)
+      sizeCharts = sizeCharts,
+      active = active)
   }
 
   def newCard(card: DyeCard) = {
@@ -230,8 +273,7 @@ object DyeCard {
   }
 
   def updateCard(card: DyeCard) = {
-    val f = collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
-    waitReadyResult(f)
+    collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
   }
 
   def getCard(id: String) = {
@@ -246,7 +288,7 @@ object DyeCard {
   }
 
   def getActiveDyeCards() = {
-    val f = collection.find().toFuture()
+    val f = collection.find(equal("active", true)).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map {
       doc =>

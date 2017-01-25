@@ -1,7 +1,6 @@
 package models
 
-import java.util.Date
-
+import models._
 import models.ModelHelper._
 import org.mongodb.scala.bson.{ BsonArray, BsonDocument, Document }
 import org.mongodb.scala.model.Indexes.ascending
@@ -15,21 +14,20 @@ import com.github.nscala_time.time.Imports._
  * Created by user on 2017/1/1.
  */
 
-case class ProductionNotice(department: String, msg: String){
-  def toDocument={
-    Document("department"->department, "msg"->msg)
+case class ProductionNotice(department: String, msg: String) {
+  def toDocument = {
+    Document("department" -> department, "msg" -> msg)
   }
 }
 
 case class OrderDetail(color: String, size: String, quantity: Int,
-                       workCardIDs: Seq[String], finishedWorkCards: Seq[WorkCard], complete:Boolean) {
+                       workCardIDs: Seq[String], finishedWorkCards: Seq[WorkCard], complete: Boolean) {
   def toDocument = {
     Document("color" -> color, "size" -> size,
       "quantity" -> quantity,
       "workCardIDs" -> workCardIDs,
       "finishedWorkCards" -> finishedWorkCards.map { _.toDocument },
-      "complete"->complete
-      )
+      "complete" -> complete)
   }
 }
 object OrderDetail {
@@ -43,15 +41,76 @@ object OrderDetail {
     val workCardIDs = getArray("workCardIDs", (v: BsonValue) => { v.asString().getValue })(doc)
     val finishedWorkCards = getArray("finishedWorkCards", (v: BsonValue) => { WorkCard.toWorkCard(v.asDocument()) })(doc)
     val complete = doc.getBoolean("complete").getValue
-    
+
     OrderDetail(color, size, quantity, workCardIDs, finishedWorkCards, complete)
   }
 }
 
+case class PackageInfo(packageOption: Seq[Boolean], packageNote: String,
+                       labelOption: Seq[Boolean], labelNote: String,
+                       cardOption: Seq[Boolean], cardNote: Seq[String],
+                       bagOption: Seq[Boolean], pvcNote: String,
+                       numInBag: Int, bagNote: String,
+                       exportBoxOption: Seq[Boolean], exportBoxNote: Seq[String],
+                       ShippingMark: String, extraNote: Option[String]) {
+  def toDocument = {
+    Document(
+      "packageOption" -> packageOption,
+      "packageNote" -> packageNote,
+      "labelOption" -> labelOption,
+      "labelNote" -> labelNote,
+      "cardOption" -> cardOption,
+      "cardNote" -> cardNote,
+      "bagOption" -> bagOption,
+      "pvcNote" -> pvcNote,
+      "numInBag" -> numInBag,
+      "bagNote" -> bagNote,
+      "exportBoxOption" -> exportBoxOption,
+      "exportBoxNote" -> exportBoxNote,
+      "ShippingMark" -> ShippingMark,
+      "extraNote" -> extraNote)
+  }
+}
+object PackageInfo {
+  implicit def toPackageInfo(implicit doc: Document) = {
+    import org.mongodb.scala.bson._
+ 
+    val packageOption = getArray("packageOption", (v) => v.asBoolean().getValue)
+    val packageNote = doc.getString("packageNote")
+    val labelOption = getArray("labelOption", (v) => v.asBoolean().getValue)
+    val labelNote = doc.getString("labelNote")
+    val cardOption = getArray("cardOption", (v) => v.asBoolean().getValue)
+    val cardNote = getArray("cardNote", (v) => v.asString().getValue)
+    val bagOption = getArray("bagOption", (v) => v.asBoolean().getValue)
+    val pvcNote = doc.getString("pvcNote")
+    val numInBag = doc.getInteger("numInBag")
+    val bagNote = doc.getString("bagNote")
+    val exportBoxOption = getArray("exportBoxOption", (v) => v.asBoolean().getValue)
+    val exportBoxNote = getArray("exportBoxNote", (v) => v.asString().getValue)
+    val ShippingMark = doc.getString("ShippingMark")
+    val extraNote = getOptionStr("extraNote")
+
+    PackageInfo(
+      packageOption = packageOption,
+      packageNote = packageNote,
+      labelOption = labelOption,
+      labelNote = labelNote,
+      cardOption = cardOption,
+      cardNote = cardNote,
+      bagOption = bagOption,
+      pvcNote = pvcNote,
+      numInBag = numInBag,
+      bagNote = bagNote,
+      exportBoxOption = exportBoxOption,
+      exportBoxNote = exportBoxNote,
+      ShippingMark = ShippingMark,
+      extraNote = extraNote)
+  }
+}
 case class Order(_id: String, salesId: String, name: String, expectedDeliverDate: Long, finalDeliverDate: Option[Long],
                  factoryId: String,
-                 customerId: String, brand: String, date: Long,
-                 details: Seq[OrderDetail], notices: Seq[ProductionNotice], active: Boolean) {
+                 customerId: String, brand: String, var date: Option[Long],
+                 details: Seq[OrderDetail], notices: Seq[ProductionNotice], packageInfo: PackageInfo, active: Boolean) {
   def toDocument = {
     import org.mongodb.scala.bson._
     implicit object TransformOrderDetail extends BsonTransformer[OrderDetail] {
@@ -60,6 +119,10 @@ case class Order(_id: String, salesId: String, name: String, expectedDeliverDate
 
     implicit object TransformNotice extends BsonTransformer[ProductionNotice] {
       def apply(pn: ProductionNotice): BsonDocument = pn.toDocument.toBsonDocument
+    }
+
+    implicit object TransformPackage extends BsonTransformer[PackageInfo] {
+      def apply(pInfo: PackageInfo): BsonDocument = pInfo.toDocument.toBsonDocument
     }
 
     Document("_id" -> _id,
@@ -73,6 +136,7 @@ case class Order(_id: String, salesId: String, name: String, expectedDeliverDate
       "date" -> date,
       "details" -> details,
       "notices" -> notices,
+      "packageInfo" -> packageInfo,
       "active" -> active)
   }
 }
@@ -85,6 +149,8 @@ object Order {
   implicit val odRead = Json.reads[OrderDetail]
   implicit val pnWrite = Json.writes[ProductionNotice]
   implicit val pnRead = Json.reads[ProductionNotice]
+  implicit val pkRead = Json.reads[PackageInfo]
+  implicit val pkWrite = Json.writes[PackageInfo]
   implicit val orderWrite = Json.writes[Order]
   implicit val orderRead = Json.reads[Order]
 
@@ -110,24 +176,19 @@ object Order {
 
   def toOrder(doc: Document) = {
     import org.bson.json._
-    def getOptionTime(key: String) = {
-      if (doc(key).isNull())
-        None
-      else
-        Some(doc(key).asInt64().getValue)
-    }
 
     val _id = doc.getString("_id")
     val salesId = doc.getString("salesId")
     val name = doc.getString("name")
     val expectedDeliverDate = doc("expectedDeliverDate").asInt64().getValue
-    val finalDeliverDate = getOptionTime("finalDeliverDate")
+    val finalDeliverDate = getOptionTime("finalDeliverDate")(doc)
     val factoryId = doc.getString("factoryId")
     val customerId = doc.getString("customerId")
     val brand = doc.getString("brand")
-    val date = doc.getLong("date")
+    val date = getOptionTime("date")(doc)
     val details = doc("details").asArray()
     val notices = doc("notices").asArray()
+    val packageInfo = doc("packageInfo").asDocument()
     val active = doc.getBoolean("active")
 
     def toOrderDetialSeq(ar: BsonArray) = {
@@ -152,6 +213,8 @@ object Order {
       }
     }
 
+    import PackageInfo._
+    
     Order(_id = _id,
       salesId = salesId,
       name = name,
@@ -163,6 +226,7 @@ object Order {
       brand = brand,
       details = toOrderDetialSeq(details),
       notices = toProductionNoticeSeq(notices),
+      packageInfo = toPackageInfo(packageInfo),
       active = active)
   }
 
@@ -194,8 +258,21 @@ object Order {
     f
   }
 
-  def findOrder(orderId: String) = {
-    val f = collection.find(equal("_id", orderId)).first().toFuture()
+  def getOrder(orderId: String) = {
+    val f = collection.find(equal("_id", orderId)).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (orders <- f) yield {
+      if (orders.isEmpty)
+        None
+      else
+        Some(toOrder(orders(0)))
+    }
+  }
+
+  def findOrders(orderIdList: Seq[String]) = {
+    val f = collection.find(in("_id", orderIdList: _*)).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -217,7 +294,7 @@ object Order {
     }
   }
 
-  def getHistoryOrder(begin: Date, end: Date) = {
+  def getHistoryOrder(begin: Long, end: Long) = {
     import org.mongodb.scala.model.Filters._
     val f = collection.find(and(gte("date", begin), lt("date", end))).toFuture()
     f.onFailure {
@@ -228,13 +305,13 @@ object Order {
       toOrder
     }
   }
-  
-  def addOrderDetailWorkID(orderId:String, index:Int, workCardID:String) = {
+
+  def addOrderDetailWorkID(orderId: String, index: Int, workCardID: String) = {
     import org.mongodb.scala.bson._
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model.Updates._
 
-    val fieldName = "details." +index + ".workCardIDs"
+    val fieldName = "details." + index + ".workCardIDs"
     val col = MongoDB.database.getCollection(colName)
     val f = col.updateOne(and(equal("_id", orderId)), addToSet(fieldName, workCardID)).toFuture()
     f.onFailure({

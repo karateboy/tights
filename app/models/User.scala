@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
 case class User(_id: String, password: String, name: String, phone: String, isAdmin: Boolean,
-                groupId: String = Group.adminGroup._id)
+                groupId: String = Group.Admin.toString())
 
 object User {
   import scala.concurrent._
@@ -73,7 +73,7 @@ object User {
 
   def updateUser(user: User) = {
     val f = collection.replaceOne(equal("_id", user._id), toDocument(user)).toFuture()
-    waitReadyResult(f)
+    f
   }
 
   def getUserByEmail(email: String) = {
