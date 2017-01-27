@@ -129,15 +129,16 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       color = color,
       startTime = Some(DateTime.now.getMillis),
       updateTime = None,
-      active = false,
+      active = true,
       operator = None,
-      date = date, pot = pot, weight = weight,
+      date = None, 
+      pot = None, weight = None,
       refineProcess = Some(RefineProcess.default),
       dyePotion = Some(DyePotion.default),
       dyeProcess = Some(DyeProcess.default),
       postProcess = Some(PostProcess.default),
-      dryTemp = dryTemp, dryTime = dryTime,
-      sizeCharts = sizeCharts)
+      dryTemp = None, dryTime = None,
+      sizeCharts = None)
   }
 }
 

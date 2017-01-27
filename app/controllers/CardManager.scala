@@ -11,6 +11,7 @@ import scala.concurrent.Future
 import play.api.libs.json._
 import com.github.nscala_time.time.Imports._
 import models._
+import models.ModelHelper._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 
@@ -35,7 +36,7 @@ object CardManager extends Controller {
     }
   }
 
-  def getWorkCard = Security.Authenticated.async(BodyParsers.parse.json) {
+  def getWorkCards = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
 
       val result = request.body.validate[Seq[String]]
@@ -51,6 +52,12 @@ object CardManager extends Controller {
           Ok(Json.toJson(cards))
         }
       })
+  }
+
+  def getActiveWorkCards = Security.Authenticated.async {
+    val f = WorkCard.getActiveWorkCards()
+    for (workCards <- f)
+      yield Ok(Json.toJson(workCards))
   }
 
   def getDyeCardPdf(id: String) = Security.Authenticated.async {
@@ -120,6 +127,7 @@ object CardManager extends Controller {
         }
       }, card => {
         card.updateTime = Some(DateTime.now().getMillis)
+        card.active = false
         val f = DyeCard.updateCard(card)
         for (ret <- f) yield {
           Ok(Json.obj("ok" -> true))
@@ -167,6 +175,7 @@ object CardManager extends Controller {
   }
 
   case class GetTidyParam(workCardID: String, phase: String)
+  case class GetTidyResp(quantity: Int, card: TidyCard)
   def getTidyCard = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val read = Json.reads[GetTidyParam]
@@ -179,13 +188,57 @@ object CardManager extends Controller {
           BadRequest(JsError.toJson(err).toString())
         }
       }, param => {
-        val f = TidyCard.getTidyCard(param.workCardID, param.phase)
-        for (rets <- f) yield {
-          if (rets.isEmpty)
-            Ok(Json.toJson(TidyCard.default(param.workCardID, param.phase)))
-          else
-            Ok(Json.toJson(rets(0)))
+        //verify workCard
+        val fWorkCard = WorkCard.getCard(param.workCardID)
+        for (workCardOpt <- fWorkCard) yield {
+          if (workCardOpt.isEmpty)
+            BadRequest("工作卡未登錄!")
+          else {
+            val workCard = workCardOpt.get
+            val f = TidyCard.getTidyCard(param.workCardID, param.phase)
+            val rets = waitReadyResult(f)
+            val tidyResp =
+              if (rets.isEmpty)
+                GetTidyResp(workCard.quantity, TidyCard.default(param.workCardID, param.phase))
+              else
+                GetTidyResp(workCard.quantity, rets(0))
+
+            implicit val write = Json.writes[GetTidyResp]
+            Ok(Json.toJson(tidyResp))
+          }
         }
       })
   }
+
+  def getTidyCardList(workCardID: String) = Security.Authenticated.async {
+    implicit request =>
+      val f = TidyCard.getTidyCardOfWorkCard(workCardID)
+      for (cards <- f) yield {
+        Ok(Json.toJson(cards))
+      }
+
+  }
+
+  def upsertTidyCard = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+
+      val result = request.body.validate[TidyCard]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, card => {
+        card.date = DateTime.now.getMillis
+        val f = TidyCard.upsertCard(card)
+        for (rets <- f) yield {
+          val ret = rets(0)
+          Ok(Json.obj("ok" -> (ret.getModifiedCount == 1 ||
+            ret.getMatchedCount == 1)))
+        }
+
+      })
+  }
+
 }

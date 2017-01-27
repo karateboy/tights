@@ -29,9 +29,9 @@ object OrderManager extends Controller {
           },
         order => {
           val f = Order.upsertOrder(order)
-          if(order.date.isEmpty)
+          if (order.date.isEmpty)
             order.date = Some(DateTime.now().getMillis)
-            
+
           f.recover({
             case ex: Throwable =>
               Logger.error("upsertOrder failed", ex)
@@ -208,18 +208,17 @@ object OrderManager extends Controller {
           val workCardId = workCards.map { _._id }
           dyeCard.workIdList = workCardId
           def updateDyeCardSizeChart = {
-              var orderSet = Set.empty[String]
-              for (workCard <- workCards)
-                orderSet += (workCard.orderId)
-              
-              val f = Order.findOrders(orderSet.toSeq)
-              for(orders <- f)
-                yield{
-                val pair = orders map {order=> order._id -> order } 
-                pair.toMap
-              }
+            var orderSet = Set.empty[String]
+            for (workCard <- workCards)
+              orderSet += (workCard.orderId)
+
+            val f = Order.findOrders(orderSet.toSeq)
+            for (orders <- f) yield {
+              val pair = orders map { order => order._id -> order }
+              pair.toMap
+            }
           }
-          
+
           val orderMap = waitReadyResult(updateDyeCardSizeChart)
 
           val sizeList = workCards.map {
@@ -228,7 +227,7 @@ object OrderManager extends Controller {
               order.details(work.detailIndex).size
           }
           val sizeSet = Set(sizeList.toSeq: _*)
-          val sizeCharts = sizeSet.toSeq map {SizeChart(_, None, None)}
+          val sizeCharts = sizeSet.toSeq map { SizeChart(_, None, None) }
           dyeCard.sizeCharts = Some(sizeCharts)
 
           val f1 = DyeCard.newCard(dyeCard)
@@ -242,6 +241,24 @@ object OrderManager extends Controller {
           for (ret <- f3) yield {
             Ok(Json.obj("ok" -> true))
           }
+        })
+  }
+
+  import Order._
+  def queryOrder() = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val paramRead = Json.reads[QueryOrderParam]
+      val result = request.body.validate[QueryOrderParam]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        param => {
+          val f = Order.queryOrder(param)
+          for (orderList <- f)
+            yield Ok(Json.toJson(orderList))
         })
   }
 }

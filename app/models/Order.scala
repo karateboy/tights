@@ -74,7 +74,7 @@ case class PackageInfo(packageOption: Seq[Boolean], packageNote: String,
 object PackageInfo {
   implicit def toPackageInfo(implicit doc: Document) = {
     import org.mongodb.scala.bson._
- 
+
     val packageOption = getArray("packageOption", (v) => v.asBoolean().getValue)
     val packageNote = doc.getString("packageNote")
     val labelOption = getArray("labelOption", (v) => v.asBoolean().getValue)
@@ -214,7 +214,7 @@ object Order {
     }
 
     import PackageInfo._
-    
+
     Order(_id = _id,
       salesId = salesId,
       name = name,
@@ -318,5 +318,29 @@ object Order {
       case ex: Exception => Logger.error(ex.getMessage, ex)
     })
     f
+  }
+
+  case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
+                             factoryId: Option[String], customerId: Option[String], start: Long, end: Long)
+  def queryOrder(param: QueryOrderParam) = {
+    import org.mongodb.scala.model.Filters._
+    val idFilter = param._id map { _id => regex("_id", _id) }
+    val brandFilter = param.brand map { brand => regex("brand", brand) }
+    val nameFilter = param.name map { name => regex("name", name) }
+    val factoryFilter = param.factoryId map { factoryId => regex("factorId", factoryId)}
+    val customerFilter = param.customerId map { customerId => regex("customerId", customerId) }
+    val timeFilter = Some(and(gte("expectedDeliverDate", param.start), lt("expectedDeliverDate", param.end)))
+
+    val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter, customerFilter, timeFilter).flatMap { f => f }
+    val filter = and(filterList: _*)
+
+    val f = collection.find(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (records <- f)
+      yield records map {
+      toOrder
+    }
   }
 }
