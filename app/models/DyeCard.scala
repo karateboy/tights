@@ -296,4 +296,24 @@ object DyeCard {
         toDyeCard(doc)
     }
   }
+  
+  case class QueryDyeCardParam(_id: Option[String], color: Option[String], start: Long, end: Long)
+  def query(param:QueryDyeCardParam)={
+    import org.mongodb.scala.model.Filters._
+    val idFilter = param._id map { _id => regex("_id", _id) }
+    val colorFilter = param.color map { color => regex("color", color) }
+    val timeFilter = Some(and(gte("startTime", param.start), lt("startTime", param.end)))
+
+    val filterList = List(idFilter, colorFilter, timeFilter).flatMap { f => f }
+    val filter = and(filterList: _*)
+
+    val f = collection.find(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (records <- f)
+      yield records map {
+      doc=>toDyeCard(doc)
+    }
+  }
 }

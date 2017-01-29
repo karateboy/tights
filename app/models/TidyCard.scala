@@ -14,8 +14,9 @@ import org.mongodb.scala.bson._
 case class TidyID(workCardID: String, phase: String) {
   def toDocument = Document("workCardID" -> workCardID, "phase" -> phase)
 }
-case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int, sub: Int, stain: Int,
-                    broken: Int, subNotPack: Int, var date:Long) {
+case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int, 
+    sub: Option[Int], stain: Option[Int], broken: Option[Int], 
+    subNotPack: Option[Int], var date:Long) {
   def toDocument = {
     Document("_id" -> _id.toDocument, "workCardID" -> workCardID, "phase" -> phase, "operator" -> operator,
       "good" -> good, "sub" -> sub, "stain" -> stain,
@@ -41,7 +42,7 @@ object TidyCard {
   }
 
   def default(workCardID: String, phase: String) =
-    TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, 0, 0, 0, 0, 0)
+    TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None, None, 0)
 
   implicit val idRead = Json.reads[TidyID]
   implicit val idWrite = Json.writes[TidyID]
@@ -58,16 +59,16 @@ object TidyCard {
     TidyID(workCardID, phase)
   }
 
-  def toTidyCard(doc: Document) = {
+  def toTidyCard(implicit doc: Document) = {
     val _id = toTidyID(doc("_id").asDocument())
     val workCardID = doc.getString("workCardID")
     val phase = doc.getString("phase")
     val operator = doc.getString("operator")
     val good = doc.getInteger("good")
-    val sub = doc.getInteger("sub")
-    val stain = doc.getInteger("stain")
-    val broken = doc.getInteger("broken")
-    val subNotPack = doc.getInteger("subNotPack")
+    val sub = getOptionInt("sub")
+    val stain = getOptionInt("stain")
+    val broken = getOptionInt("broken")
+    val subNotPack = getOptionInt("subNotPack")
     val date = doc.getLong("date")
     TidyCard(_id, workCardID, phase, operator, good, sub, stain,
       broken, subNotPack, date)
@@ -77,17 +78,17 @@ object TidyCard {
     collection.insertOne(card.toDocument).toFuture()
   }
 
-  def upsertCard(card: TidyCard) = {
+  def upsertCard(card: TidyCard, active:Boolean) = {
     import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.model.Filters._
+    val workCardF = WorkCard.updateGoodAndActive(card.workCardID, card.good, active && card.good != 0)
+    workCardF.onFailure {errorHandler}
     
     val f = collection.replaceOne(equal("_id", card._id.toDocument), card.toDocument, UpdateOptions().upsert(true)).toFuture()
-    f.onFailure({
-      case ex: Exception => Logger.error(ex.getMessage, ex)
-    })
+    f.onFailure(errorHandler)
     f
   }
-
+  
   def queryCards(begin: Long, end: Long) = {
     import org.mongodb.scala.model.Filters._
     val f = collection.find(and(gte("_id", begin), lt("_id", end))).toFuture()
@@ -96,7 +97,8 @@ object TidyCard {
     }
     for (records <- f)
       yield records map {
-      toTidyCard
+      doc=>
+      toTidyCard(doc)
     }
   }
 
@@ -108,7 +110,8 @@ object TidyCard {
     }
     for (records <- f)
       yield records map {
-      toTidyCard
+      doc=>
+      toTidyCard(doc)
     }
 
   }
@@ -121,7 +124,8 @@ object TidyCard {
     }
     for (records <- f)
       yield records map {
-      toTidyCard
+      doc=>
+      toTidyCard(doc)
     }
   }
 

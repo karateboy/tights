@@ -36,6 +36,17 @@ object CardManager extends Controller {
     }
   }
 
+  def getWorkCard(id: String) = Security.Authenticated.async {
+    implicit request =>
+      val f = WorkCard.getCard(id)
+      for (card <- f) yield {
+        if (card.isEmpty)
+          Results.NoContent
+        else
+          Ok(Json.toJson(card))
+      }
+  }
+
   def getWorkCards = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
 
@@ -100,6 +111,44 @@ object CardManager extends Controller {
     }
   }
 
+  def getWorkCardLabelByDyeCard(dyeCardId: String) = Security.Authenticated.async {
+    import PdfUtility._
+    val fileName = s"工作卡標籤"
+    val fDyeCard = DyeCard.getCard(dyeCardId)
+    val ffWorkCard = for (dyeCardOpt <- fDyeCard) yield {
+      if (dyeCardOpt.isEmpty)
+        Future(Seq.empty[WorkCard])
+      else {
+        val dyeCard = dyeCardOpt.get
+        val fWorkCards = WorkCard.getCards(dyeCard.workIdList)
+        for (workCards <- fWorkCards) yield workCards
+      }
+    }
+
+    val fWorkCard = ffWorkCard.flatMap(f => f)
+    val ffOrder = for (workCards <- fWorkCard) yield {
+      var orderSet = Set.empty[String]
+      for (workCard <- workCards)
+        orderSet += (workCard.orderId)
+
+      Order.findOrders(orderSet.toSeq)
+    }
+    val fOrder = ffOrder.flatMap { x => x }
+
+    for {
+      workCards <- fWorkCard
+      orders <- fOrder
+    } yield {
+      val orderPair = orders map { order =>
+        order._id -> order
+      }
+
+      Ok.sendFile(createWorkCardLabel(workCardLabelProc(workCards, orderPair.toMap)),
+        fileName = _ =>
+          play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
+    }
+  }
+
   def getBarcode(fileName: String) = Action {
     import play.api.Play.current
     import java.io.File
@@ -136,6 +185,7 @@ object CardManager extends Controller {
   }
 
   def getStylingCard(workCardID: String) = Security.Authenticated.async {
+    import WorkCard._
     val f = WorkCard.getCard(workCardID)
     for (workCardOpt <- f) yield {
       if (workCardOpt.isEmpty) {
@@ -219,8 +269,9 @@ object CardManager extends Controller {
 
   }
 
-  def upsertTidyCard = Security.Authenticated.async(BodyParsers.parse.json) {
+  def upsertTidyCard(activeStr: String) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
+      val active = activeStr.toBoolean
 
       val result = request.body.validate[TidyCard]
 
@@ -231,14 +282,59 @@ object CardManager extends Controller {
         }
       }, card => {
         card.date = DateTime.now.getMillis
-        val f = TidyCard.upsertCard(card)
+
+        val f = TidyCard.upsertCard(card, active)
+
         for (rets <- f) yield {
           val ret = rets(0)
-          Ok(Json.obj("ok" -> (ret.getModifiedCount == 1 ||
+          Ok(Json.obj("ok" -> (ret.getModifiedCount == 1 || ret.getUpsertedId.isDocument() ||
             ret.getMatchedCount == 1)))
         }
-
       })
+  }
+
+  def getOrderDetailWorkCards(orderId: String, detailIndex: Int) = Security.Authenticated.async {
+    val f = WorkCard.getOrderWorkCards(orderId, detailIndex)
+    for (cards <- f) yield {
+      Ok(Json.toJson(cards))
+    }
+  }
+  
+
+  import DyeCard._
+  def queryDyeCard = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val paramRead = Json.reads[QueryDyeCardParam]
+      val result = request.body.validate[QueryDyeCardParam]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        param => {
+          val f = DyeCard.query(param)
+          for (cardList <- f)
+            yield Ok(Json.toJson(cardList))
+        })
+  }
+  
+  import WorkCard._
+  def queryWorkCard = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val paramRead = Json.reads[QueryWorkCardParam]
+      val result = request.body.validate[QueryWorkCardParam]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        param => {
+          val f = WorkCard.query(param)
+          for (cardList <- f)
+            yield Ok(Json.toJson(cardList))
+        })
   }
 
 }

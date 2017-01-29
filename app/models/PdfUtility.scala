@@ -276,6 +276,61 @@ object PdfUtility {
     tempFile
   }
 
+  def workCardLabelProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
+    val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+    val font = new Font(bf, 12)
+    def prepareCell(str: String, add: Boolean = true)(implicit tab: PdfPTable) = {
+      val cell = new PdfPCell(new Paragraph(str, font))
+      cell.setHorizontalAlignment(Element.ALIGN_LEFT)
+      cell.setVerticalAlignment(Element.ALIGN_MIDDLE)
+      cell.setPaddingBottom(8)
+      if (add)
+        tab.addCell(cell)
+
+      cell
+    }
+    
+    for(workCard<-workSeq){
+      val code128 = new Barcode128()
+      code128.setCode(workCard._id)
+      val bar2Img = code128.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
+      doc.add(bar2Img)
+      
+      implicit val tab = new PdfPTable(1)
+      tab.setSpacingBefore(6f)
+      tab.setWidthPercentage(100)
+      
+      prepareCell("訂單編號\n" + workCard.orderId)
+      val order = orderMap(workCard.orderId)
+      prepareCell("工廠\n" + order.factoryId)
+      prepareCell("客戶\n" + order.customerId)
+      prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
+      prepareCell("顏色:" + order.details(workCard.detailIndex).color)
+      
+      doc.add(tab)      
+      doc.newPage()
+    }
+  }
+  def createWorkCardLabel(proc: (Document, PdfWriter) => Unit) = {
+    import java.io.FileOutputStream
+    import java.nio.charset.Charset
+    import java.io._
+    import java.nio.charset.Charset
+
+    val labelSize = new Rectangle(82, 254)
+    val document = new Document(labelSize);
+
+    val tempFile = File.createTempFile("workCardLabel", ".pdf")
+    val writer = PdfWriter.getInstance(document, new FileOutputStream(tempFile));
+
+    document.setMargins(2, 2, 2, 2)
+    document.open()    
+    
+    proc(document, writer)
+    document.close()
+
+    tempFile
+  }
   import java.io.File
   def createBarcode(outputFile: File, msg: String) = {
     import java.awt.image.BufferedImage

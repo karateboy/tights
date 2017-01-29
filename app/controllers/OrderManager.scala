@@ -97,42 +97,54 @@ object OrderManager extends Controller {
   def getDyeCardSpec = Security.Authenticated.async {
     implicit request =>
       val f = Order.listActiveOrder()
-      val f2 = WorkCard.getActiveWorkCards()
+
       for {
         orderList <- f
-        workCardList <- f2
       } yield {
-        val workCardPairs =
-          for (workCard <- workCardList) yield workCard._id -> workCard
-        val workCardMap = workCardPairs.toMap
+        def needToProduceF(orderId: String, detailIndex: Int, detail: OrderDetail) = {
+          def goodFuture = {
+            val fWorkCards = WorkCard.getOrderWorkCards(orderId, detailIndex)
+            for (workCards <- fWorkCards) yield {
+              val good = workCards map { _.good }
+              good.sum
+            }
+          }
+          for (good <- goodFuture)
+            yield detail.quantity - good
+        }
+
+        val colorWorkCardSpecFutureSeq =
+          for {
+            order <- orderList
+            detail_idx <- order.details.zipWithIndex if !detail_idx._1.complete
+            detail = detail_idx._1
+            detailIndex = detail_idx._2
+            needF = needToProduceF(order._id, detailIndex, detail)
+          } yield {
+
+            for (need <- needF) yield {
+              if(need > 0)
+                Some(detail.color -> WorkCardSpec(order._id, detailIndex, detail, order.expectedDeliverDate, need))
+              else
+                None
+            }
+          }
+
+        val colorWorkCardSpecSeqFuture = Future.sequence(colorWorkCardSpecFutureSeq)
 
         import scala.collection.mutable.Map
         val dyeWorkCardMap = Map.empty[String, List[WorkCardSpec]]
-        def needToProduce(detail: OrderDetail) = {
-          def inProduction = {
-            val quantities = detail.workCardIDs map {
-              id =>
-                val workCard = workCardMap(id)
-                workCard.quantity
-            }
-            quantities.foldLeft(0)((a, b) => a + b)
-          }
 
-          detail.quantity - inProduction
-        }
-
-        for {
-          order <- orderList
-          detail_idx <- order.details.zipWithIndex if !detail_idx._1.complete && needToProduce(detail_idx._1) > 0
-          detail = detail_idx._1
-          index = detail_idx._2
-          need = needToProduce(detail)
+        val colorWorkCardSpecSeq = waitReadyResult(colorWorkCardSpecSeqFuture)
+        for {          
+          colorWorkCardSpec <- colorWorkCardSpecSeq.flatMap(x=>x)
+          color = colorWorkCardSpec._1
+          workCardSpec = colorWorkCardSpec._2
         } {
-          val specList = dyeWorkCardMap.getOrElseUpdate(detail.color, List.empty[WorkCardSpec])
-          val newSpecList = WorkCardSpec(order._id, index, detail, order.expectedDeliverDate, need) :: specList
-          val sortedSpecList = newSpecList.sortBy { wcs => wcs.due }
-          dyeWorkCardMap.put(detail.color, sortedSpecList)
+          val specList = dyeWorkCardMap.getOrElseUpdate(color, List.empty[WorkCardSpec])
+          dyeWorkCardMap.put(color, workCardSpec :: specList)
         }
+
         val dyeCardSpecList = dyeWorkCardMap map {
           kv =>
             val color = kv._1

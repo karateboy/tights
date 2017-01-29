@@ -20,13 +20,10 @@ case class ProductionNotice(department: String, msg: String) {
   }
 }
 
-case class OrderDetail(color: String, size: String, quantity: Int,
-                       workCardIDs: Seq[String], finishedWorkCards: Seq[WorkCard], complete: Boolean) {
+case class OrderDetail(color: String, size: String, quantity: Int, complete: Boolean) {
   def toDocument = {
     Document("color" -> color, "size" -> size,
       "quantity" -> quantity,
-      "workCardIDs" -> workCardIDs,
-      "finishedWorkCards" -> finishedWorkCards.map { _.toDocument },
       "complete" -> complete)
   }
 }
@@ -38,11 +35,9 @@ object OrderDetail {
     val color = doc.getString("color").getValue
     val size = doc.getString("size").getValue
     val quantity = doc.getInt32("quantity").getValue
-    val workCardIDs = getArray("workCardIDs", (v: BsonValue) => { v.asString().getValue })(doc)
-    val finishedWorkCards = getArray("finishedWorkCards", (v: BsonValue) => { WorkCard.toWorkCard(v.asDocument()) })(doc)
     val complete = doc.getBoolean("complete").getValue
 
-    OrderDetail(color, size, quantity, workCardIDs, finishedWorkCards, complete)
+    OrderDetail(color, size, quantity, complete)
   }
 }
 
@@ -320,6 +315,20 @@ object Order {
     f
   }
 
+  def setOrderDetailComplete(orderId: String, index: Int, complete: Boolean) = {
+    import org.mongodb.scala.bson._
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model.Updates._
+
+    val fieldName = "details." + index + ".complete"
+    val col = MongoDB.database.getCollection(colName)
+    val f = col.updateOne(and(equal("_id", orderId)), set(fieldName, complete)).toFuture()
+    f.onFailure({
+      case ex: Exception => Logger.error(ex.getMessage, ex)
+    })
+    f
+  }
+
   case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
                              factoryId: Option[String], customerId: Option[String], start: Long, end: Long)
   def queryOrder(param: QueryOrderParam) = {
@@ -327,7 +336,7 @@ object Order {
     val idFilter = param._id map { _id => regex("_id", _id) }
     val brandFilter = param.brand map { brand => regex("brand", brand) }
     val nameFilter = param.name map { name => regex("name", name) }
-    val factoryFilter = param.factoryId map { factoryId => regex("factorId", factoryId)}
+    val factoryFilter = param.factoryId map { factoryId => regex("factorId", factoryId) }
     val customerFilter = param.customerId map { customerId => regex("customerId", customerId) }
     val timeFilter = Some(and(gte("expectedDeliverDate", param.start), lt("expectedDeliverDate", param.end)))
 

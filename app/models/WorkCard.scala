@@ -12,8 +12,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 import org.mongodb.scala.bson._
 
-case class StylingCard(operator: String, good: Int, sub: Int,
-                       stain: Int, broken: Int, notEven: Int, var date: Long) {
+case class StylingCard(operator: Seq[String], good: Int, sub: Option[Int],
+                       stain: Option[Int], broken: Option[Int], notEven: Option[Int], var date: Long) {
   def toDocument = {
     Document("operator" -> operator, "good" -> good, "sub" -> sub,
       "stain" -> stain,
@@ -28,13 +28,13 @@ object StylingCard {
     def apply(sc: StylingCard): BsonDocument = sc.toDocument.toBsonDocument
   }
 
-  def toStylingCard(doc: Document) = {
-    val operator = doc.getString("operator")
+  def toStylingCard(implicit doc: Document) = {
+    val operator = getArray("operator", (v)=>{v.asString().getValue})
     val good = doc.getInteger("good")
-    val sub = doc.getInteger("sub")
-    val stain = doc.getInteger("stain")
-    val broken = doc.getInteger("broken")
-    val notEven = doc.getInteger("notEven")
+    val sub = getOptionInt("sub")
+    val stain = getOptionInt("stain")
+    val broken = getOptionInt("broken")
+    val notEven = getOptionInt("notEven")
     val date = doc.getLong("date")
     StylingCard(operator, good, sub, stain,
       broken, notEven, date)
@@ -180,10 +180,78 @@ object WorkCard {
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
 
+  def checkOrderDetailComplete(orderId:String, detailIndex:Int){
+    val f = getOrderWorkCards(orderId, detailIndex)
+    val orderF = Order.getOrder(orderId)
+    for{cards <-f
+      orderOpt <- orderF
+      order = orderOpt.get
+      }yield{
+      val finishedCards = cards.filter { !_.active }
+      val finishedGood = finishedCards.map { _.good }
+      val finished = finishedGood.sum
+      if(finished >= order.details(detailIndex).quantity)
+        Order.setOrderDetailComplete(orderId, detailIndex, true)
+    }
+  }
+  
   def updateStylingCard(workCardID: String, stylingCard: StylingCard) = {
     import org.mongodb.scala.model.Updates
-    val f = collection.updateOne(equal("_id", workCardID), Updates.set("stylingCard", stylingCard.toDocument)).toFuture()
+    val now = DateTime.now().getMillis
+    val f = collection.updateOne(equal("_id", workCardID),
+      Updates.combine(Updates.set("stylingCard", stylingCard.toDocument),
+        Updates.min("good", stylingCard.good),
+        Updates.set("active", stylingCard.good != 0),
+        Updates.set("endTime", now))).toFuture()
     f.onFailure { errorHandler }
     f
+  }
+
+  def updateGoodAndActive(workCardID: String, good: Int, active: Boolean) = {
+    import org.mongodb.scala.model.Updates
+    val now = DateTime.now().getMillis
+    val f = collection.updateOne(equal("_id", workCardID),
+      Updates.combine(
+        Updates.min("good", good),
+        Updates.set("active", active),
+        Updates.set("endTime", now))).toFuture()
+    f.onFailure { errorHandler }
+    f.onSuccess({
+      case _=>
+        if(!active && good > 0){
+          val workCardF = WorkCard.getCard(workCardID)
+          for(cardOpt<-workCardF)yield{
+            val card = cardOpt.get
+            checkOrderDetailComplete(card.orderId, card.detailIndex)
+          }
+        }
+    })
+    f
+  }
+
+  def getOrderWorkCards(orderId: String, detailIndex: Int) = {
+    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).toFuture()
+    f.onFailure { errorHandler }
+    for (cards <- f) yield cards.map { toWorkCard(_) }
+  }
+
+  case class QueryWorkCardParam(_id: Option[String], orderId: Option[String], start: Long, end: Long)
+  def query(param:QueryWorkCardParam)={
+    import org.mongodb.scala.model.Filters._
+    val idFilter = param._id map { _id => regex("_id", _id) }
+    val orderIdFilter = param.orderId map { orderId => regex("orderId", orderId) }
+    val timeFilter = Some(and(gte("startTime", param.start), lt("startTime", param.end)))
+
+    val filterList = List(idFilter, orderIdFilter, timeFilter).flatMap { f => f }
+    val filter = and(filterList: _*)
+
+    val f = collection.find(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (records <- f)
+      yield records map {
+      doc=>toWorkCard(doc)
+    }
   }
 }
