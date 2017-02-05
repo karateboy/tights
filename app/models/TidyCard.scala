@@ -14,13 +14,13 @@ import org.mongodb.scala.bson._
 case class TidyID(workCardID: String, phase: String) {
   def toDocument = Document("workCardID" -> workCardID, "phase" -> phase)
 }
-case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int, 
-    sub: Option[Int], stain: Option[Int], broken: Option[Int], 
-    subNotPack: Option[Int], var date:Long) {
+case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int,
+                    sub: Option[Int], stain: Option[Int], broken: Option[Int],
+                    subNotPack: Option[Int], var date: Long) {
   def toDocument = {
     Document("_id" -> _id.toDocument, "workCardID" -> workCardID, "phase" -> phase, "operator" -> operator,
       "good" -> good, "sub" -> sub, "stain" -> stain,
-      "broken" -> broken, "subNotPack" -> subNotPack, "date"->date)
+      "broken" -> broken, "subNotPack" -> subNotPack, "date" -> date)
   }
 }
 
@@ -78,27 +78,29 @@ object TidyCard {
     collection.insertOne(card.toDocument).toFuture()
   }
 
-  def upsertCard(card: TidyCard, active:Boolean) = {
+  def upsertCard(card: TidyCard, active: Boolean) = {
     import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.model.Filters._
     val workCardF = WorkCard.updateGoodAndActive(card.workCardID, card.good, active && card.good != 0)
-    workCardF.onFailure {errorHandler}
-    
+    workCardF.onFailure { errorHandler }
+
     val f = collection.replaceOne(equal("_id", card._id.toDocument), card.toDocument, UpdateOptions().upsert(true)).toFuture()
     f.onFailure(errorHandler)
     f
   }
-  
+
   def queryCards(begin: Long, end: Long) = {
     import org.mongodb.scala.model.Filters._
-    val f = collection.find(and(gte("_id", begin), lt("_id", end))).toFuture()
+
+    val f = collection.find(and(gte("date", begin), lt("date", end)))
+      .sort(org.mongodb.scala.model.Sorts.ascending("date")).toFuture()
     f.onFailure {
       errorHandler
     }
     for (records <- f)
       yield records map {
-      doc=>
-      toTidyCard(doc)
+      doc =>
+        toTidyCard(doc)
     }
   }
 
@@ -110,8 +112,8 @@ object TidyCard {
     }
     for (records <- f)
       yield records map {
-      doc=>
-      toTidyCard(doc)
+      doc =>
+        toTidyCard(doc)
     }
 
   }
@@ -124,8 +126,8 @@ object TidyCard {
     }
     for (records <- f)
       yield records map {
-      doc=>
-      toTidyCard(doc)
+      doc =>
+        toTidyCard(doc)
     }
   }
 

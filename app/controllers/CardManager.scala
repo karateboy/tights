@@ -36,6 +36,24 @@ object CardManager extends Controller {
     }
   }
 
+  def deleteDyeCard(id: String) = Security.Authenticated.async {
+    import DyeCard._
+    val f = DyeCard.getCard(id)
+
+    for (dyeCardOpt <- f) yield {
+      if (dyeCardOpt.isEmpty)
+        Ok(Json.obj("ok" -> false, "msg"->"漂染卡不存在"))
+      else {
+        val dyeCard = dyeCardOpt.get
+        for(workCardId <- dyeCard.workIdList)
+          WorkCard.deleteCard(workCardId)
+          
+        DyeCard.deleteCard(id)
+        Ok(Json.obj("ok" -> true))
+      }
+    }
+  }
+  
   def getWorkCard(id: String) = Security.Authenticated.async {
     implicit request =>
       val f = WorkCard.getCard(id)
@@ -299,7 +317,6 @@ object CardManager extends Controller {
       Ok(Json.toJson(cards))
     }
   }
-  
 
   import DyeCard._
   def queryDyeCard = Security.Authenticated.async(BodyParsers.parse.json) {
@@ -318,7 +335,7 @@ object CardManager extends Controller {
             yield Ok(Json.toJson(cardList))
         })
   }
-  
+
   import WorkCard._
   def queryWorkCard = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
@@ -337,4 +354,19 @@ object CardManager extends Controller {
         })
   }
 
+  def tidyCardReport(startL:Long, endL:Long, output:String) = Security.Authenticated.async {
+    val outputType = OutputType.withName(output)
+    val (start, end) = (new DateTime(startL), new DateTime(endL)) 
+    val f = TidyCard.queryCards(startL, endL)
+    for(cards<-f)
+      yield{
+      if(outputType == OutputType.html)
+        Ok(Json.toJson(cards))
+      else{
+        val excel = ExcelUtility.getTidyReport(cards, start, end)
+        Ok.sendFile(excel, fileName = _ =>
+              play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+      }
+    }
+  }
 }

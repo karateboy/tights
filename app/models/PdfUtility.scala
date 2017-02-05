@@ -163,11 +163,15 @@ object PdfUtility {
       prepareCell("包數")
       prepareCell("打數")
       prepareCell("襪袋備註")
-      for (row <- 1 to 5) {
-        for (col <- 1 to 5) {
-          prepareCell(" ")
-        }
+      for(workCard <- workSeq){
+        val order = orderMap(workCard.orderId)
+        prepareCell(order.name)
+        prepareCell(order.details(workCard.detailIndex).size)
+        prepareCell(" ")
+        prepareCell((workCard.quantity/12).toString())
+        prepareCell(" ")
       }
+      
       prepareCell("其他備註:")
       val cell = prepareCell(" ", false)
       cell.setColspan(2)
@@ -214,7 +218,7 @@ object PdfUtility {
       val dp = prepareCell("染色程序(kg):", false)
       dp.setRowspan(3)
       tab3.addCell(dp)
-      prepareCell("均染劑:____kg")
+      prepareCell("均染劑(一般,PAM):____kg")
       prepareCell("冰醋酸:____kg")
       prepareCell("溫度:____C")
       prepareCell("醋銨:____kg")
@@ -278,7 +282,7 @@ object PdfUtility {
 
   def workCardLabelProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-    val font = new Font(bf, 12)
+    val font = new Font(bf, 16)
     def prepareCell(str: String, add: Boolean = true)(implicit tab: PdfPTable) = {
       val cell = new PdfPCell(new Paragraph(str, font))
       cell.setHorizontalAlignment(Element.ALIGN_LEFT)
@@ -294,18 +298,21 @@ object PdfUtility {
       val code128 = new Barcode128()
       code128.setCode(workCard._id)
       val bar2Img = code128.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
+      bar2Img.setAlignment(Element.ALIGN_MIDDLE)
       doc.add(bar2Img)
       
       implicit val tab = new PdfPTable(1)
       tab.setSpacingBefore(6f)
       tab.setWidthPercentage(100)
       
-      prepareCell("訂單編號\n" + workCard.orderId)
+      prepareCell(workCard.orderId)
       val order = orderMap(workCard.orderId)
-      prepareCell("工廠\n" + order.factoryId)
-      prepareCell("客戶\n" + order.customerId)
-      prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
-      prepareCell("顏色:" + order.details(workCard.detailIndex).color)
+      prepareCell(order.factoryId)
+      prepareCell(order.customerId)
+      prepareCell(order.details(workCard.detailIndex).size)
+      prepareCell(order.details(workCard.detailIndex).color)
+      prepareCell("數量:" + workCard.quantity)
+      prepareCell("優:")
       
       doc.add(tab)      
       doc.newPage()

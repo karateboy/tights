@@ -91,7 +91,7 @@ object OrderManager extends Controller {
 
   }
 
-  case class WorkCardSpec(orderId: String, index: Int, detail: OrderDetail, due: Long, need: Int)
+  case class WorkCardSpec(orderId: String, factoryId:String, index: Int, detail: OrderDetail, due: Long, need: Int)
   case class DyeCardSpec(color: String, due: Long, workCardSpecList: Seq[WorkCardSpec])
 
   def getDyeCardSpec = Security.Authenticated.async {
@@ -124,7 +124,7 @@ object OrderManager extends Controller {
 
             for (need <- needF) yield {
               if(need > 0)
-                Some(detail.color -> WorkCardSpec(order._id, detailIndex, detail, order.expectedDeliverDate, need))
+                Some(detail.color -> WorkCardSpec(order._id, order.factoryId, detailIndex, detail, order.expectedDeliverDate, need))
               else
                 None
             }
@@ -272,5 +272,16 @@ object OrderManager extends Controller {
           for (orderList <- f)
             yield Ok(Json.toJson(orderList))
         })
+  }
+  
+  def closeOrder(_id:String) = Security.Authenticated.async {
+    val f = Order.closeOrder(_id)
+    for(rets <- f)yield{
+      if(rets.isEmpty)
+        Ok(Json.obj("ok"->false, "msg"->"找不到訂單"))
+      else{
+        Ok(Json.obj("ok"->true))
+      }
+    }
   }
 }

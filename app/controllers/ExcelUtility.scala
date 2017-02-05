@@ -36,4 +36,50 @@ object ExcelUtility {
     new File(reportFilePath.toAbsolutePath().toString())
   }
   
+  def toDozenStr(v:Option[Int]):String={
+    if(v.isEmpty)
+      "-"
+    else
+      toDozenStr(v.get)
+  }
+  
+  def toDozenStr(v:Int)={
+    val dozen = v/12
+    val fract = v%12
+    val dozenStr = "%d".format(dozen)
+    if(fract == 0)
+      dozenStr
+    else{
+      val fractStr = "%02d".format(fract)
+      s"$dozenStr.$fractStr"
+    }
+  }
+  def getTidyReport(cardList:Seq[TidyCard], start:DateTime, end:DateTime) = {
+    val (reportFilePath, pkg, wb) = prepareTemplate("tidyReport.xlsx")
+    val evaluator = wb.getCreationHelper().createFormulaEvaluator()
+    val format = wb.createDataFormat();
+
+    val sheet = wb.getSheetAt(0)
+    val timeRow = sheet.getRow(1)
+    timeRow.createCell(1).setCellValue(start.toString("YY-MM-dd"))
+    timeRow.createCell(3).setCellValue(end.toString("YY-MM-dd"))
+    for{card_idx<-cardList.zipWithIndex
+      card = card_idx._1
+      rowN = card_idx._2 + 3
+      }{
+      val row = sheet.createRow(rowN)
+      val date = new DateTime(card.date)
+      row.createCell(0).setCellValue(date.toString("MM-dd"))
+      row.createCell(1).setCellValue(card.workCardID)
+      row.createCell(2).setCellValue(card.phase)
+      row.createCell(3).setCellValue(toDozenStr(card.good))
+      row.createCell(4).setCellValue(toDozenStr(card.sub))
+      row.createCell(5).setCellValue(toDozenStr(card.stain))
+      row.createCell(6).setCellValue(toDozenStr(card.broken))
+      row.createCell(7).setCellValue(toDozenStr(card.subNotPack))
+      row.createCell(8).setCellValue(card.operator)
+    }
+    
+    finishExcel(reportFilePath, pkg, wb)
+  }
 }

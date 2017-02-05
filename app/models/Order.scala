@@ -352,4 +352,10 @@ object Order {
       toOrder
     }
   }
+
+  def closeOrder(_id: String) = {
+    import org.mongodb.scala.model.Updates._
+    val f = collection.findOneAndUpdate(equal("_id", _id), set("active", false)).toFuture()
+    f
+  }
 }

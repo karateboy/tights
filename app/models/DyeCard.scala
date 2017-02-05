@@ -33,11 +33,11 @@ object DyePotion {
 }
 
 case class DyeProcess(evenDye: Option[Double], vNH3: Option[Double], nh3: Option[Double], iceV: Option[Double],
-                      other: Option[String],
+                      evenDyeType: Option[String],
                       dyeTime: Option[Int], dyeTemp: Option[Double],
                       phStart: Option[Double], phEnd: Option[Double]) {
   def toDocument = Document("evenDye" -> evenDye, "vNH3" -> vNH3, "nh3" -> nh3,
-    "iceV" -> iceV, "other" -> other, "dyeTime" -> dyeTime, "dyeTemp" -> dyeTemp,
+    "iceV" -> iceV, "evenDyeType" -> evenDyeType, "dyeTime" -> dyeTime, "dyeTemp" -> dyeTemp,
     "phStart" -> phStart, "phEnd" -> phEnd)
 
 }
@@ -65,7 +65,7 @@ case class SizeChart(size: String, before: Option[Double], after: Option[Double]
 }
 
 case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
-                   startTime: Option[Long], var updateTime: Option[Long], var active: Boolean,
+                   startTime: Option[Long], var updateTime: Option[Long], var active: Boolean, remark: Option[String],
                    operator: Option[String], date: Option[Long], pot: Option[String], weight: Option[Double],
                    refineProcess: Option[RefineProcess],
                    dyePotion: Option[DyePotion],
@@ -104,7 +104,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "postProcess" -> postProcess,
       "dryTime" -> dryTime, "dryTemp" -> dryTemp,
       "sizeCharts" -> sizeCharts,
-      "active" -> active)
+      "active" -> active, "remark"->remark)
   }
 
   def updateID: Unit = {
@@ -138,7 +138,8 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       dyeProcess = Some(DyeProcess.default),
       postProcess = Some(PostProcess.default),
       dryTemp = None, dryTime = None,
-      sizeCharts = None)
+      sizeCharts = None,
+      remark = remark)
   }
 }
 
@@ -202,13 +203,13 @@ object DyeCard {
     val dyeTime = getOptionInt("dyeTime")
     val vNH3 = getOptionDouble("vNH3")
     val nh3 = getOptionDouble("nh3")
-    val other = getOptionStr("other")
+    val evenDyeType = getOptionStr("evenDyeType")
     val dyeTemp = getOptionDouble("dyeTemp")
     val iceV = getOptionDouble("iceV")
     val phStart = getOptionDouble("phStart")
     val phEnd = getOptionDouble("phEnd")
 
-    DyeProcess(evenDye = evenDye, vNH3 = vNH3, nh3 = nh3, iceV = iceV, other = other,
+    DyeProcess(evenDye = evenDye, vNH3 = vNH3, nh3 = nh3, iceV = iceV, evenDyeType = evenDyeType,
       dyeTemp = dyeTemp, dyeTime = dyeTime,
       phStart = phStart, phEnd = phEnd)
   }
@@ -250,9 +251,10 @@ object DyeCard {
     val dryTime = getOptionTime("dryTime")
     val sizeCharts = getOptionArray("sizeCharts", (v) => { toSizeChart(v.asDocument()) })
     val active = doc.getBoolean("active")
+    val remark = getOptionStr("remark")
 
     DyeCard(_id = _id, workIdList = workIdList, color = color,
-      startTime = startTime, updateTime = updateTime,
+      startTime = startTime, updateTime = updateTime, remark=remark,
       operator = operator, date = date, pot = pot, weight = weight,
       refineProcess = refineProcess,
       dyePotion = dyePotion,

@@ -22,12 +22,14 @@ GET      /Order/:id                    controllers.OrderManager.getOrder(id)
 GET      /Department                   controllers.OrderManager.getDepartmentInfoList
 GET      /MyActiveOrder/:userId        controllers.OrderManager.myActiveOrder(userId)
 POST     /QueryOrder                   controllers.OrderManager.queryOrder()
+POST     /CloseOrder/:id               controllers.OrderManager.closeOrder(id)
 
 GET      /DyeCardSpec                  controllers.OrderManager.getDyeCardSpec
 POST     /ScheduleDyeWork              controllers.OrderManager.scheduleDyeWork
 GET      /DyeCard                      controllers.CardManager.getDyeCardList
 POST     /DyeCard                      controllers.CardManager.updateDyeCard
 GET      /DyeCard/:id                  controllers.CardManager.getDyeCard(id)
+DELETE   /DyeCard/:id                  controllers.CardManager.deleteDyeCard(id)
 GET      /DyeCardPDF/:id               controllers.CardManager.getDyeCardPdf(id)
 GET      /WorkCardLabelByDyeCard/:id   controllers.CardManager.getWorkCardLabelByDyeCard(id)
 POST     /QueryDyeCard                 controllers.CardManager.queryDyeCard
@@ -40,6 +42,8 @@ GET      /TidyCardList/:workCardID     controllers.CardManager.getTidyCardList(w
 POST     /GetTidyCard                  controllers.CardManager.getTidyCard
 POST     /TidyCard                     controllers.CardManager.upsertTidyCard(active="true")
 POST     /FinalTidyCard                controllers.CardManager.upsertTidyCard(active="false")
+GET      /TidyReport/:start/:end       controllers.CardManager.tidyCardReport(start: Long, end: Long, output="html")
+GET		 /TidyReport/Excel/:start/:end controllers.CardManager.tidyCardReport(start: Long, end: Long, output="excel")
 
 GET      /WorkCard/:id                 controllers.CardManager.getWorkCard(id)
 GET      /OrderWorkCard/:id/:idx       controllers.CardManager.getOrderDetailWorkCards(id, idx:Int)
