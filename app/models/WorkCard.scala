@@ -170,7 +170,7 @@ object WorkCard {
   }
 
   def getCards(ids: Seq[String]) = {
-    val f = collection.find(in("_id", ids: _*)).toFuture()
+    val f = collection.find(in("_id", ids: _*)).sort(ascending("orderId", "detailIndex")).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield {
       cards map { toWorkCard(_) }
@@ -178,7 +178,7 @@ object WorkCard {
   }
 
   def getActiveWorkCards() = {
-    val f = collection.find(equal("active", true)).toFuture()
+    val f = collection.find(equal("active", true)).sort(ascending("orderId", "detailIndex")).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
@@ -234,7 +234,7 @@ object WorkCard {
   }
 
   def getOrderWorkCards(orderId: String, detailIndex: Int) = {
-    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).toFuture()
+    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).sort(ascending("orderId", "detailIndex")).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
@@ -249,7 +249,7 @@ object WorkCard {
     val filterList = List(idFilter, orderIdFilter, timeFilter).flatMap { f => f }
     val filter = and(filterList: _*)
 
-    val f = collection.find(filter).toFuture()
+    val f = collection.find(filter).sort(ascending("orderId", "detailIndex")).toFuture()
     f.onFailure {
       errorHandler
     }

@@ -227,7 +227,8 @@ object Order {
 
   def listActiveOrder() = {
     import org.mongodb.scala.model.Filters._
-    val f = collection.find(equal("active", true)).toFuture()
+    import org.mongodb.scala.model._
+    val f = collection.find(equal("active", true)).sort(Sorts.ascending("_id")).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -267,7 +268,8 @@ object Order {
   }
 
   def findOrders(orderIdList: Seq[String]) = {
-    val f = collection.find(in("_id", orderIdList: _*)).toFuture()
+    import org.mongodb.scala.model._
+    val f = collection.find(in("_id", orderIdList: _*)).sort(Sorts.ascending("_id")).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -279,7 +281,9 @@ object Order {
 
   def myActiveOrder(salesId: String) = {
     import org.mongodb.scala.model.Filters._
-    val f = collection.find(and(equal("active", true), equal("salesId", salesId))).toFuture()
+    import org.mongodb.scala.model._
+    val f = collection.find(and(equal("active", true), equal("salesId", salesId)))
+      .sort(Sorts.ascending("_id")).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -291,7 +295,8 @@ object Order {
 
   def getHistoryOrder(begin: Long, end: Long) = {
     import org.mongodb.scala.model.Filters._
-    val f = collection.find(and(gte("date", begin), lt("date", end))).toFuture()
+    import org.mongodb.scala.model._
+    val f = collection.find(and(gte("date", begin), lt("date", end))).sort(Sorts.ascending("_id")).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -333,6 +338,7 @@ object Order {
                              factoryId: Option[String], customerId: Option[String], start: Long, end: Long)
   def queryOrder(param: QueryOrderParam) = {
     import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
     val idFilter = param._id map { _id => regex("_id", _id) }
     val brandFilter = param.brand map { brand => regex("brand", brand) }
     val nameFilter = param.name map { name => regex("name", name) }
@@ -343,7 +349,7 @@ object Order {
     val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter, customerFilter, timeFilter).flatMap { f => f }
     val filter = and(filterList: _*)
 
-    val f = collection.find(filter).toFuture()
+    val f = collection.find(filter).sort(Sorts.ascending("_id")).toFuture()
     f.onFailure {
       errorHandler
     }
