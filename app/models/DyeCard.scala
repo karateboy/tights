@@ -108,9 +108,11 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
   }
 
   def updateID: Unit = {
-    import java.util.concurrent.ThreadLocalRandom
-    val randomNum = ThreadLocalRandom.current().nextInt(1, 1000000)
-    val newID = "%06d".format(randomNum)
+    //import java.util.concurrent.ThreadLocalRandom
+    //val randomNum = ThreadLocalRandom.current().nextInt(1, 1000000)
+    val idF = Identity.getNewID("dyeCard")
+    val id = waitReadyResult(idF)
+    val newID = "%06d".format(id.seq)
     val f = DyeCard.getCard(newID)
     val ret = waitReadyResult(f)
 

@@ -29,7 +29,7 @@ object StylingCard {
   }
 
   def toStylingCard(implicit doc: Document) = {
-    val operator = getArray("operator", (v)=>{v.asString().getValue})
+    val operator = getArray("operator", (v) => { v.asString().getValue })
     val good = doc.getInteger("good")
     val sub = getOptionInt("sub")
     val stain = getOptionInt("stain")
@@ -59,9 +59,12 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
   }
 
   def updateID: Unit = {
-    import java.util.concurrent.ThreadLocalRandom
-    val randomNum = ThreadLocalRandom.current().nextInt(1, 1000000)
-    val newID = "%06d".format(randomNum)
+    //import java.util.concurrent.ThreadLocalRandom
+    //val randomNum = ThreadLocalRandom.current().nextInt(1, 1000000)
+    val idF = Identity.getNewID("workCard")
+    val id = waitReadyResult(idF)
+    val newID = "%06d".format(id.seq)
+
     val f = WorkCard.getCard(newID)
     val ret = waitReadyResult(f)
 
@@ -180,21 +183,22 @@ object WorkCard {
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
 
-  def checkOrderDetailComplete(orderId:String, detailIndex:Int){
+  def checkOrderDetailComplete(orderId: String, detailIndex: Int) {
     val f = getOrderWorkCards(orderId, detailIndex)
     val orderF = Order.getOrder(orderId)
-    for{cards <-f
+    for {
+      cards <- f
       orderOpt <- orderF
       order = orderOpt.get
-      }yield{
+    } yield {
       val finishedCards = cards.filter { !_.active }
       val finishedGood = finishedCards.map { _.good }
       val finished = finishedGood.sum
-      if(finished >= order.details(detailIndex).quantity)
+      if (finished >= order.details(detailIndex).quantity)
         Order.setOrderDetailComplete(orderId, detailIndex, true)
     }
   }
-  
+
   def updateStylingCard(workCardID: String, stylingCard: StylingCard) = {
     import org.mongodb.scala.model.Updates
     val now = DateTime.now().getMillis
@@ -217,10 +221,10 @@ object WorkCard {
         Updates.set("endTime", now))).toFuture()
     f.onFailure { errorHandler }
     f.onSuccess({
-      case _=>
-        if(!active && good > 0){
+      case _ =>
+        if (!active && good > 0) {
           val workCardF = WorkCard.getCard(workCardID)
-          for(cardOpt<-workCardF)yield{
+          for (cardOpt <- workCardF) yield {
             val card = cardOpt.get
             checkOrderDetailComplete(card.orderId, card.detailIndex)
           }
@@ -236,7 +240,7 @@ object WorkCard {
   }
 
   case class QueryWorkCardParam(_id: Option[String], orderId: Option[String], start: Long, end: Long)
-  def query(param:QueryWorkCardParam)={
+  def query(param: QueryWorkCardParam) = {
     import org.mongodb.scala.model.Filters._
     val idFilter = param._id map { _id => regex("_id", _id) }
     val orderIdFilter = param.orderId map { orderId => regex("orderId", orderId) }
@@ -251,7 +255,7 @@ object WorkCard {
     }
     for (records <- f)
       yield records map {
-      doc=>toWorkCard(doc)
+      doc => toWorkCard(doc)
     }
   }
 }
