@@ -239,15 +239,21 @@ object WorkCard {
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
 
-  case class QueryWorkCardParam(_id: Option[String], orderId: Option[String], start: Long, end: Long)
+  case class QueryWorkCardParam(_id: Option[String], orderId: Option[String], start: Option[Long], end: Option[Long])
   def query(param: QueryWorkCardParam) = {
     import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+
     val idFilter = param._id map { _id => regex("_id", _id) }
     val orderIdFilter = param.orderId map { orderId => regex("orderId", orderId) }
-    val timeFilter = Some(and(gte("startTime", param.start), lt("startTime", param.end)))
+    val startFilter = param.start map { gte("startTime", _) }
+    val endFilter = param.end map { lt("startTime", _) }
 
-    val filterList = List(idFilter, orderIdFilter, timeFilter).flatMap { f => f }
-    val filter = and(filterList: _*)
+    val filterList = List(idFilter, orderIdFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      Filters.exists("_id")
 
     val f = collection.find(filter).sort(ascending("orderId", "detailIndex")).toFuture()
     f.onFailure {

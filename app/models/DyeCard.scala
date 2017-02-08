@@ -104,7 +104,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "postProcess" -> postProcess,
       "dryTime" -> dryTime, "dryTemp" -> dryTemp,
       "sizeCharts" -> sizeCharts,
-      "active" -> active, "remark"->remark)
+      "active" -> active, "remark" -> remark)
   }
 
   def updateID: Unit = {
@@ -133,7 +133,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       updateTime = None,
       active = true,
       operator = None,
-      date = None, 
+      date = None,
       pot = None, weight = None,
       refineProcess = Some(RefineProcess.default),
       dyePotion = Some(DyePotion.default),
@@ -256,7 +256,7 @@ object DyeCard {
     val remark = getOptionStr("remark")
 
     DyeCard(_id = _id, workIdList = workIdList, color = color,
-      startTime = startTime, updateTime = updateTime, remark=remark,
+      startTime = startTime, updateTime = updateTime, remark = remark,
       operator = operator, date = date, pot = pot, weight = weight,
       refineProcess = refineProcess,
       dyePotion = dyePotion,
@@ -300,16 +300,22 @@ object DyeCard {
         toDyeCard(doc)
     }
   }
-  
-  case class QueryDyeCardParam(_id: Option[String], color: Option[String], start: Long, end: Long)
-  def query(param:QueryDyeCardParam)={
+
+  case class QueryDyeCardParam(_id: Option[String], color: Option[String], start: Option[Long], end: Option[Long])
+  def query(param: QueryDyeCardParam) = {
     import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+    
     val idFilter = param._id map { _id => regex("_id", _id) }
     val colorFilter = param.color map { color => regex("color", color) }
-    val timeFilter = Some(and(gte("startTime", param.start), lt("startTime", param.end)))
+    val startFilter = param.start map { gte("startTime", _) }
+    val endFilter = param.end map { lt("startTime", _) }
 
-    val filterList = List(idFilter, colorFilter, timeFilter).flatMap { f => f }
-    val filter = and(filterList: _*)
+    val filterList = List(idFilter, colorFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      Filters.exists("_id")
 
     val f = collection.find(filter).toFuture()
     f.onFailure {
@@ -317,7 +323,7 @@ object DyeCard {
     }
     for (records <- f)
       yield records map {
-      doc=>toDyeCard(doc)
+      doc => toDyeCard(doc)
     }
   }
 }

@@ -54,7 +54,8 @@ object ExcelUtility {
       s"$dozenStr.$fractStr"
     }
   }
-  def getTidyReport(cardList:Seq[TidyCard], start:DateTime, end:DateTime) = {
+  def getTidyReport(cardList:Seq[TidyCard], workCardMap:Map[String, WorkCard], orderMap:Map[String, Order], 
+      start:DateTime, end:DateTime) = {
     val (reportFilePath, pkg, wb) = prepareTemplate("tidyReport.xlsx")
     val evaluator = wb.getCreationHelper().createFormulaEvaluator()
     val format = wb.createDataFormat();
@@ -70,14 +71,16 @@ object ExcelUtility {
       val row = sheet.createRow(rowN)
       val date = new DateTime(card.date)
       row.createCell(0).setCellValue(date.toString("MM-dd"))
-      row.createCell(1).setCellValue(card.workCardID)
-      row.createCell(2).setCellValue(card.phase)
-      row.createCell(3).setCellValue(toDozenStr(card.good))
-      row.createCell(4).setCellValue(toDozenStr(card.sub))
-      row.createCell(5).setCellValue(toDozenStr(card.stain))
-      row.createCell(6).setCellValue(toDozenStr(card.broken))
-      row.createCell(7).setCellValue(toDozenStr(card.subNotPack))
-      row.createCell(8).setCellValue(card.operator)
+      row.createCell(1).setCellValue(workCardMap(card.workCardID).orderId)
+      row.createCell(2).setCellValue(orderMap(workCardMap(card.workCardID).orderId).name)
+      row.createCell(3).setCellValue(card.workCardID)
+      row.createCell(4).setCellValue(card.phase)
+      row.createCell(5).setCellValue(toDozenStr(card.good))
+      row.createCell(6).setCellValue(toDozenStr(card.sub))
+      row.createCell(7).setCellValue(toDozenStr(card.stain))
+      row.createCell(8).setCellValue(toDozenStr(card.broken))
+      row.createCell(9).setCellValue(toDozenStr(card.subNotPack))
+      row.createCell(10).setCellValue(card.operator)
     }
     
     finishExcel(reportFilePath, pkg, wb)

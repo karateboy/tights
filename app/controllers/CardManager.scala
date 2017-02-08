@@ -363,7 +363,17 @@ object CardManager extends Controller {
       if(outputType == OutputType.html)
         Ok(Json.toJson(cards))
       else{
-        val excel = ExcelUtility.getTidyReport(cards, start, end)
+        val workCardIdList = cards.map {_.workCardID}
+        val workCardIdSet = Set(workCardIdList :_*)
+        val workCardF = WorkCard.getCards(workCardIdSet.toSeq)
+        val workCards = waitReadyResult(workCardF)
+        val workCardPair = workCards map {card=> card._id->card}
+        val orderIdSet = Set(workCards.map{_.orderId}:_*)
+        val ordersF = Order.getOrders(orderIdSet.toSeq)
+        val orders = waitReadyResult(ordersF)
+        val orderPair = orders map {order=>order._id->order}
+        
+        val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
               play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }

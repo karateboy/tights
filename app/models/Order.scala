@@ -267,6 +267,15 @@ object Order {
     }
   }
 
+  def getOrders(orderIds: Seq[String]) = {
+    val f = collection.find(in("_id", orderIds)).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (orders <- f) yield {
+       orders map toOrder
+    }
+  }
   def findOrders(orderIdList: Seq[String]) = {
     import org.mongodb.scala.model._
     val f = collection.find(in("_id", orderIdList: _*)).sort(Sorts.ascending("_id")).toFuture()
@@ -335,19 +344,26 @@ object Order {
   }
 
   case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
-                             factoryId: Option[String], customerId: Option[String], start: Long, end: Long)
+                             factoryId: Option[String], customerId: Option[String], 
+                             start: Option[Long], end: Option[Long])
   def queryOrder(param: QueryOrderParam) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
+
     val idFilter = param._id map { _id => regex("_id", _id) }
     val brandFilter = param.brand map { brand => regex("brand", brand) }
     val nameFilter = param.name map { name => regex("name", name) }
     val factoryFilter = param.factoryId map { factoryId => regex("factorId", factoryId) }
     val customerFilter = param.customerId map { customerId => regex("customerId", customerId) }
-    val timeFilter = Some(and(gte("expectedDeliverDate", param.start), lt("expectedDeliverDate", param.end)))
+    val startFilter = param.start map { start => gte("expectedDeliverDate", start)}
+    val endFilter = param.end map { end => lt("expectedDeliverDate", end)}
 
-    val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter, customerFilter, timeFilter).flatMap { f => f }
-    val filter = and(filterList: _*)
+    val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter, 
+        customerFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if(!filterList.isEmpty) 
+        and(filterList: _*)
+        else
+          Filters.exists("_id")
 
     val f = collection.find(filter).sort(Sorts.ascending("_id")).toFuture()
     f.onFailure {
