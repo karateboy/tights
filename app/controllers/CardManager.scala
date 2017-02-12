@@ -42,18 +42,18 @@ object CardManager extends Controller {
 
     for (dyeCardOpt <- f) yield {
       if (dyeCardOpt.isEmpty)
-        Ok(Json.obj("ok" -> false, "msg"->"漂染卡不存在"))
+        Ok(Json.obj("ok" -> false, "msg" -> "漂染卡不存在"))
       else {
         val dyeCard = dyeCardOpt.get
-        for(workCardId <- dyeCard.workIdList)
+        for (workCardId <- dyeCard.workIdList)
           WorkCard.deleteCard(workCardId)
-          
+
         DyeCard.deleteCard(id)
         Ok(Json.obj("ok" -> true))
       }
     }
   }
-  
+
   def getWorkCard(id: String) = Security.Authenticated.async {
     implicit request =>
       val f = WorkCard.getCard(id)
@@ -172,7 +172,6 @@ object CardManager extends Controller {
     import java.io.File
     import java.nio.file.Files
 
-    Logger.debug(fileName)
     val msgArray = fileName.split('.')
     val path = current.path.getAbsolutePath + "/barcode/" + s"$fileName"
     val barcodeFile = new File(path)
@@ -354,29 +353,80 @@ object CardManager extends Controller {
         })
   }
 
-  def tidyCardReport(startL:Long, endL:Long, output:String) = Security.Authenticated.async {
+  def tidyCardReport(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
     val outputType = OutputType.withName(output)
-    val (start, end) = (new DateTime(startL), new DateTime(endL)) 
+    val (start, end) = (new DateTime(startL), new DateTime(endL))
     val f = TidyCard.queryCards(startL, endL)
-    for(cards<-f)
-      yield{
-      if(outputType == OutputType.html)
+    for (cards <- f) yield {
+      if (outputType == OutputType.html)
         Ok(Json.toJson(cards))
-      else{
-        val workCardIdList = cards.map {_.workCardID}
-        val workCardIdSet = Set(workCardIdList :_*)
+      else {
+        val workCardIdList = cards.map { _.workCardID }
+        val workCardIdSet = Set(workCardIdList: _*)
         val workCardF = WorkCard.getCards(workCardIdSet.toSeq)
         val workCards = waitReadyResult(workCardF)
-        val workCardPair = workCards map {card=> card._id->card}
-        val orderIdSet = Set(workCards.map{_.orderId}:_*)
+        val workCardPair = workCards map { card => card._id -> card }
+        val orderIdSet = Set(workCards.map { _.orderId }: _*)
         val ordersF = Order.getOrders(orderIdSet.toSeq)
         val orders = waitReadyResult(ordersF)
-        val orderPair = orders map {order=>order._id->order}
-        
+        val orderPair = orders map { order => order._id -> order }
+
         val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
-              play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+          play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }
     }
+  }
+
+  case class StylingReport(cards: Seq[WorkCard], operatorList: Seq[String])
+  def stylingReport(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+    val outputType = OutputType.withName(output)
+    val (start, end) = (new DateTime(startL), new DateTime(endL))
+
+    val f = WorkCard.queryStylingCard(startL, endL)
+    for (cards <- f) yield {
+      var operatorSet = Set.empty[String]
+      for {
+        card <- cards
+        stylingCard = card.stylingCard.get
+      } {
+        operatorSet ++= stylingCard.operator.toSet
+      }
+      val operatorList = operatorSet.toList.sorted
+
+      if (outputType == OutputType.html) {
+        val report = StylingReport(cards, operatorList)
+        implicit val write = Json.writes[StylingReport]
+        Ok(Json.toJson(report))
+      } else {
+        val orderIdSet = Set(cards.map { _.orderId }: _*)
+        val ordersF = Order.getOrders(orderIdSet.toSeq)
+        val orders = waitReadyResult(ordersF)        
+        val orderPair = orders map { order => order._id -> order }
+
+        val excel = ExcelUtility.getStylingReport(cards, operatorList, orderPair.toMap, start, end)
+        Ok.sendFile(excel, fileName = _ =>
+          play.utils.UriEncoding.encodePathSegment("定型報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+      }
+    }
+  }
+  case class StartDyeParam(_id: String, operator: String)
+  def startDye = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val read = Json.reads[StartDyeParam]
+      val ret = request.body.validate[StartDyeParam]
+      ret.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, param => {
+        val f = DyeCard.startDye(param._id, param.operator)
+        for (ret <- f) yield Ok(Json.obj("ok" -> true))
+      })
+  }
+  def endDye(id: String) = Security.Authenticated.async {
+    val f = DyeCard.endDye(id)
+    for (ret <- f) yield Ok(Json.obj("ok" -> true))
   }
 }

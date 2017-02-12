@@ -101,13 +101,32 @@ object PdfUtility {
   import com.itextpdf.text.pdf._
   import com.itextpdf.text._
 
+  def toDozenStr(v: Option[Int]): String = {
+    if (v.isEmpty)
+      "-"
+    else
+      toDozenStr(v.get)
+  }
+
+  def toDozenStr(v: Int) = {
+    val dozen = v / 12
+    val fract = v % 12
+    val dozenStr = "%d".format(dozen)
+    if (fract == 0)
+      dozenStr
+    else {
+      val fractStr = "%02d".format(fract)
+      s"$dozenStr.$fractStr"
+    }
+  }
+  
   def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     { // barcode      
       val code39 = new Barcode39()
       code39.setCode(dyeCard._id)
       val bar2Img = code39.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
       doc.add(bar2Img)
-      
+
     }
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val font = new Font(bf, 12)
@@ -146,9 +165,8 @@ object PdfUtility {
       topTable.addCell(factoryCell)
       prepareCell("尺寸:" + sizeSet.mkString("/"))
       prepareCell("顏色:" + dyeCard.color)
-      val quantityList = workSeq.map { _.quantity }
-      val totalDozen = quantityList.sum / 12
-      prepareCell("總數量(打):" + totalDozen)
+      val quantityList = workSeq.map { _.quantity } 
+      prepareCell("總數量(打):" + toDozenStr(quantityList.sum))
       prepareCell("編織編號:")
 
       doc.add(topTable)
@@ -163,15 +181,15 @@ object PdfUtility {
       prepareCell("包數")
       prepareCell("打數")
       prepareCell("襪袋備註")
-      for(workCard <- workSeq){
+      for (workCard <- workSeq) {
         val order = orderMap(workCard.orderId)
         prepareCell(order.name)
         prepareCell(order.details(workCard.detailIndex).size)
         prepareCell(" ")
-        prepareCell((workCard.quantity/12).toString())
+        prepareCell(toDozenStr(workCard.quantity))
         prepareCell(" ")
       }
-      
+
       prepareCell("其他備註:")
       val cell = prepareCell(" ", false)
       cell.setColspan(2)
@@ -254,10 +272,10 @@ object PdfUtility {
       prepareCell("染前長度(cm)")
       prepareCell("染後長度(cm)")
 
-      for(size <- sizeSet){
+      for (size <- sizeSet) {
         prepareCell(size)
         prepareCell("")
-        prepareCell("")  
+        prepareCell("")
       }
       doc.add(tab)
     }
@@ -293,18 +311,18 @@ object PdfUtility {
 
       cell
     }
-    
-    for(workCard<-workSeq){
+
+    for (workCard <- workSeq) {
       val code128 = new Barcode128()
       code128.setCode(workCard._id)
       val bar2Img = code128.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
       bar2Img.setAlignment(Element.ALIGN_MIDDLE)
       doc.add(bar2Img)
-      
+
       implicit val tab = new PdfPTable(1)
       tab.setSpacingBefore(6f)
       tab.setWidthPercentage(100)
-      
+
       prepareCell(workCard.orderId)
       val order = orderMap(workCard.orderId)
       prepareCell(order.factoryId)
@@ -313,8 +331,8 @@ object PdfUtility {
       prepareCell(order.details(workCard.detailIndex).color)
       prepareCell("數量:" + workCard.quantity)
       prepareCell("優:")
-      
-      doc.add(tab)      
+
+      doc.add(tab)
       doc.newPage()
     }
   }
@@ -331,8 +349,8 @@ object PdfUtility {
     val writer = PdfWriter.getInstance(document, new FileOutputStream(tempFile));
 
     document.setMargins(2, 2, 2, 2)
-    document.open()    
-    
+    document.open()
+
     proc(document, writer)
     document.close()
 

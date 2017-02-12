@@ -264,4 +264,19 @@ object WorkCard {
       doc => toWorkCard(doc)
     }
   }
+  
+  def queryStylingCard(start:Long, end:Long) = {
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+
+    val filter = and(gte("stylingCard.date", start), lt("stylingCard.date", end))
+    val f = collection.find(filter).sort(ascending("stylingCard.date")).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (records <- f)
+      yield records map {
+      doc => toWorkCard(doc)
+    }
+  }
 }

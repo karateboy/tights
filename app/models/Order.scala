@@ -45,7 +45,7 @@ case class PackageInfo(packageOption: Seq[Boolean], packageNote: String,
                        labelOption: Seq[Boolean], labelNote: String,
                        cardOption: Seq[Boolean], cardNote: Seq[String],
                        bagOption: Seq[Boolean], pvcNote: String,
-                       numInBag: Int, bagNote: String,
+                       numInBag: Option[Int], bagNote: String,
                        exportBoxOption: Seq[Boolean], exportBoxNote: Seq[String],
                        ShippingMark: String, extraNote: Option[String]) {
   def toDocument = {
@@ -78,7 +78,7 @@ object PackageInfo {
     val cardNote = getArray("cardNote", (v) => v.asString().getValue)
     val bagOption = getArray("bagOption", (v) => v.asBoolean().getValue)
     val pvcNote = doc.getString("pvcNote")
-    val numInBag = doc.getInteger("numInBag")
+    val numInBag = getOptionInt("numInBag")
     val bagNote = doc.getString("bagNote")
     val exportBoxOption = getArray("exportBoxOption", (v) => v.asBoolean().getValue)
     val exportBoxNote = getArray("exportBoxNote", (v) => v.asString().getValue)
@@ -268,7 +268,7 @@ object Order {
   }
 
   def getOrders(orderIds: Seq[String]) = {
-    val f = collection.find(in("_id", orderIds)).toFuture()
+    val f = collection.find(in("_id", orderIds:_*)).toFuture()
     f.onFailure {
       errorHandler
     }

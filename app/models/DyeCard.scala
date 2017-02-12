@@ -65,7 +65,7 @@ case class SizeChart(size: String, before: Option[Double], after: Option[Double]
 }
 
 case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
-                   startTime: Option[Long], var updateTime: Option[Long], var active: Boolean, remark: Option[String],
+                   startTime: Option[Long], endTime: Option[Long], var updateTime: Option[Long], var active: Boolean, remark: Option[String],
                    operator: Option[String], date: Option[Long], pot: Option[String], weight: Option[Double],
                    refineProcess: Option[RefineProcess],
                    dyePotion: Option[DyePotion],
@@ -96,7 +96,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
 
   def toDocument = {
     Document("_id" -> _id, "workIdList" -> workIdList, "color" -> color,
-      "startTime" -> startTime, "updateTime" -> updateTime,
+      "startTime" -> startTime, "endTime" -> endTime, "updateTime" -> updateTime,
       "operator" -> operator, "date" -> date, "pot" -> pot, "weight" -> weight,
       "refineProcess" -> refineProcess,
       "dyePotion" -> dyePotion,
@@ -129,7 +129,8 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       _id = _id,
       workIdList = workIdList,
       color = color,
-      startTime = Some(DateTime.now.getMillis),
+      startTime = None,
+      endTime = None,
       updateTime = None,
       active = true,
       operator = None,
@@ -238,6 +239,7 @@ object DyeCard {
     val _id = doc.getString("_id")
     val workIdList = getArray("workIdList", (v: BsonValue) => { v.asString().getValue })
     val startTime = getOptionTime("startTime")
+    val endTime = getOptionTime("endTime")
     val updateTime = getOptionTime("updateTime")
     val color = doc.getString("color")
     val operator = getOptionStr("operator")
@@ -256,7 +258,7 @@ object DyeCard {
     val remark = getOptionStr("remark")
 
     DyeCard(_id = _id, workIdList = workIdList, color = color,
-      startTime = startTime, updateTime = updateTime, remark = remark,
+      startTime = startTime, endTime = endTime, updateTime = updateTime, remark = remark,
       operator = operator, date = date, pot = pot, weight = weight,
       refineProcess = refineProcess,
       dyePotion = dyePotion,
@@ -305,7 +307,7 @@ object DyeCard {
   def query(param: QueryDyeCardParam) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
-    
+
     val idFilter = param._id map { _id => regex("_id", _id) }
     val colorFilter = param.color map { color => regex("color", color) }
     val startFilter = param.start map { gte("startTime", _) }
@@ -325,5 +327,17 @@ object DyeCard {
       yield records map {
       doc => toDyeCard(doc)
     }
+  }
+
+  def startDye(_id: String, operator: String) = {
+    import org.mongodb.scala.model._
+    collection.updateOne(equal("_id", _id),
+      and(Updates.set("operator", operator), Updates.set("startTime", DateTime.now.getMillis))).toFuture()
+  }
+
+  def endDye(_id: String) = {
+    import org.mongodb.scala.model._
+    collection.updateOne(equal("_id", _id),
+      and(Updates.set("endTime", DateTime.now.getMillis), Updates.set("active", false))).toFuture()
   }
 }

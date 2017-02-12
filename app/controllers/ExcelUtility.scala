@@ -35,27 +35,27 @@ object ExcelUtility {
 
     new File(reportFilePath.toAbsolutePath().toString())
   }
-  
-  def toDozenStr(v:Option[Int]):String={
-    if(v.isEmpty)
+
+  def toDozenStr(v: Option[Int]): String = {
+    if (v.isEmpty)
       "-"
     else
       toDozenStr(v.get)
   }
-  
-  def toDozenStr(v:Int)={
-    val dozen = v/12
-    val fract = v%12
+
+  def toDozenStr(v: Int) = {
+    val dozen = v / 12
+    val fract = v % 12
     val dozenStr = "%d".format(dozen)
-    if(fract == 0)
+    if (fract == 0)
       dozenStr
-    else{
+    else {
       val fractStr = "%02d".format(fract)
       s"$dozenStr.$fractStr"
     }
   }
-  def getTidyReport(cardList:Seq[TidyCard], workCardMap:Map[String, WorkCard], orderMap:Map[String, Order], 
-      start:DateTime, end:DateTime) = {
+  def getTidyReport(cardList: Seq[TidyCard], workCardMap: Map[String, WorkCard], orderMap: Map[String, Order],
+                    start: DateTime, end: DateTime) = {
     val (reportFilePath, pkg, wb) = prepareTemplate("tidyReport.xlsx")
     val evaluator = wb.getCreationHelper().createFormulaEvaluator()
     val format = wb.createDataFormat();
@@ -64,10 +64,11 @@ object ExcelUtility {
     val timeRow = sheet.getRow(1)
     timeRow.createCell(1).setCellValue(start.toString("YY-MM-dd"))
     timeRow.createCell(3).setCellValue(end.toString("YY-MM-dd"))
-    for{card_idx<-cardList.zipWithIndex
+    for {
+      card_idx <- cardList.zipWithIndex
       card = card_idx._1
       rowN = card_idx._2 + 3
-      }{
+    } {
       val row = sheet.createRow(rowN)
       val date = new DateTime(card.date)
       row.createCell(0).setCellValue(date.toString("MM-dd"))
@@ -82,7 +83,61 @@ object ExcelUtility {
       row.createCell(9).setCellValue(toDozenStr(card.subNotPack))
       row.createCell(10).setCellValue(card.operator)
     }
-    
+
     finishExcel(reportFilePath, pkg, wb)
   }
+
+  def getStylingReport(cardList: Seq[WorkCard], operatorList: List[String], orderMap: Map[String, Order],
+                       start: DateTime, end: DateTime) = {
+    val (reportFilePath, pkg, wb) = prepareTemplate("stylingReport.xlsx")
+    val evaluator = wb.getCreationHelper().createFormulaEvaluator()
+    val format = wb.createDataFormat();
+
+    val sheet = wb.getSheetAt(0)
+    val timeRow = sheet.getRow(1)
+    timeRow.createCell(1).setCellValue(start.toString("YY-MM-dd"))
+    timeRow.createCell(3).setCellValue(end.toString("YY-MM-dd"))
+    val titleRow = sheet.getRow(2)
+    for {
+      operator_idx <- operatorList.zipWithIndex
+      operator = operator_idx._1
+      idx = operator_idx._2
+      col = 9 + idx
+    } {
+      titleRow.createCell(col).setCellValue(operator)
+    }
+
+    for {
+      card_idx <- cardList.zipWithIndex
+      workCard = card_idx._1
+      card = workCard.stylingCard.get
+      rowN = card_idx._2 + 3
+    } {
+      val row = sheet.createRow(rowN)
+      val date = new DateTime(card.date)
+      row.createCell(0).setCellValue(date.toString("MM-dd"))
+      row.createCell(1).setCellValue(workCard.orderId)
+      row.createCell(2).setCellValue(orderMap(workCard.orderId).name)
+      row.createCell(3).setCellValue(workCard._id)
+      row.createCell(4).setCellValue(toDozenStr(card.good))
+      row.createCell(5).setCellValue(toDozenStr(card.sub))
+      row.createCell(6).setCellValue(toDozenStr(card.stain))
+      row.createCell(7).setCellValue(toDozenStr(card.broken))
+      row.createCell(8).setCellValue(toDozenStr(card.notEven))
+
+      for {
+        operator_idx <- operatorList.zipWithIndex
+        operator = operator_idx._1
+        idx = operator_idx._2
+        col = 9 + idx
+      } {
+        val cell = row.createCell(col)
+        if(card.operator.contains(operator))
+          cell.setCellValue(operator)
+      }
+    }
+
+    finishExcel(reportFilePath, pkg, wb)
+  }
+
 }
