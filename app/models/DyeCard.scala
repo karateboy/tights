@@ -23,13 +23,15 @@ object RefineProcess {
 }
 
 case class DyePotion(y: Option[Double], r: Option[Double], b: Option[Double],
-                     Fluorescent: Option[Double], Brightener: Option[Double]) {
+                     Fluorescent: Option[Double], Brightener: Option[Double], black: Option[Double],
+                     otherDyeType: Option[String], otherDye: Option[Double]) {
   def toDocument = Document("y" -> y, "r" -> r, "b" -> b,
-    "Fluorescent" -> Fluorescent, "Brightener" -> Brightener)
+    "Fluorescent" -> Fluorescent, "Brightener" -> Brightener, "black"->black,
+    "otherDyeType"->otherDyeType, "otherDye"->otherDye)
 
 }
 object DyePotion {
-  val default = DyePotion(None, None, None, None, None)
+  val default = DyePotion(None, None, None, None, None, None, None, None)
 }
 
 case class DyeProcess(evenDye: Option[Double], vNH3: Option[Double], nh3: Option[Double], iceV: Option[Double],
@@ -47,14 +49,14 @@ object DyeProcess {
 
 case class PostProcess(fixedPotion: Option[Double],
                        iceV: Option[Double], silicon: Option[Double], postiveSoftener: Option[Double],
-                       softenTime: Option[Int]) {
+                       softenTime: Option[Int], temp: Option[Double]) {
   def toDocument = Document("fixedPotion" -> fixedPotion,
     "iceV" -> iceV, "silicon" -> silicon, "postiveSoftener" -> postiveSoftener,
-    "softenTime" -> softenTime)
+    "softenTime" -> softenTime, "temp"->temp)
 
 }
 object PostProcess {
-  val default = PostProcess(None, None, None, None, None)
+  val default = PostProcess(None, None, None, None, None, None)
 }
 
 case class SizeChart(size: String, before: Option[Double], after: Option[Double]) {
@@ -71,7 +73,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
                    dyePotion: Option[DyePotion],
                    dyeProcess: Option[DyeProcess],
                    postProcess: Option[PostProcess],
-                   dryTemp: Option[Double], dryTime: Option[Long],
+                   dryTemp: Option[Double], dryTime: Option[Long], machine: Option[String],
                    var sizeCharts: Option[Seq[SizeChart]]) {
 
   implicit object TransformSizeChart extends BsonTransformer[SizeChart] {
@@ -102,7 +104,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "dyePotion" -> dyePotion,
       "dyeProcess" -> dyeProcess,
       "postProcess" -> postProcess,
-      "dryTime" -> dryTime, "dryTemp" -> dryTemp,
+      "dryTime" -> dryTime, "dryTemp" -> dryTemp, "machine"->machine,
       "sizeCharts" -> sizeCharts,
       "active" -> active, "remark" -> remark)
   }
@@ -140,7 +142,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       dyePotion = Some(DyePotion.default),
       dyeProcess = Some(DyeProcess.default),
       postProcess = Some(PostProcess.default),
-      dryTemp = None, dryTime = None,
+      dryTemp = None, dryTime = None, machine = None,
       sizeCharts = None,
       remark = remark)
   }
@@ -196,9 +198,15 @@ object DyeCard {
     val b = getOptionDouble("b")
     val Fluorescent = getOptionDouble("Fluorescent")
     val Brightener = getOptionDouble("Brightener")
+    val black = getOptionDouble("black")
+    val otherDyeType = getOptionStr("otherDyeType")
+    val otherDye = getOptionDouble("otherDye")
     DyePotion(y = y, r = r, b = b,
       Fluorescent = Fluorescent,
-      Brightener = Brightener)
+      Brightener = Brightener,
+      black = black,
+      otherDye = otherDye,
+      otherDyeType = otherDyeType)
   }
 
   def toDyeProcess(implicit doc: Document) = {
@@ -223,9 +231,10 @@ object DyeCard {
     val postiveSoftener = getOptionDouble("postiveSoftener")
     val softenTime = getOptionInt("softenTime")
     val silicon = getOptionDouble("silicon")
+    val temp = getOptionDouble("temp")
 
     PostProcess(fixedPotion = fixedPotion, iceV = iceV, silicon = silicon,
-      postiveSoftener = postiveSoftener, softenTime = softenTime)
+      postiveSoftener = postiveSoftener, softenTime = softenTime, temp=temp)
   }
 
   def toSizeChart(implicit doc: Document) = {
@@ -253,6 +262,7 @@ object DyeCard {
     val postProcess = getOptionDoc("postProcess") map { toPostProcess(_) }
     val dryTemp = getOptionDouble("dryTemp")
     val dryTime = getOptionTime("dryTime")
+    val machine = getOptionStr("machine")
     val sizeCharts = getOptionArray("sizeCharts", (v) => { toSizeChart(v.asDocument()) })
     val active = doc.getBoolean("active")
     val remark = getOptionStr("remark")
@@ -266,6 +276,7 @@ object DyeCard {
       postProcess = postProcess,
       dryTemp = dryTemp,
       dryTime = dryTime,
+      machine = machine,
       sizeCharts = sizeCharts,
       active = active)
   }
