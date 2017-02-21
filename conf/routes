@@ -19,6 +19,7 @@ GET      /checkOrderId/:orderId             controllers.OrderManager.checkOrderI
 POST     /Order                             controllers.OrderManager.upsertOrder
 PUT      /Order                             controllers.OrderManager.upsertOrder
 GET      /Order/:id                         controllers.OrderManager.getOrder(id)
+DELETE   /Order/:id                         controllers.OrderManager.deleteOrder(id)
 GET      /Department                        controllers.OrderManager.getDepartmentInfoList
 GET      /MyActiveOrder/:userId             controllers.OrderManager.myActiveOrder(userId)
 POST     /QueryOrder                        controllers.OrderManager.queryOrder()
@@ -34,8 +35,8 @@ GET      /DyeCardPDF/:id                    controllers.CardManager.getDyeCardPd
 GET      /WorkCardLabelByDyeCard/:id        controllers.CardManager.getWorkCardLabelByDyeCard(id)
 POST     /QueryDyeCard                      controllers.CardManager.queryDyeCard
 POST     /QueryWorkCard                     controllers.CardManager.queryWorkCard
-POST	 /StartDye							controllers.CardManager.startDye
-GET	 	 /EndDye/:id						controllers.CardManager.endDye(id)
+POST     /StartDye                          controllers.CardManager.startDye
+GET      /EndDye/:id                        controllers.CardManager.endDye(id)
 
 GET      /StylingCard/:workCardID           controllers.CardManager.getStylingCard(workCardID)
 POST     /StylingCard/:workCardID           controllers.CardManager.updateStylingCard(workCardID)

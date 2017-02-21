@@ -380,4 +380,8 @@ object Order {
     val f = collection.findOneAndUpdate(equal("_id", _id), set("active", false)).toFuture()
     f
   }
+  
+  def deleteOrder(_id:String) = {
+    collection.deleteOne(equal("_id", _id)).toFuture()
+  }
 }

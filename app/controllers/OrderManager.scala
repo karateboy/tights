@@ -284,4 +284,19 @@ object OrderManager extends Controller {
       }
     }
   }
+  
+  def deleteOrder(_id:String) = Security.Authenticated.async {
+    import WorkCard._
+    val param = QueryWorkCardParam(_id=None, orderId = Some(_id), start=None, end=None)
+    val f = WorkCard.query(param)
+    for(workCardList <- f)yield{
+      if(workCardList.isEmpty){
+        Order.deleteOrder(_id)
+        Ok(Json.obj("ok"->true))
+      }else{
+          Ok(Json.obj("ok"->false, "msg"->"訂單已排入生產, 無法刪除"))
+      }
+    }
+  }
+
 }
