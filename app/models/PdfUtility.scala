@@ -119,7 +119,7 @@ object PdfUtility {
       s"$dozenStr.$fractStr"
     }
   }
-  
+
   def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     { // barcode      
       val code39 = new Barcode39()
@@ -165,7 +165,7 @@ object PdfUtility {
       topTable.addCell(factoryCell)
       prepareCell("尺寸:" + sizeSet.mkString("/"))
       prepareCell("顏色:" + dyeCard.color)
-      val quantityList = workSeq.map { _.quantity } 
+      val quantityList = workSeq.map { _.quantity }
       prepareCell("總數量(打):" + toDozenStr(quantityList.sum))
       prepareCell("編織編號:")
 
@@ -296,6 +296,213 @@ object PdfUtility {
     document.close()
 
     tempFile
+  }
+
+  def orderProc(order: Order)(doc: Document, writer: PdfWriter) {
+    val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+    val font = new Font(bf, 12)
+    def prepareCell(str: String, colspan: Int = 1, add: Boolean = true)(implicit tab: PdfPTable) = {
+      val cell = new PdfPCell(new Paragraph(str, font))
+      cell.setHorizontalAlignment(Element.ALIGN_LEFT)
+      cell.setVerticalAlignment(Element.ALIGN_MIDDLE)
+      cell.setPaddingBottom(8)
+      if (colspan != 1)
+        cell.setColspan(colspan)
+
+      if (add)
+        tab.addCell(cell)
+
+      cell
+    }
+    def showOptDate(millisOpt: Option[Long]) = {
+      val strOpt = millisOpt map {
+        millis => new DateTime(millis).toString("YYYY/MM/dd")
+      }
+
+      strOpt.getOrElse("")
+    }
+
+    val user = User.getUserByEmail(order.salesId)
+    doc.add(new Paragraph(
+      s"外銷內部工作單  訂單編號:${order._id} ${user.get.name}", new Font(bf, 18)))
+
+    {
+      implicit val topTable = new PdfPTable(6); // 6 columns.
+      topTable.setWidthPercentage(100)
+      topTable.setSpacingBefore(12f)
+      prepareCell("品名:")
+      prepareCell(order.name)
+      prepareCell("白襪庫存:")
+      prepareCell("")
+      prepareCell("預定出貨日:")
+      val expectedDeliverDate = new DateTime(order.expectedDeliverDate)
+      prepareCell(expectedDeliverDate.toString("YYYY/MM/dd"))
+      prepareCell("工廠代號:")
+      prepareCell(order.factoryId)
+      prepareCell("訂單數量:")
+      val quantity = order.details.map { _.quantity }.sum
+      prepareCell(toDozenStr(Some(quantity)) + "打")
+      prepareCell("修正出貨日:")
+      prepareCell(showOptDate(order.finalDeliverDate))
+      prepareCell("客戶編號:")
+      prepareCell(order.customerId)
+      prepareCell("品牌:")
+      prepareCell(order.brand)
+      prepareCell("通知日期:")
+      prepareCell(showOptDate(order.date))
+
+      doc.add(topTable)
+    }
+
+    { //Order details
+      implicit val tab = new PdfPTable(3); // 6 columns.
+      tab.setWidthPercentage(100)
+      tab.setSpacingBefore(12f)
+      prepareCell("顏色")
+      prepareCell("尺寸")
+      prepareCell("數量(打)")
+      for (detail <- order.details) {
+        prepareCell(detail.color)
+        prepareCell(detail.size)
+        prepareCell(toDozenStr(detail.quantity) + "打")
+      }
+      doc.add(tab)
+    }
+
+    {
+      implicit val tab = new PdfPTable(8); // 6 columns.
+      tab.setWidthPercentage(100)
+      tab.setSpacingBefore(12f)
+      prepareCell("部門")
+      prepareCell("工作天")
+      prepareCell("預定交期")
+      prepareCell("部門主管")
+      prepareCell("注意事項", 4)
+
+      for (notice <- order.notices) {
+        prepareCell(notice.department)
+        prepareCell("")
+        prepareCell("")
+        prepareCell("")
+        prepareCell(notice.msg, 4)
+      }
+      doc.add(tab)
+    }
+    {
+      val packageInfo = order.packageInfo
+      implicit val tab = new PdfPTable(4); // 6 columns.
+      tab.setWidthPercentage(100)
+      tab.setSpacingBefore(12f)
+      prepareCell("採購部包裝材料", 3)
+      prepareCell("預定進廠")
+      for {
+        packageIdx <- packageInfo.packageOption.zipWithIndex
+        packageOpt = packageIdx._1 if packageOpt
+        idx = packageIdx._2
+      } {
+        val packageType = idx match {
+          case 0 => "環帶"
+          case 1 => "紙卡"
+          case 2 => "紙盒"
+          case 3 => "掛卡"
+          case 4 => "掛盒"
+        }
+        prepareCell(packageType, 3)
+        prepareCell("")
+      }
+      prepareCell(packageInfo.packageNote, 3)
+      prepareCell("")
+
+      prepareCell("貼標:", 3)
+      prepareCell("")
+      for {
+        labelIdx <- packageInfo.labelOption.zipWithIndex
+        label = labelIdx._1 if label
+        idx = labelIdx._2
+      } {
+
+        val labelType = idx match {
+          case 0 => "成份標+Made in Taiwan"
+          case 1 => "價標"
+          case 2 => "條碼標"
+          case 3 => "型號標"
+          case 4 => "Size標"
+        }
+        prepareCell(labelType, 3)
+        prepareCell("")
+      }
+
+      for {
+        cardIdx <- packageInfo.cardOption.zipWithIndex
+        card = cardIdx._1 if card
+        idx = cardIdx._2
+      } {
+        val cardType = idx match {
+          case 0 => "撐卡"
+          case 1 => "襯卡"
+          case 2 => "掛勾"
+          case 3 => "洗標"
+        }
+        prepareCell(cardType, 3)
+        prepareCell("")
+        prepareCell(packageInfo.cardNote(idx), 3)
+        prepareCell("")
+      }
+      prepareCell("塑膠袋:", 3)
+      prepareCell("")
+
+      val bagInfo =
+        for {
+          bagIdx <- packageInfo.bagOption.zipWithIndex
+          bag = bagIdx._1 if bag
+          idx = bagIdx._2
+        } yield {
+          val bagType = idx match {
+            case 0 => "單入OPP"
+            case 1 => "單入PVC"
+            case 2 => "自黏"
+            case 3 => "高週波"
+            case 4 => "彩印"
+            case 5 => "掛孔"
+          }
+
+          if (idx == 1)
+            s"$bagType (${packageInfo.pvcNote})"
+          else
+            bagType
+        }
+      prepareCell(bagInfo.mkString(","), 3)
+      prepareCell("")
+      if (packageInfo.numInBag.isDefined) {
+        prepareCell(s"${packageInfo.numInBag.get} 雙入大袋", 3)
+        prepareCell("")
+      }
+      prepareCell(packageInfo.bagNote, 3)
+      prepareCell("")
+
+      prepareCell("外銷箱:", 3)
+      prepareCell("")
+      for {
+        boxIdx <- packageInfo.exportBoxOption.zipWithIndex
+        box = boxIdx._1 if box
+        idx = boxIdx._2
+      } {
+        val boxType = idx match {
+          case 0 => "內盒"
+          case 1 => "外箱"
+        }
+        prepareCell(boxType + "," + packageInfo.exportBoxNote(idx), 3)
+        prepareCell("")
+      }
+      prepareCell("嘜頭:", 4)
+      prepareCell(packageInfo.ShippingMark, 4)
+      if (packageInfo.extraNote.isDefined) {
+        prepareCell("備註欄:", 4)
+        prepareCell(packageInfo.extraNote.get, 4)
+      }
+
+      doc.add(tab)
+    }
   }
 
   def workCardLabelProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {

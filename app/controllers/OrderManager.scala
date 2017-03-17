@@ -91,7 +91,7 @@ object OrderManager extends Controller {
 
   }
 
-  case class WorkCardSpec(orderId: String, factoryId:String, index: Int, detail: OrderDetail, due: Long, need: Int)
+  case class WorkCardSpec(orderId: String, factoryId: String, index: Int, detail: OrderDetail, due: Long, need: Int)
   case class DyeCardSpec(color: String, due: Long, workCardSpecList: Seq[WorkCardSpec])
 
   def getDyeCardSpec = Security.Authenticated.async {
@@ -123,7 +123,7 @@ object OrderManager extends Controller {
           } yield {
 
             for (need <- needF) yield {
-              if(need > 0)
+              if (need > 0)
                 Some(detail.color -> WorkCardSpec(order._id, order.factoryId, detailIndex, detail, order.expectedDeliverDate, need))
               else
                 None
@@ -136,8 +136,8 @@ object OrderManager extends Controller {
         val dyeWorkCardMap = Map.empty[String, List[WorkCardSpec]]
 
         val colorWorkCardSpecSeq = waitReadyResult(colorWorkCardSpecSeqFuture)
-        for {          
-          colorWorkCardSpec <- colorWorkCardSpecSeq.flatMap(x=>x)
+        for {
+          colorWorkCardSpec <- colorWorkCardSpecSeq.flatMap(x => x)
           color = colorWorkCardSpec._1
           workCardSpec = colorWorkCardSpec._2
         } {
@@ -273,30 +273,42 @@ object OrderManager extends Controller {
             yield Ok(Json.toJson(orderList))
         })
   }
-  
-  def closeOrder(_id:String) = Security.Authenticated.async {
+
+  def closeOrder(_id: String) = Security.Authenticated.async {
     val f = Order.closeOrder(_id)
-    for(rets <- f)yield{
-      if(rets.isEmpty)
-        Ok(Json.obj("ok"->false, "msg"->"找不到訂單"))
-      else{
-        Ok(Json.obj("ok"->true))
-      }
-    }
-  }
-  
-  def deleteOrder(_id:String) = Security.Authenticated.async {
-    import WorkCard._
-    val param = QueryWorkCardParam(_id=None, orderId = Some(_id), start=None, end=None)
-    val f = WorkCard.query(param)
-    for(workCardList <- f)yield{
-      if(workCardList.isEmpty){
-        Order.deleteOrder(_id)
-        Ok(Json.obj("ok"->true))
-      }else{
-          Ok(Json.obj("ok"->false, "msg"->"訂單已排入生產, 無法刪除"))
+    for (rets <- f) yield {
+      if (rets.isEmpty)
+        Ok(Json.obj("ok" -> false, "msg" -> "找不到訂單"))
+      else {
+        Ok(Json.obj("ok" -> true))
       }
     }
   }
 
+  def deleteOrder(_id: String) = Security.Authenticated.async {
+    import WorkCard._
+    val param = QueryWorkCardParam(_id = None, orderId = Some(_id), start = None, end = None)
+    val f = WorkCard.query(param)
+    for (workCardList <- f) yield {
+      if (workCardList.isEmpty) {
+        Order.deleteOrder(_id)
+        Ok(Json.obj("ok" -> true))
+      } else {
+        Ok(Json.obj("ok" -> false, "msg" -> "訂單已排入生產, 無法刪除"))
+      }
+    }
+  }
+
+  def getOrderPdf(id: String) = Security.Authenticated.async {
+    import PdfUtility._
+    val orderF = Order.getOrder(id)
+    for (orderOpt <- orderF) yield {
+      if (orderOpt.isDefined)
+        Ok.sendFile(createItextPdf(orderProc(orderOpt.get)),
+          fileName = _ =>
+            play.utils.UriEncoding.encodePathSegment(s"訂單${id}.pdf", "UTF-8"))
+      else
+        BadRequest("No such order!")
+    }
+  }
 }

@@ -24,6 +24,7 @@ GET      /Department                        controllers.OrderManager.getDepartme
 GET      /MyActiveOrder/:userId             controllers.OrderManager.myActiveOrder(userId)
 POST     /QueryOrder                        controllers.OrderManager.queryOrder()
 POST     /CloseOrder/:id                    controllers.OrderManager.closeOrder(id)
+GET      /OrderPDF/:id                      controllers.OrderManager.getOrderPdf(id)
 
 GET      /DyeCardSpec                       controllers.OrderManager.getDyeCardSpec
 POST     /ScheduleDyeWork                   controllers.OrderManager.scheduleDyeWork
