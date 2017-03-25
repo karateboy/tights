@@ -323,8 +323,13 @@ object PdfUtility {
     }
 
     val user = User.getUserByEmail(order.salesId)
-    doc.add(new Paragraph(
-      s"外銷內部工作單  訂單編號:${order._id} ${user.get.name}", new Font(bf, 18)))
+    val p1 = new Paragraph(
+      s"外銷內部工作單", new Font(bf, 18))
+    p1.setAlignment(Element.ALIGN_CENTER)    
+    doc.add(p1)
+    val p2 = new Paragraph(s"訂單編號:${order._id} ${user.get.name}", new Font(bf, 12))
+    p2.setAlignment(Element.ALIGN_RIGHT)
+    doc.add(p2)
 
     {
       implicit val topTable = new PdfPTable(6); // 6 columns.
@@ -380,7 +385,7 @@ object PdfUtility {
       prepareCell("注意事項", 4)
 
       for (notice <- order.notices) {
-        prepareCell(notice.department)
+        prepareCell(Department.map(Department.withName(notice.department)))
         prepareCell("")
         prepareCell("")
         prepareCell("")
@@ -392,62 +397,67 @@ object PdfUtility {
       val packageInfo = order.packageInfo
       implicit val tab = new PdfPTable(4); // 6 columns.
       tab.setWidthPercentage(100)
-      tab.setSpacingBefore(12f)
       prepareCell("採購部包裝材料", 3)
       prepareCell("預定進廠")
-      for {
-        packageIdx <- packageInfo.packageOption.zipWithIndex
-        packageOpt = packageIdx._1 if packageOpt
-        idx = packageIdx._2
-      } {
-        val packageType = idx match {
-          case 0 => "環帶"
-          case 1 => "紙卡"
-          case 2 => "紙盒"
-          case 3 => "掛卡"
-          case 4 => "掛盒"
+      val packageInfos =
+        for {
+          packageIdx <- packageInfo.packageOption.zipWithIndex
+          packageOpt = packageIdx._1 if packageOpt
+          idx = packageIdx._2
+        } yield {
+          val packageType = idx match {
+            case 0 => "(v)環帶"
+            case 1 => "(v)紙卡"
+            case 2 => "(v)紙盒"
+            case 3 => "(v)掛卡"
+            case 4 => "(v)掛盒"
+          }
+          packageType
         }
-        prepareCell(packageType, 3)
-        prepareCell("")
-      }
+      prepareCell(packageInfos.mkString("\n"), 3)
+      prepareCell("")
+
       prepareCell(packageInfo.packageNote, 3)
       prepareCell("")
 
       prepareCell("貼標:", 3)
       prepareCell("")
-      for {
-        labelIdx <- packageInfo.labelOption.zipWithIndex
-        label = labelIdx._1 if label
-        idx = labelIdx._2
-      } {
+      val labelInfos =
+        for {
+          labelIdx <- packageInfo.labelOption.zipWithIndex
+          label = labelIdx._1 if label
+          idx = labelIdx._2
+        } yield {
 
-        val labelType = idx match {
-          case 0 => "成份標+Made in Taiwan"
-          case 1 => "價標"
-          case 2 => "條碼標"
-          case 3 => "型號標"
-          case 4 => "Size標"
+          val labelType = idx match {
+            case 0 => "(v)成份標+Made in Taiwan"
+            case 1 => "(v)價標"
+            case 2 => "(v)條碼標"
+            case 3 => "(v)型號標"
+            case 4 => "(v)Size標"
+          }
+          labelType
         }
-        prepareCell(labelType, 3)
-        prepareCell("")
-      }
+      prepareCell(labelInfos.mkString(" "), 3)
+      prepareCell("")
 
-      for {
-        cardIdx <- packageInfo.cardOption.zipWithIndex
-        card = cardIdx._1 if card
-        idx = cardIdx._2
-      } {
-        val cardType = idx match {
-          case 0 => "撐卡"
-          case 1 => "襯卡"
-          case 2 => "掛勾"
-          case 3 => "洗標"
+      val cardInfos =
+        for {
+          cardIdx <- packageInfo.cardOption.zipWithIndex
+          card = cardIdx._1 if card
+          idx = cardIdx._2
+        } yield {
+          val cardType = idx match {
+            case 0 => "(v)撐卡"
+            case 1 => "(v)襯卡"
+            case 2 => "(v)掛勾"
+            case 3 => "(v)洗標"
+          }
+          cardType + packageInfo.cardNote(idx)
         }
-        prepareCell(cardType, 3)
-        prepareCell("")
-        prepareCell(packageInfo.cardNote(idx), 3)
-        prepareCell("")
-      }
+      prepareCell(cardInfos.mkString("\n"), 3)
+      prepareCell("")
+
       prepareCell("塑膠袋:", 3)
       prepareCell("")
 
@@ -458,23 +468,23 @@ object PdfUtility {
           idx = bagIdx._2
         } yield {
           val bagType = idx match {
-            case 0 => "單入OPP"
-            case 1 => "單入PVC"
-            case 2 => "自黏"
-            case 3 => "高週波"
-            case 4 => "彩印"
-            case 5 => "掛孔"
+            case 0 => "(v)單入OPP"
+            case 1 => "(v)單入PVC"
+            case 2 => "(v)自黏"
+            case 3 => "(v)高週波"
+            case 4 => "(v)彩印"
+            case 5 => "(v)掛孔"
           }
 
           if (idx == 1)
-            s"$bagType (${packageInfo.pvcNote})"
+            s"$bagType-(${packageInfo.pvcNote})"
           else
             bagType
         }
-      prepareCell(bagInfo.mkString(","), 3)
+      prepareCell(bagInfo.mkString("\n"), 3)
       prepareCell("")
       if (packageInfo.numInBag.isDefined) {
-        prepareCell(s"${packageInfo.numInBag.get} 雙入大袋", 3)
+        prepareCell(s"${packageInfo.numInBag.get}雙入大袋", 3)
         prepareCell("")
       }
       prepareCell(packageInfo.bagNote, 3)
@@ -488,20 +498,34 @@ object PdfUtility {
         idx = boxIdx._2
       } {
         val boxType = idx match {
-          case 0 => "內盒"
-          case 1 => "外箱"
+          case 0 => "(v)內盒"
+          case 1 => "(v)外箱"
         }
-        prepareCell(boxType + "," + packageInfo.exportBoxNote(idx), 3)
+        prepareCell(boxType + "-" + packageInfo.exportBoxNote(idx), 3)
         prepareCell("")
       }
-      prepareCell("嘜頭:", 4)
-      prepareCell(packageInfo.ShippingMark, 4)
-      if (packageInfo.extraNote.isDefined) {
-        prepareCell("備註欄:", 4)
-        prepareCell(packageInfo.extraNote.get, 4)
+
+      val mainTab = new PdfPTable(2)
+      mainTab.setWidthPercentage(100)
+      mainTab.setSpacingBefore(12f)
+
+      {
+        implicit val tab2 = new PdfPTable(1)
+        prepareCell("嘜頭:")(tab2)
+        prepareCell(packageInfo.ShippingMark)(tab2)
+        if (packageInfo.extraNote.isDefined) {
+          prepareCell("備註欄:")(tab2)
+          prepareCell(packageInfo.extraNote.get)(tab2)
+        }
+        val cell1 = new PdfPCell(tab)
+        cell1.setBorder(Rectangle.NO_BORDER)
+        val cell2 = new PdfPCell(tab2)
+        cell2.setBorder(Rectangle.NO_BORDER)
+        mainTab.addCell(cell1)
+        mainTab.addCell(cell2)
       }
 
-      doc.add(tab)
+      doc.add(mainTab)
     }
   }
 
@@ -536,8 +560,7 @@ object PdfUtility {
       prepareCell(order.customerId)
       prepareCell(order.details(workCard.detailIndex).size)
       prepareCell(order.details(workCard.detailIndex).color)
-      prepareCell("數量:" + workCard.quantity)
-      prepareCell("優:")
+      prepareCell("數量:" + toDozenStr(workCard.quantity))
 
       doc.add(tab)
       doc.newPage()
