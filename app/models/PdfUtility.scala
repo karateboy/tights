@@ -121,13 +121,10 @@ object PdfUtility {
   }
 
   def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
-    { // barcode      
-      val code39 = new Barcode39()
-      code39.setCode(dyeCard._id)
-      val bar2Img = code39.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
-      doc.add(bar2Img)
-
+    { // barcode    
+      doc.add(getBarCodeImg(dyeCard._id)(writer))
     }
+    
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val font = new Font(bf, 12)
     def prepareCell(str: String, add: Boolean = true)(implicit tab: PdfPTable) = {
@@ -325,7 +322,7 @@ object PdfUtility {
     val user = User.getUserByEmail(order.salesId)
     val p1 = new Paragraph(
       s"外銷內部工作單", new Font(bf, 18))
-    p1.setAlignment(Element.ALIGN_CENTER)    
+    p1.setAlignment(Element.ALIGN_CENTER)
     doc.add(p1)
     val p2 = new Paragraph(s"訂單編號:${order._id} ${user.get.name}", new Font(bf, 12))
     p2.setAlignment(Element.ALIGN_RIGHT)
@@ -529,6 +526,231 @@ object PdfUtility {
     }
   }
 
+  def getBarCodeImg(code:String)(implicit writer: PdfWriter) = {
+    val code128 = new Barcode128()
+    code128.setCodeType(Barcode.CODE128_UCC)
+    code128.setCode(code)
+    val bar2Img = code128.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
+    bar2Img.setAlignment(Element.ALIGN_MIDDLE)
+    bar2Img
+  }
+
+  def workSheetProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
+    val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+    val font = new Font(bf, 10)
+    def prepareCell(str: String, rowSpan: Int = 1, add: Boolean = true)(implicit tab: PdfPTable) = {
+      val cell = new PdfPCell(new Paragraph(str, font))
+      cell.setHorizontalAlignment(Element.ALIGN_LEFT)
+      cell.setVerticalAlignment(Element.ALIGN_MIDDLE)
+      cell.setPaddingBottom(8)
+      if (add)
+        tab.addCell(cell)
+
+      cell
+    }
+
+    def prepareSheet(workCard: WorkCard) = {
+      val sheetTab = new PdfPTable(8)
+      sheetTab.setWidthPercentage(100)
+      def whiteSock() {
+        implicit val tab = new PdfPTable(1)
+        tab.setSpacingBefore(6f)
+        tab.setWidthPercentage(100)
+
+        tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
+
+        prepareCell("單位:白襪課")
+        prepareCell("訂單:" + workCard.orderId)
+        val order = orderMap(workCard.orderId)
+        prepareCell("工廠代號:" + order.factoryId)
+        prepareCell("客戶編號:" + order.customerId)
+        prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
+        prepareCell("顏色:" + order.details(workCard.detailIndex).color)
+        prepareCell("數量:" + toDozenStr(workCard.quantity))
+        prepareCell("機台:")
+        prepareCell("日期:")
+        prepareCell("優:")
+        prepareCell("副:")
+        prepareCell("汙:")
+        prepareCell("庫存襪:")
+        prepareCell("備註:")
+        prepareCell("主管審核:")
+
+        val cell = new PdfPCell(tab)
+        cell.setBorder(Rectangle.NO_BORDER)
+        cell.setPadding(5f)
+        sheetTab.addCell(cell)
+      }
+
+      def stylingTidy() {
+        val cardTab = new PdfPTable(1)
+        cardTab.setSpacingBefore(6f)
+        cardTab.setWidthPercentage(100)
+
+        //header
+        {
+          implicit val tab = new PdfPTable(1)
+          tab.setWidthPercentage(100)
+          tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
+
+          prepareCell("定型組/整理課")
+          prepareCell("訂單:" + workCard.orderId)
+          val order = orderMap(workCard.orderId)
+          prepareCell("工廠代號:" + order.factoryId)
+          prepareCell("客戶編號:" + order.customerId)
+          prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
+          prepareCell("顏色:" + order.details(workCard.detailIndex).color)
+          prepareCell("數量:" + toDozenStr(workCard.quantity))
+
+          val cell = new PdfPCell(tab)
+          cell.setBorder(Rectangle.NO_BORDER)
+
+          cardTab.addCell(cell)
+        }
+        // body
+        {
+          val bodyTab = new PdfPTable(8)
+          bodyTab.setWidthPercentage(100)
+
+          {
+            // 定型
+            implicit val tab = new PdfPTable(2)
+            prepareCell("機台"); prepareCell("")
+            prepareCell("日期"); prepareCell("")
+            prepareCell("優"); prepareCell("")
+            prepareCell("副"); prepareCell("")
+            prepareCell("汙"); prepareCell("")
+            prepareCell("破"); prepareCell("")
+            prepareCell("不均"); prepareCell("")
+            prepareCell("襪頭"); prepareCell("")
+            prepareCell("工號"); prepareCell("")
+            prepareCell("備註"); prepareCell("")
+            prepareCell("主管審核"); prepareCell("")
+            val cell = new PdfPCell(tab)
+            cell.setBorder(Rectangle.NO_BORDER)
+            cell.setColspan(2)
+            bodyTab.addCell(cell)
+          }
+          {
+            implicit val tab = new PdfPTable(7)
+            def emptyCells() {
+              for (i <- 1 to 6)
+                prepareCell("")
+            }
+
+            prepareCell("單位"); prepareCell("檢襪")
+            prepareCell("貼洗標1\n車洗標2"); prepareCell("剪線頭2\n剪線頭3");
+            prepareCell("整理包裝"); prepareCell("成品倉庫"); prepareCell("備註")
+
+            prepareCell("日期"); emptyCells
+            prepareCell("優"); emptyCells
+            prepareCell("副"); emptyCells
+            prepareCell("汙"); emptyCells
+            prepareCell("破"); emptyCells
+            prepareCell("副未包"); emptyCells
+            prepareCell("工號"); emptyCells
+            prepareCell("備註"); emptyCells
+            prepareCell("主管審核"); emptyCells
+            val cell = new PdfPCell(tab)
+            cell.setBorder(Rectangle.NO_BORDER)
+            cell.setColspan(6)
+            bodyTab.addCell(cell)
+          }
+
+          val cell = new PdfPCell(bodyTab)
+          cell.setBorder(Rectangle.NO_BORDER)
+          cardTab.addCell(cell)
+        }
+
+        val cell = new PdfPCell(cardTab)
+
+        cell.setBorder(Rectangle.NO_BORDER)
+        cell.setPadding(5f)
+        cell.setColspan(4)
+        cell.setRowspan(1)
+        sheetTab.addCell(cell)
+      }
+
+      def stylingLabel() {
+        implicit val tab = new PdfPTable(1)
+        tab.setSpacingBefore(6f)
+        tab.setWidthPercentage(100)
+
+        tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
+
+        prepareCell("單位:定型卡")
+        prepareCell(workCard.orderId)
+        val order = orderMap(workCard.orderId)
+        prepareCell("工廠代號:" + order.factoryId)
+        prepareCell("客戶編號:" + order.customerId)
+        prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
+        prepareCell("顏色:" + order.details(workCard.detailIndex).color)
+        prepareCell("數量:" + toDozenStr(workCard.quantity))
+        prepareCell("機台:")
+        prepareCell("日期:")
+        prepareCell("優:")
+        prepareCell("副:")
+        prepareCell("汙:")
+        prepareCell("破:")
+        prepareCell("不均:")
+        prepareCell("襪頭:")
+        prepareCell("工號:")
+        prepareCell("備註:")
+        prepareCell("主管審核:")
+
+        val cell = new PdfPCell(tab)
+        cell.setBorder(Rectangle.NO_BORDER)
+        cell.setPadding(5f)
+        sheetTab.addCell(cell)
+      }
+
+      def tidyLabel(name: String) {
+        implicit val tab = new PdfPTable(1)
+        tab.setSpacingBefore(6f)
+        tab.setWidthPercentage(100)
+
+        tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
+
+        prepareCell("單位:" + name)
+        prepareCell(workCard.orderId)
+        val order = orderMap(workCard.orderId)
+        prepareCell("工廠代號:" + order.factoryId)
+        prepareCell("客戶編號:" + order.customerId)
+        prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
+        prepareCell("顏色:" + order.details(workCard.detailIndex).color)
+        prepareCell("數量:" + toDozenStr(workCard.quantity))
+        prepareCell("日期:")
+        prepareCell("優:")
+        prepareCell("副:")
+        prepareCell("汙:")
+        prepareCell("破:")
+        prepareCell("副未包:")
+        prepareCell("工號:")
+        prepareCell("備註:")
+        prepareCell("主管審核:")
+
+        val cell = new PdfPCell(tab)
+        cell.setBorder(Rectangle.NO_BORDER)
+        cell.setPadding(5f)
+        sheetTab.addCell(cell)
+      }
+
+      //Start
+      whiteSock
+      stylingTidy
+      stylingLabel
+      tidyLabel("車洗標卡")
+      tidyLabel("檢襪卡")
+
+      doc.add(sheetTab)
+      doc.newPage()
+    }
+
+    for (workCard <- workSeq) {
+      prepareSheet(workCard)
+    }
+  }
+
   def workCardLabelProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val font = new Font(bf, 16)
@@ -544,11 +766,7 @@ object PdfUtility {
     }
 
     for (workCard <- workSeq) {
-      val code128 = new Barcode128()
-      code128.setCode(workCard._id)
-      val bar2Img = code128.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
-      bar2Img.setAlignment(Element.ALIGN_MIDDLE)
-      doc.add(bar2Img)
+      doc.add(getBarCodeImg(workCard._id)(writer))
 
       implicit val tab = new PdfPTable(1)
       tab.setSpacingBefore(6f)
@@ -586,6 +804,28 @@ object PdfUtility {
 
     tempFile
   }
+
+  def createWorkSheet(proc: (Document, PdfWriter) => Unit) = {
+    import java.io.FileOutputStream
+    import java.nio.charset.Charset
+    import java.io._
+    import java.nio.charset.Charset
+
+    val document =
+      new Document(PageSize.A4.rotate());
+
+    val tempFile = File.createTempFile("workCardLabel", ".pdf")
+    val writer = PdfWriter.getInstance(document, new FileOutputStream(tempFile));
+
+    document.setMargins(2, 2, 2, 2)
+    document.open()
+
+    proc(document, writer)
+    document.close()
+
+    tempFile
+  }
+
   import java.io.File
   def createBarcode(outputFile: File, msg: String) = {
     import java.awt.image.BufferedImage

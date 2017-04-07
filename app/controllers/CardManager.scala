@@ -161,9 +161,17 @@ object CardManager extends Controller {
         order._id -> order
       }
 
+      /*
       Ok.sendFile(createWorkCardLabel(workCardLabelProc(workCards, orderPair.toMap)),
         fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
+          * 
+          */
+      
+      Ok.sendFile(createWorkSheet(workSheetProc(workCards, orderPair.toMap)),
+        fileName = _ =>
+          play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
+
     }
   }
 
