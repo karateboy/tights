@@ -124,7 +124,7 @@ object PdfUtility {
     { // barcode    
       doc.add(getBarCodeImg(dyeCard._id)(writer))
     }
-    
+
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val font = new Font(bf, 12)
     def prepareCell(str: String, add: Boolean = true)(implicit tab: PdfPTable) = {
@@ -526,7 +526,7 @@ object PdfUtility {
     }
   }
 
-  def getBarCodeImg(code:String)(implicit writer: PdfWriter) = {
+  def getBarCodeImg(code: String)(implicit writer: PdfWriter) = {
     val code128 = new Barcode128()
     code128.setCodeType(Barcode.CODE128_UCC)
     code128.setCode(code)
@@ -537,12 +537,13 @@ object PdfUtility {
 
   def workSheetProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-    val font = new Font(bf, 10)
-    def prepareCell(str: String, rowSpan: Int = 1, add: Boolean = true)(implicit tab: PdfPTable) = {
+    val font = new Font(bf, 13)
+    def prepareCell(str: String, colspan: Int = 1, add: Boolean = true)(implicit tab: PdfPTable) = {
       val cell = new PdfPCell(new Paragraph(str, font))
       cell.setHorizontalAlignment(Element.ALIGN_LEFT)
       cell.setVerticalAlignment(Element.ALIGN_MIDDLE)
       cell.setPaddingBottom(8)
+      cell.setColspan(colspan)
       if (add)
         tab.addCell(cell)
 
@@ -567,12 +568,23 @@ object PdfUtility {
         prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
         prepareCell("顏色:" + order.details(workCard.detailIndex).color)
         prepareCell("數量:" + toDozenStr(workCard.quantity))
-        prepareCell("機台:")
         prepareCell("日期:")
-        prepareCell("優:")
-        prepareCell("副:")
-        prepareCell("汙:")
-        prepareCell("庫存襪:")
+
+        val tab2 = new PdfPTable(8)
+        tab2.setWidthPercentage(100)
+        prepareCell("編卡號碼", 4)(tab2)
+        prepareCell("數量",2)(tab2)
+        prepareCell("工號",2)(tab2)
+        for (i <- 1 to 6) {
+          prepareCell(" ", 4)(tab2)
+          prepareCell(" ", 2)(tab2)
+          prepareCell(" ", 2)(tab2)
+        }
+        val cell1 = new PdfPCell(tab2)
+        cell1.setBorder(Rectangle.NO_BORDER)
+        cell1.setRowspan(7)
+        tab.addCell(cell1)
+        
         prepareCell("備註:")
         prepareCell("主管審核:")
 
