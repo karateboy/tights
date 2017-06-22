@@ -351,10 +351,10 @@ object Order {
     import org.mongodb.scala.model._
 
     val idFilter = param._id map { _id => regex("_id", _id) }
-    val brandFilter = param.brand map { brand => regex("brand", brand) }
-    val nameFilter = param.name map { name => regex("name", name) }
-    val factoryFilter = param.factoryId map { factoryId => regex("factorId", factoryId) }
-    val customerFilter = param.customerId map { customerId => regex("customerId", customerId) }
+    val brandFilter = param.brand map { brand => regex("brand", "(?i)" + brand) }
+    val nameFilter = param.name map { name => regex("name", "(?i)" + name) }
+    val factoryFilter = param.factoryId map { factoryId => regex("factorId", "(?i)" + factoryId) }
+    val customerFilter = param.customerId map { customerId => regex("customerId", "(?i)" + customerId) }
     val startFilter = param.start map { start => gte("expectedDeliverDate", start)}
     val endFilter = param.end map { end => lt("expectedDeliverDate", end)}
 

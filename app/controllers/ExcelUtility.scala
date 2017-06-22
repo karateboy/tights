@@ -122,15 +122,20 @@ object ExcelUtility {
     } {
       val row = sheet.createRow(rowN)
       val date = new DateTime(card.date)
+      val order = orderMap(workCard.orderId)
       row.createCell(0).setCellValue(date.toString("MM-dd"))
       row.createCell(1).setCellValue(workCard.orderId)
-      row.createCell(2).setCellValue(orderMap(workCard.orderId).name)
+      row.createCell(2).setCellValue(order.name)
       row.createCell(3).setCellValue(workCard._id)
-      row.createCell(4).setCellValue(toDozenStr(card.good))
-      row.createCell(5).setCellValue(toDozenStr(card.sub))
-      row.createCell(6).setCellValue(toDozenStr(card.stain))
-      row.createCell(7).setCellValue(toDozenStr(card.broken))
-      row.createCell(8).setCellValue(toDozenStr(card.notEven))
+      row.createCell(4).setCellValue(order.customerId)
+      row.createCell(5).setCellValue(order.factoryId)
+      row.createCell(6).setCellValue(order.details(workCard.detailIndex).color)
+      row.createCell(7).setCellValue(order.details(workCard.detailIndex).size)      
+      row.createCell(8).setCellValue(toDozenStr(card.good))
+      row.createCell(9).setCellValue(toDozenStr(card.sub))
+      row.createCell(10).setCellValue(toDozenStr(card.stain))
+      row.createCell(11).setCellValue(toDozenStr(card.broken))
+      row.createCell(12).setCellValue(toDozenStr(card.notEven))
 
       for {
         operator_idx <- operatorList.zipWithIndex

@@ -122,8 +122,10 @@ object PdfUtility {
 
   def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-    val font = new Font(bf, 12)
-    def prepareCell(str: String, add: Boolean = true, colspan:Int = 1)(implicit tab: PdfPTable) = {
+    val defaultFont = new Font(bf, 12)
+    val bigFont = new Font(bf, 20)
+    
+    def prepareCell(str: String, add: Boolean = true, colspan:Int = 1)(implicit tab: PdfPTable, font:Font = defaultFont) = {
       val cell = new PdfPCell(new Paragraph(str, font))
       cell.setHorizontalAlignment(Element.ALIGN_LEFT)
       cell.setVerticalAlignment(Element.ALIGN_MIDDLE)
@@ -136,6 +138,8 @@ object PdfUtility {
 
       cell
     }
+    
+    
     val sizeList = workSeq.map {
       work =>
         val order = orderMap(work.orderId)
@@ -143,18 +147,26 @@ object PdfUtility {
     }
 
     {
-      implicit val topTable = new PdfPTable(3); // 3 columns.
+      implicit val topTable = new PdfPTable(4); // 3 columns.
       topTable.setWidthPercentage(100)
       val orderStr = orderMap.keys.mkString(",")
       prepareCell("訂單編號:" + orderStr)
       val deliverDate = new DateTime(orderMap.values.map { _.expectedDeliverDate }.min)
       prepareCell("出貨日:" + deliverDate.toString("YYYY-MM-dd"))
+            prepareCell("顏色:" + dyeCard.color)(topTable, bigFont)
       topTable.addCell(getBarCodeImg(dyeCard._id)(writer))
       
-      prepareCell("顏色:" + dyeCard.color)
       val quantityList = workSeq.map { _.quantity }
       prepareCell("總數量(打):" + toDozenStr(quantityList.sum))
       prepareCell("編織編號:")
+      prepareCell("包襪人員:")
+      prepareCell("")
+      prepareCell("包襪日期:")
+      prepareCell("")
+      prepareCell("備註:")
+      prepareCell("")
+
+      
 
       doc.add(topTable)
     }
@@ -183,13 +195,6 @@ object PdfUtility {
         prepareCell(" ")        
         prepareCell(" ")
       }
-
-      prepareCell("其他備註:")
-      val cell = prepareCell(" ", false)
-      cell.setColspan(2)
-      tab2.addCell(cell)
-      prepareCell("包襪日:")
-      prepareCell("工號:")
       tab2.setSpacingBefore(12f)
       doc.add(tab2)
     }
@@ -230,25 +235,25 @@ object PdfUtility {
       val dp = prepareCell("染色程序(kg):", false)
       dp.setRowspan(3)
       tab3.addCell(dp)
-      prepareCell("均染劑(一般,PAM):____kg")
+      prepareCell("均染劑:____kg\n(一般,PAM,其他)")
       prepareCell("冰醋酸:____kg")
       prepareCell("溫度:____C")
       prepareCell("醋銨:____kg")
       prepareCell("氨水:____kg")
-      prepareCell("溫度:____時間")
+      prepareCell("時間:____分鐘")
       prepareCell("起染pH:")
       prepareCell("染終pH:")
-      prepareCell(" ")
+      prepareCell("溫度:____C")
 
       val pp = prepareCell("後處理程序(kg):", false)
       pp.setRowspan(2)
       tab3.addCell(pp)
       prepareCell("固色劑:____kg")
       prepareCell("陽離子柔軟劑:____kg")
-      prepareCell("柔軟時間:____kg")
+      prepareCell("柔軟時間:____分鐘")
       prepareCell("冰醋酸:____kg")
       prepareCell("矽利康:____kg")
-      prepareCell(" ")
+      prepareCell("溫度:____C")
 
       prepareCell("烘乾")
       prepareCell("溫度:")

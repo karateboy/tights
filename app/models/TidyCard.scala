@@ -16,11 +16,11 @@ case class TidyID(workCardID: String, phase: String) {
 }
 case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int,
                     sub: Option[Int], stain: Option[Int], broken: Option[Int],
-                    subNotPack: Option[Int], var date: Long) {
+                    subNotPack: Option[Int], notEven: Option[Int], var date: Long) {
   def toDocument = {
     Document("_id" -> _id.toDocument, "workCardID" -> workCardID, "phase" -> phase, "operator" -> operator,
       "good" -> good, "sub" -> sub, "stain" -> stain,
-      "broken" -> broken, "subNotPack" -> subNotPack, "date" -> date)
+      "broken" -> broken, "subNotPack" -> subNotPack, "notEven"->notEven, "date" -> date)
   }
 }
 
@@ -42,7 +42,7 @@ object TidyCard {
   }
 
   def default(workCardID: String, phase: String) =
-    TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None, None, 0)
+    TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None, None, None, 0)
 
   implicit val idRead = Json.reads[TidyID]
   implicit val idWrite = Json.writes[TidyID]
@@ -69,9 +69,10 @@ object TidyCard {
     val stain = getOptionInt("stain")
     val broken = getOptionInt("broken")
     val subNotPack = getOptionInt("subNotPack")
+    val notEven = getOptionInt("notEven")
     val date = doc.getLong("date")
     TidyCard(_id, workCardID, phase, operator, good, sub, stain,
-      broken, subNotPack, date)
+      broken, subNotPack, notEven, date)
   }
 
   def newCard(card: TidyCard) = {

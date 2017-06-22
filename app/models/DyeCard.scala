@@ -306,7 +306,8 @@ object DyeCard {
   }
 
   def getActiveDyeCards() = {
-    val f = collection.find(equal("active", true)).toFuture()
+    import org.mongodb.scala.model._
+    val f = collection.find(equal("active", true)).sort(Sorts.descending("_id")).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map {
       doc =>
