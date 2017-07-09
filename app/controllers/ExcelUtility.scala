@@ -109,7 +109,7 @@ object ExcelUtility {
       operator_idx <- operatorList.zipWithIndex
       operator = operator_idx._1
       idx = operator_idx._2
-      col = 9 + idx
+      col = 13 + idx
     } {
       titleRow.createCell(col).setCellValue(operator)
     }
@@ -141,7 +141,7 @@ object ExcelUtility {
         operator_idx <- operatorList.zipWithIndex
         operator = operator_idx._1
         idx = operator_idx._2
-        col = 9 + idx
+        col = 13 + idx
       } {
         val cell = row.createCell(col)
         if(card.operator.contains(operator))

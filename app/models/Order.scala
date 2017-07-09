@@ -268,12 +268,12 @@ object Order {
   }
 
   def getOrders(orderIds: Seq[String]) = {
-    val f = collection.find(in("_id", orderIds:_*)).toFuture()
+    val f = collection.find(in("_id", orderIds: _*)).toFuture()
     f.onFailure {
       errorHandler
     }
     for (orders <- f) yield {
-       orders map toOrder
+      orders map toOrder
     }
   }
   def findOrders(orderIdList: Seq[String]) = {
@@ -288,11 +288,11 @@ object Order {
     }
   }
 
-  def myActiveOrder(salesId: String) = {
+  def myActiveOrder(salesId: String)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
     val f = collection.find(and(equal("active", true), equal("salesId", salesId)))
-      .sort(Sorts.ascending("_id")).toFuture()
+      .sort(Sorts.ascending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -300,6 +300,17 @@ object Order {
       yield records map {
       toOrder
     }
+  }
+
+  def myActiveOrderCount(salesId: String) = {
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+    val f = collection.count(and(equal("active", true), equal("salesId", salesId))).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (countSeq <- f)
+      yield countSeq(0)
   }
 
   def getHistoryOrder(begin: Long, end: Long) = {
@@ -344,28 +355,28 @@ object Order {
   }
 
   case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
-                             factoryId: Option[String], customerId: Option[String], 
+                             factoryId: Option[String], customerId: Option[String],
                              start: Option[Long], end: Option[Long])
-  def queryOrder(param: QueryOrderParam) = {
+  def queryOrder(param: QueryOrderParam)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 
     val idFilter = param._id map { _id => regex("_id", _id) }
     val brandFilter = param.brand map { brand => regex("brand", "(?i)" + brand) }
     val nameFilter = param.name map { name => regex("name", "(?i)" + name) }
-    val factoryFilter = param.factoryId map { factoryId => regex("factorId", "(?i)" + factoryId) }
+    val factoryFilter = param.factoryId map { factoryId => regex("factoryId", "(?i)" + factoryId) }
     val customerFilter = param.customerId map { customerId => regex("customerId", "(?i)" + customerId) }
-    val startFilter = param.start map { start => gte("expectedDeliverDate", start)}
-    val endFilter = param.end map { end => lt("expectedDeliverDate", end)}
+    val startFilter = param.start map { start => gte("expectedDeliverDate", start) }
+    val endFilter = param.end map { end => lt("expectedDeliverDate", end) }
 
-    val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter, 
-        customerFilter, startFilter, endFilter).flatMap { f => f }
-    val filter = if(!filterList.isEmpty) 
-        and(filterList: _*)
-        else
-          Filters.exists("_id")
+    val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter,
+      customerFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      Filters.exists("_id")
 
-    val f = collection.find(filter).sort(Sorts.ascending("_id")).toFuture()
+    val f = collection.find(filter).sort(Sorts.ascending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -374,14 +385,45 @@ object Order {
       toOrder
     }
   }
+  def queryOrderCount(param: QueryOrderParam) = {
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
 
+    val idFilter = param._id map { _id => regex("_id", _id) }
+    val brandFilter = param.brand map { brand => regex("brand", "(?i)" + brand) }
+    val nameFilter = param.name map { name => regex("name", "(?i)" + name) }
+    val factoryFilter = param.factoryId map { factoryId => regex("factoryId", "(?i)" + factoryId) }
+    val customerFilter = param.customerId map { customerId => regex("customerId", "(?i)" + customerId) }
+    val startFilter = param.start map { start => gte("expectedDeliverDate", start) }
+    val endFilter = param.end map { end => lt("expectedDeliverDate", end) }
+
+    val filterList = List(idFilter, brandFilter, nameFilter, factoryFilter,
+      customerFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      Filters.exists("_id")
+
+    val f = collection.count(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (countSeq <- f)
+      yield countSeq(0)
+  }
   def closeOrder(_id: String) = {
     import org.mongodb.scala.model.Updates._
     val f = collection.findOneAndUpdate(equal("_id", _id), set("active", false)).toFuture()
     f
   }
-  
-  def deleteOrder(_id:String) = {
+
+  def reopenOrder(_id: String) = {
+    import org.mongodb.scala.model.Updates._
+    val f = collection.findOneAndUpdate(equal("_id", _id), set("active", true)).toFuture()
+    f
+  }
+
+  def deleteOrder(_id: String) = {
     collection.deleteOne(equal("_id", _id)).toFuture()
   }
 }

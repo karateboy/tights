@@ -16,11 +16,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 
 object CardManager extends Controller {
-  def getDyeCardList() = Security.Authenticated.async {
+  def getDyeCardList(skip:Int, limit:Int) = Security.Authenticated.async {
     import DyeCard._
-    val f = DyeCard.getActiveDyeCards
+    val f = DyeCard.getActiveDyeCards(skip, limit)
     for (cards <- f)
       yield Ok(Json.toJson(cards))
+  }
+  
+  def getDyeCardListCount = Security.Authenticated.async {
+    import DyeCard._
+    val f = DyeCard.getActiveDyeCardCount
+    for (count <- f)
+      yield Ok(Json.toJson(count))
   }
 
   def getDyeCard(id: String) = Security.Authenticated.async {
@@ -83,10 +90,16 @@ object CardManager extends Controller {
       })
   }
 
-  def getActiveWorkCards = Security.Authenticated.async {
-    val f = WorkCard.getActiveWorkCards()
+  def getActiveWorkCard(skip:Int, limit:Int) = Security.Authenticated.async {
+    val f = WorkCard.getActiveWorkCard(skip, limit)
     for (workCards <- f)
       yield Ok(Json.toJson(workCards))
+  }
+
+  def getActiveWorkCardCount() = Security.Authenticated.async {
+    val f = WorkCard.getActiveWorkCardCount()
+    for (count <- f)
+      yield Ok(Json.toJson(count))
   }
 
   def getDyeCardPdf(id: String) = Security.Authenticated.async {
@@ -325,8 +338,22 @@ object CardManager extends Controller {
     }
   }
 
+  case class OrderProductionSummary(produced:Int, inProduction:Int, overhead:Int)
+  def getOrderProductionSummary(orderId:String) = Security.Authenticated.async {
+    val f = WorkCard.getOrderProductionWorkCards(orderId)
+    for (cards <- f) yield {
+      val produced = cards.filter { !_.active }.map { _.good }.sum
+      val inProduction = cards.filter { _.active }.map { _.good }.sum
+      val overhead = cards.map { x => x.quantity - x.good }.sum
+      
+      implicit val writer = Json.writes[OrderProductionSummary]
+      
+      Ok(Json.toJson(OrderProductionSummary(produced, inProduction, overhead)))
+    }
+  }
+  
   import DyeCard._
-  def queryDyeCard = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryDyeCard(skip:Int, limit:Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryDyeCardParam]
       val result = request.body.validate[QueryDyeCardParam]
@@ -337,14 +364,31 @@ object CardManager extends Controller {
             BadRequest(JsError.toJson(err).toString())
           },
         param => {
-          val f = DyeCard.query(param)
+          val f = DyeCard.query(param)(skip, limit)
           for (cardList <- f)
             yield Ok(Json.toJson(cardList))
         })
   }
+  def queryDyeCardCount() = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val paramRead = Json.reads[QueryDyeCardParam]
+      val result = request.body.validate[QueryDyeCardParam]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        param => {
+          val f = DyeCard.count(param)
+          for (count <- f)
+            yield Ok(Json.toJson(count))
+        })
+  }
 
+  
   import WorkCard._
-  def queryWorkCard = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryWorkCard(skip:Int, limit:Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryWorkCardParam]
       val result = request.body.validate[QueryWorkCardParam]
@@ -355,9 +399,25 @@ object CardManager extends Controller {
             BadRequest(JsError.toJson(err).toString())
           },
         param => {
-          val f = WorkCard.query(param)
+          val f = WorkCard.query(param)(skip, limit)
           for (cardList <- f)
             yield Ok(Json.toJson(cardList))
+        })
+  }
+  def queryWorkCardCount = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val paramRead = Json.reads[QueryWorkCardParam]
+      val result = request.body.validate[QueryWorkCardParam]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        param => {
+          val f = WorkCard.count(param)
+          for (count <- f)
+            yield Ok(Json.toJson(count))
         })
   }
 

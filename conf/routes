@@ -3,67 +3,84 @@
 # ~~~~
 
 # Home page
-GET      /                                  controllers.Assets.at(path="/public", file="index.html")
+GET      /                                     controllers.Assets.at(path="/public", file="index.html")
 
 # Map static resources from the /public folder to the /assets URL path
-GET      /assets/*file                      controllers.Assets.versioned(path="/public", file: Asset)
-GET      /html/*file                        controllers.Assets.at(path="/public/html", file)
-GET      /dist/*file                        controllers.Assets.at(path="/public/dist", file)
+GET      /assets/*file                         controllers.Assets.versioned(path="/public", file: Asset)
+GET      /html/*file                           controllers.Assets.at(path="/public/html", file)
+GET      /dist/*file                           controllers.Assets.at(path="/public/dist", file)
 
-GET      /login                             controllers.Login.prompt
-GET      /logout                            controllers.Login.logout
-POST     /authenticate                      controllers.Login.authenticate
-GET      /testAuthenticated                 controllers.Login.testAuthenticated
+GET      /login                                controllers.Login.prompt
+GET      /logout                               controllers.Login.logout
+POST     /authenticate                         controllers.Login.authenticate
+GET      /testAuthenticated                    controllers.Login.testAuthenticated
 
-GET      /checkOrderId/:orderId             controllers.OrderManager.checkOrderId(orderId)
-POST     /Order                             controllers.OrderManager.upsertOrder
-PUT      /Order                             controllers.OrderManager.upsertOrder
-GET      /Order/:id                         controllers.OrderManager.getOrder(id)
-DELETE   /Order/:id                         controllers.OrderManager.deleteOrder(id)
-GET      /Department                        controllers.OrderManager.getDepartmentInfoList
-GET      /MyActiveOrder/:userId             controllers.OrderManager.myActiveOrder(userId)
-POST     /QueryOrder                        controllers.OrderManager.queryOrder()
-POST     /CloseOrder/:id                    controllers.OrderManager.closeOrder(id)
-GET      /OrderPDF/:id                      controllers.OrderManager.getOrderPdf(id)
+GET      /checkOrderId/:orderId                controllers.OrderManager.checkOrderId(orderId)
+POST     /Order                                controllers.OrderManager.upsertOrder
+PUT      /Order                                controllers.OrderManager.upsertOrder
+GET      /Order/:id                            controllers.OrderManager.getOrder(id)
+DELETE   /Order/:id                            controllers.OrderManager.deleteOrder(id)
+GET      /Department                           controllers.OrderManager.getDepartmentInfoList
 
-GET      /DyeCardSpec                       controllers.OrderManager.getDyeCardSpec
-POST     /ScheduleDyeWork                   controllers.OrderManager.scheduleDyeWork
-GET      /DyeCard                           controllers.CardManager.getDyeCardList
-POST     /DyeCard                           controllers.CardManager.updateDyeCard
-GET      /DyeCard/:id                       controllers.CardManager.getDyeCard(id)
-DELETE   /DyeCard/:id                       controllers.CardManager.deleteDyeCard(id)
-GET      /DyeCardPDF/:id                    controllers.CardManager.getDyeCardPdf(id)
-GET      /WorkCardLabelByDyeCard/:id        controllers.CardManager.getWorkCardLabelByDyeCard(id)
-POST     /QueryDyeCard                      controllers.CardManager.queryDyeCard
-POST     /QueryWorkCard                     controllers.CardManager.queryWorkCard
-POST     /StartDye                          controllers.CardManager.startDye
-GET      /EndDye/:id                        controllers.CardManager.endDye(id)
+GET      /MyActiveOrder/:userId/count          controllers.OrderManager.myActiveOrderCount(userId)	
+GET      /MyActiveOrder/:userId/:skip/:limit   controllers.OrderManager.myActiveOrder(userId, skip:Int, limit:Int)
 
-GET      /StylingCard/:workCardID           controllers.CardManager.getStylingCard(workCardID)
-POST     /StylingCard/:workCardID           controllers.CardManager.updateStylingCard(workCardID)
-GET      /StylingReport/:start/:end         controllers.CardManager.stylingReport(start: Long, end: Long, output="html")
-GET      /StylingReport/Excel/:start/:end   controllers.CardManager.stylingReport(start: Long, end: Long, output="excel")
+POST     /QueryOrder/:skip/:limit              controllers.OrderManager.queryOrder(skip:Int, limit:Int)
+POST     /QueryOrder/count                     controllers.OrderManager.queryOrderCount()
 
-GET      /TidyCardList/:workCardID          controllers.CardManager.getTidyCardList(workCardID)
-POST     /GetTidyCard                       controllers.CardManager.getTidyCard
-POST     /TidyCard                          controllers.CardManager.upsertTidyCard(active="true")
-POST     /FinalTidyCard                     controllers.CardManager.upsertTidyCard(active="false")
-GET      /TidyReport/:start/:end            controllers.CardManager.tidyCardReport(start: Long, end: Long, output="html")
-GET      /TidyReport/Excel/:start/:end      controllers.CardManager.tidyCardReport(start: Long, end: Long, output="excel")
+POST     /CloseOrder/:id                       controllers.OrderManager.closeOrder(id)
+POST     /ReopenOrder/:id                      controllers.OrderManager.reopenOrder(id)
+GET      /OrderPDF/:id                         controllers.OrderManager.getOrderPdf(id)
 
-GET      /WorkCard/:id                      controllers.CardManager.getWorkCard(id)
-GET      /OrderWorkCard/:id/:idx            controllers.CardManager.getOrderDetailWorkCards(id, idx:Int)
-POST     /GetWorkCards                      controllers.CardManager.getWorkCards
-GET      /ActiveWorkCards                   controllers.CardManager.getActiveWorkCards
-GET      /barcode/:fileName                 controllers.CardManager.getBarcode(fileName)
+GET      /DyeCardSpec                          controllers.OrderManager.getDyeCardSpec
+POST     /ScheduleDyeWork                      controllers.OrderManager.scheduleDyeWork
 
-GET      /UserManagement                    controllers.Application.userManagement
-POST     /User                              controllers.Application.newUser
-GET      /User                              controllers.Application.getAllUsers
-PUT      /User/:id                          controllers.Application.updateUser(id)
-DELETE   /User/:id                          controllers.Application.deleteUser(id)
+GET      /DyeCard/count                        controllers.CardManager.getDyeCardListCount()
+GET      /DyeCard/:skip/:limit                 controllers.CardManager.getDyeCardList(skip:Int, limit:Int)
+							
+POST     /DyeCard                              controllers.CardManager.updateDyeCard
+GET      /DyeCard/:id                          controllers.CardManager.getDyeCard(id)
+DELETE   /DyeCard/:id                          controllers.CardManager.deleteDyeCard(id)
+GET      /DyeCardPDF/:id                       controllers.CardManager.getDyeCardPdf(id)
+GET      /WorkCardLabelByDyeCard/:id           controllers.CardManager.getWorkCardLabelByDyeCard(id)
 
-GET      /Group                             controllers.Application.getGroupInfoList
+POST     /QueryDyeCard/count                   controllers.CardManager.queryDyeCardCount
+POST     /QueryDyeCard/:skip/:limit            controllers.CardManager.queryDyeCard(skip:Int, limit:Int)
+
+POST     /QueryWorkCard/count                  controllers.CardManager.queryWorkCardCount
+POST     /QueryWorkCard/:skip/:limit           controllers.CardManager.queryWorkCard(skip:Int, limit:Int)
+
+POST     /StartDye                             controllers.CardManager.startDye
+GET      /EndDye/:id                           controllers.CardManager.endDye(id)
+
+GET      /StylingCard/:workCardID              controllers.CardManager.getStylingCard(workCardID)
+POST     /StylingCard/:workCardID              controllers.CardManager.updateStylingCard(workCardID)
+GET      /StylingReport/:start/:end            controllers.CardManager.stylingReport(start: Long, end: Long, output="html")
+GET      /StylingReport/Excel/:start/:end      controllers.CardManager.stylingReport(start: Long, end: Long, output="excel")
+
+GET      /TidyCardList/:workCardID             controllers.CardManager.getTidyCardList(workCardID)
+POST     /GetTidyCard                          controllers.CardManager.getTidyCard
+POST     /TidyCard                             controllers.CardManager.upsertTidyCard(active="true")
+POST     /FinalTidyCard                        controllers.CardManager.upsertTidyCard(active="false")
+GET      /TidyReport/:start/:end               controllers.CardManager.tidyCardReport(start: Long, end: Long, output="html")
+GET      /TidyReport/Excel/:start/:end         controllers.CardManager.tidyCardReport(start: Long, end: Long, output="excel")
+
+GET      /WorkCard/:id                         controllers.CardManager.getWorkCard(id)
+GET      /OrderProductionSummary/:orderId      controllers.CardManager.getOrderProductionSummary(orderId)
+GET      /OrderWorkCard/:id/:idx               controllers.CardManager.getOrderDetailWorkCards(id, idx:Int)
+POST     /GetWorkCards                         controllers.CardManager.getWorkCards
+
+GET      /ActiveWorkCard/count                 controllers.CardManager.getActiveWorkCardCount()
+GET      /ActiveWorkCard/:skip/:limit          controllers.CardManager.getActiveWorkCard(skip:Int, limit:Int)
+GET      /barcode/:fileName                    controllers.CardManager.getBarcode(fileName)
+
+GET      /UserManagement                       controllers.Application.userManagement
+POST     /User                                 controllers.Application.newUser
+GET      /User                                 controllers.Application.getAllUsers
+PUT      /User/:id                             controllers.Application.updateUser(id)
+DELETE   /User/:id                             controllers.Application.deleteUser(id)
+
+GET      /Group                                controllers.Application.getGroupInfoList
 
 
 

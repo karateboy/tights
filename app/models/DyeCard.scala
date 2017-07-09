@@ -26,8 +26,8 @@ case class DyePotion(y: Option[Double], r: Option[Double], b: Option[Double],
                      Fluorescent: Option[Double], Brightener: Option[Double], black: Option[Double],
                      otherDyeType: Option[String], otherDye: Option[Double]) {
   def toDocument = Document("y" -> y, "r" -> r, "b" -> b,
-    "Fluorescent" -> Fluorescent, "Brightener" -> Brightener, "black"->black,
-    "otherDyeType"->otherDyeType, "otherDye"->otherDye)
+    "Fluorescent" -> Fluorescent, "Brightener" -> Brightener, "black" -> black,
+    "otherDyeType" -> otherDyeType, "otherDye" -> otherDye)
 
 }
 object DyePotion {
@@ -52,7 +52,7 @@ case class PostProcess(fixedPotion: Option[Double],
                        softenTime: Option[Int], temp: Option[Double]) {
   def toDocument = Document("fixedPotion" -> fixedPotion,
     "iceV" -> iceV, "silicon" -> silicon, "postiveSoftener" -> postiveSoftener,
-    "softenTime" -> softenTime, "temp"->temp)
+    "softenTime" -> softenTime, "temp" -> temp)
 
 }
 object PostProcess {
@@ -104,7 +104,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "dyePotion" -> dyePotion,
       "dyeProcess" -> dyeProcess,
       "postProcess" -> postProcess,
-      "dryTime" -> dryTime, "dryTemp" -> dryTemp, "machine"->machine,
+      "dryTime" -> dryTime, "dryTemp" -> dryTemp, "machine" -> machine,
       "sizeCharts" -> sizeCharts,
       "active" -> active, "remark" -> remark)
   }
@@ -234,7 +234,7 @@ object DyeCard {
     val temp = getOptionDouble("temp")
 
     PostProcess(fixedPotion = fixedPotion, iceV = iceV, silicon = silicon,
-      postiveSoftener = postiveSoftener, softenTime = softenTime, temp=temp)
+      postiveSoftener = postiveSoftener, softenTime = softenTime, temp = temp)
   }
 
   def toSizeChart(implicit doc: Document) = {
@@ -305,9 +305,9 @@ object DyeCard {
     }
   }
 
-  def getActiveDyeCards() = {
+  def getActiveDyeCards(skip: Int, limit: Int) = {
     import org.mongodb.scala.model._
-    val f = collection.find(equal("active", true)).sort(Sorts.descending("_id")).toFuture()
+    val f = collection.find(equal("active", true)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map {
       doc =>
@@ -315,8 +315,15 @@ object DyeCard {
     }
   }
 
+  def getActiveDyeCardCount() = {
+    import org.mongodb.scala.model._
+    val f = collection.count(equal("active", true)).toFuture()
+    f.onFailure { errorHandler }
+    for (countSeq <- f) yield countSeq(0)
+  }
+
   case class QueryDyeCardParam(_id: Option[String], color: Option[String], start: Option[Long], end: Option[Long])
-  def query(param: QueryDyeCardParam) = {
+  def query(param: QueryDyeCardParam)(skip:Int, limit:Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 
@@ -331,7 +338,7 @@ object DyeCard {
     else
       Filters.exists("_id")
 
-    val f = collection.find(filter).toFuture()
+    val f = collection.find(filter).skip(skip).limit(limit).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -339,6 +346,29 @@ object DyeCard {
       yield records map {
       doc => toDyeCard(doc)
     }
+  }
+  
+  def count(param: QueryDyeCardParam) = {
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+
+    val idFilter = param._id map { _id => regex("_id", _id) }
+    val colorFilter = param.color map { color => regex("color", color) }
+    val startFilter = param.start map { gte("startTime", _) }
+    val endFilter = param.end map { lt("startTime", _) }
+
+    val filterList = List(idFilter, colorFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      Filters.exists("_id")
+
+    val f = collection.count(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (countSeq <- f)
+      yield countSeq(0)
   }
 
   def startDye(_id: String, operator: String) = {

@@ -82,13 +82,19 @@ object OrderManager extends Controller {
       Ok(Json.toJson(Department.getInfoList))
   }
 
-  def myActiveOrder(userId: String) = Security.Authenticated.async {
+  def myActiveOrder(userId: String, skip: Int, limit: Int) = Security.Authenticated.async {
     implicit request =>
-      val f = Order.myActiveOrder(userId)
+      val f = Order.myActiveOrder(userId)(skip, limit)
       for (orderList <- f) yield {
         Ok(Json.toJson(orderList))
       }
+  }
 
+  def myActiveOrderCount(userId: String) = Security.Authenticated.async {
+    val f = Order.myActiveOrderCount(userId)
+    for (count <- f) yield {
+      Ok(Json.toJson(count))
+    }
   }
 
   case class WorkCardSpec(orderId: String, factoryId: String, index: Int, detail: OrderDetail, due: Long, need: Int)
@@ -148,8 +154,9 @@ object OrderManager extends Controller {
         val dyeCardSpecList = dyeWorkCardMap map {
           kv =>
             val color = kv._1
-            val workSpecList = kv._2
-            DyeCardSpec(color, workSpecList.head.due, workSpecList)
+            val workSpecList = kv._2.sortBy { _.due }
+            val due = workSpecList.head.due
+            DyeCardSpec(color, due, workSpecList)
         }
 
         val sortedDyeCardSpecList = dyeCardSpecList.toSeq.sortBy { x => x.due }
@@ -257,7 +264,7 @@ object OrderManager extends Controller {
   }
 
   import Order._
-  def queryOrder() = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryOrder(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryOrderParam]
       val result = request.body.validate[QueryOrderParam]
@@ -268,9 +275,25 @@ object OrderManager extends Controller {
             BadRequest(JsError.toJson(err).toString())
           },
         param => {
-          val f = Order.queryOrder(param)
+          val f = Order.queryOrder(param)(skip, limit)
           for (orderList <- f)
             yield Ok(Json.toJson(orderList))
+        })
+  }
+  def queryOrderCount() = Security.Authenticated.async(BodyParsers.parse.json) {    
+    implicit request =>
+      implicit val paramRead = Json.reads[QueryOrderParam]
+      val result = request.body.validate[QueryOrderParam]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        param => {
+          val f = Order.queryOrderCount(param)
+          for (count <- f)
+            yield Ok(Json.toJson(count))
         })
   }
 
@@ -285,10 +308,21 @@ object OrderManager extends Controller {
     }
   }
 
+  def reopenOrder(_id: String) = Security.Authenticated.async {
+    val f = Order.reopenOrder(_id)
+    for (rets <- f) yield {
+      if (rets.isEmpty)
+        Ok(Json.obj("ok" -> false, "msg" -> "找不到訂單"))
+      else {
+        Ok(Json.obj("ok" -> true))
+      }
+    }
+  }
+
   def deleteOrder(_id: String) = Security.Authenticated.async {
     import WorkCard._
     val param = QueryWorkCardParam(_id = None, orderId = Some(_id), start = None, end = None)
-    val f = WorkCard.query(param)
+    val f = WorkCard.query(param)(0, 100)
     for (workCardList <- f) yield {
       if (workCardList.isEmpty) {
         Order.deleteOrder(_id)

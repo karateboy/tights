@@ -170,17 +170,25 @@ object WorkCard {
   }
 
   def getCards(ids: Seq[String]) = {
-    val f = collection.find(in("_id", ids: _*)).sort(ascending("orderId", "detailIndex")).toFuture()
+    import org.mongodb.scala.model._
+    val f = collection.find(in("_id", ids: _*)).sort(Sorts.descending("_id")).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield {
       cards map { toWorkCard(_) }
     }
   }
 
-  def getActiveWorkCards() = {
-    val f = collection.find(equal("active", true)).sort(ascending("orderId", "detailIndex")).toFuture()
+  def getActiveWorkCard(skip: Int, limit: Int) = {
+    import org.mongodb.scala.model._
+    val f = collection.find(equal("active", true)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map { toWorkCard(_) }
+  }
+
+  def getActiveWorkCardCount() = {
+    val f = collection.count(equal("active", true)).toFuture()
+    f.onFailure { errorHandler }
+    for (counts <- f) yield counts(0)
   }
 
   def checkOrderDetailComplete(orderId: String, detailIndex: Int) {
@@ -239,8 +247,14 @@ object WorkCard {
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
 
+  def getOrderProductionWorkCards(orderId: String) = {
+    val f = collection.find(equal("orderId", orderId)).toFuture()
+    f.onFailure { errorHandler }
+    for (cards <- f) yield cards.map { toWorkCard(_) }
+  }
+
   case class QueryWorkCardParam(_id: Option[String], orderId: Option[String], start: Option[Long], end: Option[Long])
-  def query(param: QueryWorkCardParam) = {
+  def query(param: QueryWorkCardParam)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 
@@ -255,7 +269,7 @@ object WorkCard {
     else
       Filters.exists("_id")
 
-    val f = collection.find(filter).sort(ascending("orderId", "detailIndex")).toFuture()
+    val f = collection.find(filter).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure {
       errorHandler
     }
@@ -264,8 +278,31 @@ object WorkCard {
       doc => toWorkCard(doc)
     }
   }
-  
-  def queryStylingCard(start:Long, end:Long) = {
+
+  def count(param: QueryWorkCardParam) = {
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+
+    val idFilter = param._id map { _id => regex("_id", _id) }
+    val orderIdFilter = param.orderId map { orderId => regex("orderId", orderId) }
+    val startFilter = param.start map { gte("startTime", _) }
+    val endFilter = param.end map { lt("startTime", _) }
+
+    val filterList = List(idFilter, orderIdFilter, startFilter, endFilter).flatMap { f => f }
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      Filters.exists("_id")
+
+    val f = collection.count(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (countSeq <- f)
+      yield countSeq(0)
+  }
+
+  def queryStylingCard(start: Long, end: Long) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 

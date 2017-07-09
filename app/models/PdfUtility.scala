@@ -149,7 +149,7 @@ object PdfUtility {
     {
       implicit val topTable = new PdfPTable(4); // 3 columns.
       topTable.setWidthPercentage(100)
-      val orderStr = orderMap.keys.mkString(",")
+      val orderStr = orderMap.keys.mkString("\n")
       prepareCell("訂單編號:" + orderStr)
       val deliverDate = new DateTime(orderMap.values.map { _.expectedDeliverDate }.min)
       prepareCell("出貨日:" + deliverDate.toString("YYYY-MM-dd"))
@@ -157,14 +157,14 @@ object PdfUtility {
       topTable.addCell(getBarCodeImg(dyeCard._id)(writer))
       
       val quantityList = workSeq.map { _.quantity }
-      prepareCell("總數量(打):" + toDozenStr(quantityList.sum))
-      prepareCell("編織編號:")
       prepareCell("包襪人員:")
+      prepareCell("編織編號:")
+      prepareCell("總數量(打):" + toDozenStr(quantityList.sum))
       prepareCell("")
       prepareCell("包襪日期:")
       prepareCell("")
       prepareCell("備註:")
-      prepareCell("")
+      prepareCell(dyeCard.remark.getOrElse(""))
 
       
 
