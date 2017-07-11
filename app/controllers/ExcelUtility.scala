@@ -138,13 +138,14 @@ object ExcelUtility {
       row.createCell(12).setCellValue(toDozenStr(card.notEven))
 
       for {
-        operator_idx <- operatorList.zipWithIndex
+        operator_idx <- operatorList.flatMap { x =>
+          x.split("[,.]") }.zipWithIndex
         operator = operator_idx._1
         idx = operator_idx._2
         col = 13 + idx
       } {
         val cell = row.createCell(col)
-        if(card.operator.contains(operator))
+        if(card.operator.flatMap { x => x.split("[,.]") }.contains(operator))
           cell.setCellValue(operator)
       }
     }

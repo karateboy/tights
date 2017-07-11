@@ -154,10 +154,14 @@ object WorkCard {
   }
 
   def updateCard(card: WorkCard) = {
-    val f = collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
-    waitReadyResult(f)
+    collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
   }
 
+  def updateDyeCardId(_id:String, newDyeCardId:String) = {
+    import org.mongodb.scala.model._
+    collection.updateOne(equal("_id", _id), Updates.set("dyeCardID", newDyeCardId)).toFuture()
+  }
+  
   def getCard(id: String) = {
     val f = collection.find(equal("_id", id)).first().toFuture()
     f.onFailure { errorHandler }
@@ -169,9 +173,16 @@ object WorkCard {
     }
   }
 
-  def getCards(ids: Seq[String]) = {
+  def countCards(ids: Seq[String]) = {
     import org.mongodb.scala.model._
-    val f = collection.find(in("_id", ids: _*)).sort(Sorts.descending("_id")).toFuture()
+    val f = collection.count(in("_id", ids: _*)).toFuture()
+    f.onFailure { errorHandler }
+    for (countSeq <- f) yield countSeq(0)
+  }
+  
+  def getCards(ids: Seq[String])(skip:Int, limit:Int) = {
+    import org.mongodb.scala.model._
+    val f = collection.find(in("_id", ids: _*)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield {
       cards map { toWorkCard(_) }

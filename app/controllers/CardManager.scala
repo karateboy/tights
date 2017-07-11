@@ -16,13 +16,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConversions._
 
 object CardManager extends Controller {
-  def getDyeCardList(skip:Int, limit:Int) = Security.Authenticated.async {
+  def getDyeCardList(skip: Int, limit: Int) = Security.Authenticated.async {
     import DyeCard._
     val f = DyeCard.getActiveDyeCards(skip, limit)
     for (cards <- f)
       yield Ok(Json.toJson(cards))
   }
-  
+
   def getDyeCardListCount = Security.Authenticated.async {
     import DyeCard._
     val f = DyeCard.getActiveDyeCardCount
@@ -72,7 +72,35 @@ object CardManager extends Controller {
       }
   }
 
-  def getWorkCards = Security.Authenticated.async(BodyParsers.parse.json) {
+  def updateWorkCard = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      val result = request.body.validate[WorkCard]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, card => {
+        val f = WorkCard.updateCard(card)
+        for (ret <- f) yield {
+          Ok(Json.obj("ok" -> true))
+        }
+      })
+  }
+
+  def moveWorkCard(workCardId: String, moveOutDyeCardId: String, moveInDyeCardId: String) = Security.Authenticated.async {
+    implicit request =>
+      val dyeCardF = DyeCard.moveWorkCard(workCardId, moveOutDyeCardId, moveInDyeCardId)
+      dyeCardF.onFailure(errorHandler)
+      val workCardF = WorkCard.updateDyeCardId(workCardId, moveInDyeCardId)
+      workCardF.onFailure(errorHandler)
+
+      for (ret <- Future.sequence(List(dyeCardF, workCardF)))
+        yield Ok(Json.obj("Ok"->true))
+  }
+
+  def getWorkCardCount = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
 
       val result = request.body.validate[Seq[String]]
@@ -83,14 +111,34 @@ object CardManager extends Controller {
           BadRequest(JsError.toJson(err).toString())
         }
       }, ids => {
-        val f = WorkCard.getCards(ids)
+        val f = WorkCard.countCards(ids)
+        for (count <- f) yield {
+          Ok(Json.toJson(count))
+        }
+      })
+  }
+
+  def getAllWorkCards = getWorkCards(0, 1000)
+
+  def getWorkCards(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+
+      val result = request.body.validate[Seq[String]]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, ids => {
+        val f = WorkCard.getCards(ids)(skip, limit)
         for (cards <- f) yield {
           Ok(Json.toJson(cards))
         }
       })
   }
 
-  def getActiveWorkCard(skip:Int, limit:Int) = Security.Authenticated.async {
+  def getActiveWorkCard(skip: Int, limit: Int) = Security.Authenticated.async {
     val f = WorkCard.getActiveWorkCard(skip, limit)
     for (workCards <- f)
       yield Ok(Json.toJson(workCards))
@@ -111,7 +159,7 @@ object CardManager extends Controller {
         Future(Seq.empty[WorkCard])
       else {
         val dyeCard = dyeCardOpt.get
-        val fWorkCards = WorkCard.getCards(dyeCard.workIdList)
+        val fWorkCards = WorkCard.getCards(dyeCard.workIdList)(0, 1000)
         for (workCards <- fWorkCards) yield workCards
       }
     }
@@ -151,7 +199,7 @@ object CardManager extends Controller {
         Future(Seq.empty[WorkCard])
       else {
         val dyeCard = dyeCardOpt.get
-        val fWorkCards = WorkCard.getCards(dyeCard.workIdList)
+        val fWorkCards = WorkCard.getCards(dyeCard.workIdList)(0, 1000)
         for (workCards <- fWorkCards) yield workCards
       }
     }
@@ -180,7 +228,7 @@ object CardManager extends Controller {
           play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
           * 
           */
-      
+
       Ok.sendFile(createWorkSheet(workSheetProc(workCards, orderPair.toMap)),
         fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
@@ -338,22 +386,22 @@ object CardManager extends Controller {
     }
   }
 
-  case class OrderProductionSummary(produced:Int, inProduction:Int, overhead:Int)
-  def getOrderProductionSummary(orderId:String) = Security.Authenticated.async {
+  case class OrderProductionSummary(produced: Int, inProduction: Int, overhead: Int)
+  def getOrderProductionSummary(orderId: String) = Security.Authenticated.async {
     val f = WorkCard.getOrderProductionWorkCards(orderId)
     for (cards <- f) yield {
       val produced = cards.filter { !_.active }.map { _.good }.sum
       val inProduction = cards.filter { _.active }.map { _.good }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
-      
+
       implicit val writer = Json.writes[OrderProductionSummary]
-      
+
       Ok(Json.toJson(OrderProductionSummary(produced, inProduction, overhead)))
     }
   }
-  
+
   import DyeCard._
-  def queryDyeCard(skip:Int, limit:Int) = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryDyeCard(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryDyeCardParam]
       val result = request.body.validate[QueryDyeCardParam]
@@ -386,9 +434,8 @@ object CardManager extends Controller {
         })
   }
 
-  
   import WorkCard._
-  def queryWorkCard(skip:Int, limit:Int) = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryWorkCard(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryWorkCardParam]
       val result = request.body.validate[QueryWorkCardParam]
@@ -431,7 +478,7 @@ object CardManager extends Controller {
       else {
         val workCardIdList = cards.map { _.workCardID }
         val workCardIdSet = Set(workCardIdList: _*)
-        val workCardF = WorkCard.getCards(workCardIdSet.toSeq)
+        val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
         val workCards = waitReadyResult(workCardF)
         val workCardPair = workCards map { card => card._id -> card }
         val orderIdSet = Set(workCards.map { _.orderId }: _*)
@@ -458,7 +505,7 @@ object CardManager extends Controller {
         card <- cards
         stylingCard = card.stylingCard.get
       } {
-        operatorSet ++= stylingCard.operator.toSet
+        operatorSet ++= stylingCard.operator.flatMap { token => token.split("[,.]") }.toSet
       }
       val operatorList = operatorSet.toList.sorted
 
@@ -469,7 +516,7 @@ object CardManager extends Controller {
       } else {
         val orderIdSet = Set(cards.map { _.orderId }: _*)
         val ordersF = Order.getOrders(orderIdSet.toSeq)
-        val orders = waitReadyResult(ordersF)        
+        val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
 
         val excel = ExcelUtility.getStylingReport(cards, operatorList, orderPair.toMap, start, end)

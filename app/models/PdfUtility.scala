@@ -631,52 +631,41 @@ object PdfUtility {
         }
         // body
         {
-          val bodyTab = new PdfPTable(8)
+          val bodyTab = new PdfPTable(9)
           bodyTab.setWidthPercentage(100)
 
           {
             // 定型
             implicit val tab = new PdfPTable(2)
+            prepareCell(""); prepareCell("定型")
             prepareCell("機台"); prepareCell("")
-            prepareCell("日期"); prepareCell("")
-            prepareCell("優"); prepareCell("")
-            prepareCell("副"); prepareCell("")
-            prepareCell("汙"); prepareCell("")
-            prepareCell("破"); prepareCell("")
-            prepareCell("不均"); prepareCell("")
-            prepareCell("襪頭"); prepareCell("")
-            prepareCell("工號"); prepareCell("")
-            prepareCell("備註"); prepareCell("")
-            prepareCell("主管審核"); prepareCell("")
             val cell = new PdfPCell(tab)
             cell.setBorder(Rectangle.NO_BORDER)
             cell.setColspan(2)
             bodyTab.addCell(cell)
           }
           {
-            implicit val tab = new PdfPTable(7)
+            implicit val tab = bodyTab
             def emptyCells() {
-              for (i <- 1 to 6)
+              for (i <- 1 to 8)
                 prepareCell("")
             }
 
-            prepareCell("單位"); prepareCell("檢襪")
-            prepareCell("貼洗標1\n車洗標2"); prepareCell("剪線頭2\n剪線頭3");
-            prepareCell("整理包裝"); prepareCell("成品倉庫"); prepareCell("備註")
+            prepareCell("檢襪\n分襪")
+            prepareCell("巡襪")
+            prepareCell("車洗標"); prepareCell("剪線頭");
+            prepareCell("整理\n包裝"); prepareCell("成品\n倉庫"); prepareCell("備註")
 
             prepareCell("日期"); emptyCells
             prepareCell("優"); emptyCells
             prepareCell("副"); emptyCells
             prepareCell("汙"); emptyCells
             prepareCell("破"); emptyCells
-            prepareCell("副未包"); emptyCells
+            prepareCell("不均"); emptyCells
+            prepareCell("油"); emptyCells
             prepareCell("工號"); emptyCells
             prepareCell("備註"); emptyCells
             prepareCell("主管審核"); emptyCells
-            val cell = new PdfPCell(tab)
-            cell.setBorder(Rectangle.NO_BORDER)
-            cell.setColspan(6)
-            bodyTab.addCell(cell)
           }
 
           val cell = new PdfPCell(bodyTab)
@@ -715,7 +704,7 @@ object PdfUtility {
         prepareCell("汙:")
         prepareCell("破:")
         prepareCell("不均:")
-        prepareCell("襪頭:")
+        prepareCell("油:")
         prepareCell("工號:")
         prepareCell("備註:")
         prepareCell("主管審核:")
@@ -746,7 +735,8 @@ object PdfUtility {
         prepareCell("副:")
         prepareCell("汙:")
         prepareCell("破:")
-        prepareCell("副未包:")
+        prepareCell("不均:")
+        prepareCell("油:")
         prepareCell("工號:")
         prepareCell("備註:")
         prepareCell("主管審核:")

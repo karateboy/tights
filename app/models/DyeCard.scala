@@ -322,8 +322,9 @@ object DyeCard {
     for (countSeq <- f) yield countSeq(0)
   }
 
-  case class QueryDyeCardParam(_id: Option[String], color: Option[String], start: Option[Long], end: Option[Long])
-  def query(param: QueryDyeCardParam)(skip:Int, limit:Int) = {
+  case class QueryDyeCardParam(_id: Option[String], color: Option[String],
+                               start: Option[Long], end: Option[Long], active: Option[Boolean])
+  def query(param: QueryDyeCardParam)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 
@@ -331,8 +332,9 @@ object DyeCard {
     val colorFilter = param.color map { color => regex("color", color) }
     val startFilter = param.start map { gte("startTime", _) }
     val endFilter = param.end map { lt("startTime", _) }
+    val activeFilter = param.active map { active => equal("active", active) }
 
-    val filterList = List(idFilter, colorFilter, startFilter, endFilter).flatMap { f => f }
+    val filterList = List(idFilter, colorFilter, startFilter, endFilter, activeFilter).flatMap { f => f }
     val filter = if (!filterList.isEmpty)
       and(filterList: _*)
     else
@@ -347,7 +349,7 @@ object DyeCard {
       doc => toDyeCard(doc)
     }
   }
-  
+
   def count(param: QueryDyeCardParam) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
@@ -381,5 +383,14 @@ object DyeCard {
     import org.mongodb.scala.model._
     collection.updateOne(equal("_id", _id),
       and(Updates.set("endTime", DateTime.now.getMillis), Updates.set("active", false))).toFuture()
+  }
+  
+  def moveWorkCard(workCardId:String, moveOutDyeCardId:String, moveInDyeCardId:String) = {
+    import org.mongodb.scala.model._
+    
+    val f1 = collection.updateOne(equal("_id", moveOutDyeCardId), Updates.pull("workIdList", workCardId)).toFuture()
+    val f2 = collection.updateOne(equal("_id", moveInDyeCardId), Updates.addToSet("workIdList", workCardId)).toFuture()
+    import scala.concurrent._
+    Future.sequence(List(f1, f2))
   }
 }
