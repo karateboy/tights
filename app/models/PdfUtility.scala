@@ -123,7 +123,7 @@ object PdfUtility {
   def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val defaultFont = new Font(bf, 12)
-    val bigFont = new Font(bf, 20)
+    val bigFont = new Font(bf, 18, Font.BOLD)
     
     def prepareCell(str: String, add: Boolean = true, colspan:Int = 1)(implicit tab: PdfPTable, font:Font = defaultFont) = {
       val cell = new PdfPCell(new Paragraph(str, font))
@@ -150,10 +150,10 @@ object PdfUtility {
       implicit val topTable = new PdfPTable(4); // 3 columns.
       topTable.setWidthPercentage(100)
       val orderStr = orderMap.keys.mkString("\n")
-      prepareCell("訂單編號:" + orderStr)
+      prepareCell("訂單編號:\n" + orderStr)(topTable, bigFont)
       val deliverDate = new DateTime(orderMap.values.map { _.expectedDeliverDate }.min)
-      prepareCell("出貨日:" + deliverDate.toString("YYYY-MM-dd"))
-            prepareCell("顏色:" + dyeCard.color)(topTable, bigFont)
+      prepareCell("出貨日:\n" + deliverDate.toString("YYYY-MM-dd"))(topTable, bigFont)
+            prepareCell("顏色:\n" + dyeCard.color)(topTable, bigFont)
       topTable.addCell(getBarCodeImg(dyeCard._id)(writer))
       
       val quantityList = workSeq.map { _.quantity }
@@ -571,10 +571,10 @@ object PdfUtility {
         tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
 
         prepareCell("單位:白襪課")
-        prepareCell("訂單:" + workCard.orderId)
+        prepareCell("訂單:\n" + workCard.orderId)
         val order = orderMap(workCard.orderId)
-        prepareCell("工廠代號:" + order.factoryId)
-        prepareCell("客戶編號:" + order.customerId)
+        prepareCell("工廠代號:\n" + order.factoryId)
+        prepareCell("客戶編號:\n" + order.customerId)
         prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
         prepareCell("顏色:" + order.details(workCard.detailIndex).color)
         prepareCell("數量:" + toDozenStr(workCard.quantity))
@@ -659,7 +659,9 @@ object PdfUtility {
             prepareCell("日期"); emptyCells
             prepareCell("優"); emptyCells
             prepareCell("副"); emptyCells
+            prepareCell("副未包"); emptyCells
             prepareCell("汙"); emptyCells
+            prepareCell("長短"); emptyCells
             prepareCell("破"); emptyCells
             prepareCell("不均"); emptyCells
             prepareCell("油"); emptyCells
@@ -692,8 +694,8 @@ object PdfUtility {
         prepareCell("單位:定型卡")
         prepareCell(workCard.orderId)
         val order = orderMap(workCard.orderId)
-        prepareCell("工廠代號:" + order.factoryId)
-        prepareCell("客戶編號:" + order.customerId)
+        prepareCell("工廠代號:\n" + order.factoryId)
+        prepareCell("客戶編號:\n" + order.customerId)
         prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
         prepareCell("顏色:" + order.details(workCard.detailIndex).color)
         prepareCell("數量:" + toDozenStr(workCard.quantity))
@@ -701,7 +703,9 @@ object PdfUtility {
         prepareCell("日期:")
         prepareCell("優:")
         prepareCell("副:")
+        prepareCell("副未包:")
         prepareCell("汙:")
+        prepareCell("長短:")
         prepareCell("破:")
         prepareCell("不均:")
         prepareCell("油:")
@@ -725,15 +729,17 @@ object PdfUtility {
         prepareCell("單位:" + name)
         prepareCell(workCard.orderId)
         val order = orderMap(workCard.orderId)
-        prepareCell("工廠代號:" + order.factoryId)
-        prepareCell("客戶編號:" + order.customerId)
+        prepareCell("工廠代號:\n" + order.factoryId)
+        prepareCell("客戶編號:\n" + order.customerId)
         prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
         prepareCell("顏色:" + order.details(workCard.detailIndex).color)
         prepareCell("數量:" + toDozenStr(workCard.quantity))
         prepareCell("日期:")
         prepareCell("優:")
         prepareCell("副:")
+        prepareCell("副未包:")
         prepareCell("汙:")
+        prepareCell("長短:")
         prepareCell("破:")
         prepareCell("不均:")
         prepareCell("油:")
