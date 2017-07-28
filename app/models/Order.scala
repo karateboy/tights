@@ -244,6 +244,9 @@ object Order {
     import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.bson.BsonString
 
+    if(order.date == Some(0) || order.date == None)
+      order.date = Some(DateTime.now().getMillis)
+      
     val col = MongoDB.database.getCollection(colName)
     val doc = order.toDocument
 
