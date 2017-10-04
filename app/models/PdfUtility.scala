@@ -659,7 +659,7 @@ object PdfUtility {
             prepareCell("日期"); emptyCells
             prepareCell("優"); emptyCells
             prepareCell("副"); emptyCells
-            prepareCell("副未包"); emptyCells
+            prepareCell("襪頭"); emptyCells
             prepareCell("汙"); emptyCells
             prepareCell("長短"); emptyCells
             prepareCell("破"); emptyCells
@@ -703,7 +703,7 @@ object PdfUtility {
         prepareCell("日期:")
         prepareCell("優:")
         prepareCell("副:")
-        prepareCell("副未包:")
+        prepareCell("襪頭:")
         prepareCell("汙:")
         prepareCell("長短:")
         prepareCell("破:")
@@ -737,7 +737,7 @@ object PdfUtility {
         prepareCell("日期:")
         prepareCell("優:")
         prepareCell("副:")
-        prepareCell("副未包:")
+        prepareCell("襪頭:")
         prepareCell("汙:")
         prepareCell("長短:")
         prepareCell("破:")

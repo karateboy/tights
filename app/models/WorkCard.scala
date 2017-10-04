@@ -157,11 +157,11 @@ object WorkCard {
     collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
   }
 
-  def updateDyeCardId(_id:String, newDyeCardId:String) = {
+  def updateDyeCardId(_id: String, newDyeCardId: String) = {
     import org.mongodb.scala.model._
     collection.updateOne(equal("_id", _id), Updates.set("dyeCardID", newDyeCardId)).toFuture()
   }
-  
+
   def getCard(id: String) = {
     val f = collection.find(equal("_id", id)).first().toFuture()
     f.onFailure { errorHandler }
@@ -179,8 +179,8 @@ object WorkCard {
     f.onFailure { errorHandler }
     for (countSeq <- f) yield countSeq(0)
   }
-  
-  def getCards(ids: Seq[String])(skip:Int, limit:Int) = {
+
+  def getCards(ids: Seq[String])(skip: Int, limit: Int) = {
     import org.mongodb.scala.model._
     val f = collection.find(in("_id", ids: _*)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure { errorHandler }
@@ -232,24 +232,44 @@ object WorkCard {
 
   def updateGoodAndActive(workCardID: String, good: Int, active: Boolean) = {
     import org.mongodb.scala.model.Updates
-    val now = DateTime.now().getMillis
-    val f = collection.updateOne(equal("_id", workCardID),
-      Updates.combine(
-        Updates.min("good", good),
-        Updates.set("active", active),
-        Updates.set("endTime", now))).toFuture()
-    f.onFailure { errorHandler }
-    f.onSuccess({
-      case _ =>
-        if (!active && good > 0) {
-          val workCardF = WorkCard.getCard(workCardID)
-          for (cardOpt <- workCardF) yield {
-            val card = cardOpt.get
-            checkOrderDetailComplete(card.orderId, card.detailIndex)
+    val workCardF = WorkCard.getCard(workCardID)
+    val minGoodFF =
+      for (workCardOpt <- workCardF) yield {
+        val workCard = workCardOpt.get
+        if (workCard.good >= good) {
+          Future { good }
+        } else {
+          val tidyCardsF = TidyCard.getTidyCardOfWorkCard(workCardID)
+          for (tidyCards <- tidyCardsF) yield {
+            val goodSeq = tidyCards map { _.good }
+            Math.min(goodSeq.min, good)
           }
         }
-    })
-    f
+      }
+    val minGoodF = minGoodFF.flatMap { x => x }
+
+    val retFF =
+      for (minGood <- minGoodF) yield {
+        val now = DateTime.now().getMillis
+        val f = collection.updateOne(equal("_id", workCardID),
+          Updates.combine(
+            Updates.set("good", minGood),
+            Updates.set("active", active),
+            Updates.set("endTime", now))).toFuture()
+        f.onFailure { errorHandler }
+        f.onSuccess({
+          case _ =>
+            if (!active && good > 0) {
+              val workCardF = WorkCard.getCard(workCardID)
+              for (cardOpt <- workCardF) yield {
+                val card = cardOpt.get
+                checkOrderDetailComplete(card.orderId, card.detailIndex)
+              }
+            }
+        })
+        f
+      }
+    retFF.flatMap { x => x }
   }
 
   def getOrderWorkCards(orderId: String, detailIndex: Int) = {

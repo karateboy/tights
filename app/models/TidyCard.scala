@@ -131,5 +131,4 @@ object TidyCard {
         toTidyCard(doc)
     }
   }
-
 }
