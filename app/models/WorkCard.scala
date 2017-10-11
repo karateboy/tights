@@ -12,12 +12,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 import org.mongodb.scala.bson._
 
-case class StylingCard(operator: Seq[String], good: Int, sub: Option[Int],
-                       stain: Option[Int], broken: Option[Int], notEven: Option[Int], var date: Long) {
+case class StylingCard(operator: Seq[String], good: Int,
+                       sub: Option[Int], subNotPack: Option[Int], stain: Option[Int], longShort: Option[Int],
+                       broken: Option[Int], notEven: Option[Int], oil: Option[Int], head: Option[Int],
+                       var date: Long) {
   def toDocument = {
-    Document("operator" -> operator, "good" -> good, "sub" -> sub,
-      "stain" -> stain,
-      "broken" -> broken, "notEven" -> notEven, "date" -> date)
+    Document("operator" -> operator, "good" -> good, "sub" -> sub, "subNotPack" -> subNotPack, "stain" -> stain, "longShort" -> longShort,
+      "broken" -> broken, "notEven" -> notEven, "oil" -> oil, "head" -> head,
+      "date" -> date)
   }
 }
 object StylingCard {
@@ -32,12 +34,26 @@ object StylingCard {
     val operator = getArray("operator", (v) => { v.asString().getValue })
     val good = doc.getInteger("good")
     val sub = getOptionInt("sub")
+    val subNotPack = getOptionInt("subNotPack")
     val stain = getOptionInt("stain")
+    val longShort = getOptionInt("longShort")
     val broken = getOptionInt("broken")
+    val oil = getOptionInt("oil")
     val notEven = getOptionInt("notEven")
+    val head = getOptionInt("head")
     val date = doc.getLong("date")
-    StylingCard(operator, good, sub, stain,
-      broken, notEven, date)
+    StylingCard(
+      operator = operator,
+      good = good,
+      sub = sub,
+      subNotPack = subNotPack,
+      stain = stain,
+      longShort = longShort,
+      broken = broken,
+      notEven = notEven,
+      oil = oil,
+      head = head,
+      date = date)
   }
 }
 

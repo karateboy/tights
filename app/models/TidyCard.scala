@@ -15,12 +15,14 @@ case class TidyID(workCardID: String, phase: String) {
   def toDocument = Document("workCardID" -> workCardID, "phase" -> phase)
 }
 case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int,
-                    sub: Option[Int], stain: Option[Int], broken: Option[Int],
-                    subNotPack: Option[Int], notEven: Option[Int], var date: Long) {
+                    sub: Option[Int], subNotPack: Option[Int], stain: Option[Int], longShort: Option[Int],
+                    broken: Option[Int], notEven: Option[Int], oil: Option[Int], head: Option[Int],
+                    var date: Long) {
   def toDocument = {
     Document("_id" -> _id.toDocument, "workCardID" -> workCardID, "phase" -> phase, "operator" -> operator,
-      "good" -> good, "sub" -> sub, "stain" -> stain,
-      "broken" -> broken, "subNotPack" -> subNotPack, "notEven"->notEven, "date" -> date)
+      "good" -> good, "sub" -> sub, "subNotPack" -> subNotPack, "stain" -> stain, "longShort" -> longShort,
+      "broken" -> broken, "notEven" -> notEven, "oil" -> oil, "head" -> head,
+      "date" -> date)
   }
 }
 
@@ -42,7 +44,8 @@ object TidyCard {
   }
 
   def default(workCardID: String, phase: String) =
-    TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None, None, None, 0)
+    TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None,
+      None, None, None, None, None, 0)
 
   implicit val idRead = Json.reads[TidyID]
   implicit val idWrite = Json.writes[TidyID]
@@ -66,13 +69,28 @@ object TidyCard {
     val operator = doc.getString("operator")
     val good = doc.getInteger("good")
     val sub = getOptionInt("sub")
-    val stain = getOptionInt("stain")
-    val broken = getOptionInt("broken")
     val subNotPack = getOptionInt("subNotPack")
+    val stain = getOptionInt("stain")
+    val longShort = getOptionInt("longShort")
+    val broken = getOptionInt("broken")
+    val oil = getOptionInt("oil")
     val notEven = getOptionInt("notEven")
+    val head = getOptionInt("head")
     val date = doc.getLong("date")
-    TidyCard(_id, workCardID, phase, operator, good, sub, stain,
-      broken, subNotPack, notEven, date)
+    TidyCard(_id = _id,
+      workCardID = workCardID,
+      phase = phase,
+      operator = operator,
+      good = good,
+      sub = sub,
+      subNotPack = subNotPack,
+      stain = stain,
+      longShort = longShort,
+      broken = broken,
+      notEven = notEven,
+      oil = oil,
+      head = head,
+      date = date)
   }
 
   def newCard(card: TidyCard) = {
