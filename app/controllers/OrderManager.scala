@@ -119,29 +119,24 @@ object OrderManager extends Controller {
             yield detail.quantity - good
         }
 
-        val colorWorkCardSpecFutureSeq =
+        val colorWorkCardSpecSeq =
           for {
             order <- orderList
             detail_idx <- order.details.zipWithIndex if !detail_idx._1.complete
             detail = detail_idx._1
             detailIndex = detail_idx._2
-            needF = needToProduceF(order._id, detailIndex, detail)
+            need = waitReadyResult(needToProduceF(order._id, detailIndex, detail))
           } yield {
 
-            for (need <- needF) yield {
               if (need > 0)
                 Some(detail.color -> WorkCardSpec(order._id, order.factoryId, detailIndex, detail, order.expectedDeliverDate, need))
               else
                 None
-            }
           }
-
-        val colorWorkCardSpecSeqFuture = Future.sequence(colorWorkCardSpecFutureSeq)
 
         import scala.collection.mutable.Map
         val dyeWorkCardMap = Map.empty[String, List[WorkCardSpec]]
 
-        val colorWorkCardSpecSeq = waitReadyResult(colorWorkCardSpecSeqFuture)
         for {
           colorWorkCardSpec <- colorWorkCardSpecSeq.flatMap(x => x)
           color = colorWorkCardSpec._1
