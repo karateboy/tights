@@ -128,10 +128,10 @@ object OrderManager extends Controller {
             need = waitReadyResult(needToProduceF(order._id, detailIndex, detail))
           } yield {
 
-              if (need > 0)
-                Some(detail.color -> WorkCardSpec(order._id, order.factoryId, detailIndex, detail, order.expectedDeliverDate, need))
-              else
-                None
+            if (need > 0)
+              Some(detail.color -> WorkCardSpec(order._id, order.factoryId, detailIndex, detail, order.expectedDeliverDate, need))
+            else
+              None
           }
 
         import scala.collection.mutable.Map
@@ -275,7 +275,7 @@ object OrderManager extends Controller {
             yield Ok(Json.toJson(orderList))
         })
   }
-  def queryOrderCount() = Security.Authenticated.async(BodyParsers.parse.json) {    
+  def queryOrderCount() = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryOrderParam]
       val result = request.body.validate[QueryOrderParam]
@@ -292,15 +292,25 @@ object OrderManager extends Controller {
         })
   }
 
-  def closeOrder(_id: String) = Security.Authenticated.async {
-    val f = Order.closeOrder(_id)
-    for (rets <- f) yield {
-      if (rets.isEmpty)
-        Ok(Json.obj("ok" -> false, "msg" -> "找不到訂單"))
-      else {
-        Ok(Json.obj("ok" -> true))
-      }
-    }
+  def closeOrder() = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      val result = request.body.validate[Order]
+      result.fold(
+        err =>
+          Future {
+            Logger.error(JsError.toJson(err).toString())
+            BadRequest(JsError.toJson(err).toString())
+          },
+        order => {
+          val f = Order.closeOrder(order._id)
+          for (rets <- f) yield {
+            if (rets.isEmpty)
+              Ok(Json.obj("ok" -> false, "msg" -> "找不到訂單"))
+            else {
+              Ok(Json.obj("ok" -> true))
+            }
+          }
+        })
   }
 
   def reopenOrder(_id: String) = Security.Authenticated.async {

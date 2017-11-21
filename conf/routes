@@ -28,7 +28,7 @@ GET      /MyActiveOrder/:userId/:skip/:limit        controllers.OrderManager.myA
 POST     /QueryOrder/:skip/:limit                   controllers.OrderManager.queryOrder(skip:Int, limit:Int)
 POST     /QueryOrder/count                          controllers.OrderManager.queryOrderCount()
 
-POST     /CloseOrder/:id                            controllers.OrderManager.closeOrder(id)
+POST     /CloseOrder                                controllers.OrderManager.closeOrder()
 POST     /ReopenOrder/:id                           controllers.OrderManager.reopenOrder(id)
 GET      /OrderPDF/:id                              controllers.OrderManager.getOrderPdf(id)
 

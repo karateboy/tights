@@ -187,7 +187,7 @@
                 window.open(url)
             },
             closeOrder(idx){
-                axios.post("/CloseOrder/" + this.orderList[idx]._id).then((resp) => {
+                axios.post("/CloseOrder", this.orderList[idx]).then((resp) => {
                     const ret = resp.data
                     if (ret.ok) {
                         alert("訂單結案")

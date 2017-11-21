@@ -156,13 +156,15 @@ object PdfUtility {
             prepareCell("顏色:\n" + dyeCard.color)(topTable, bigFont)
       topTable.addCell(getBarCodeImg(dyeCard._id)(writer))
       
+      val brandSet = {orderMap.values map {order => order.brand}}.toSet
+      val brandString = brandSet.mkString("\n")  
       val quantityList = workSeq.map { _.quantity }
       prepareCell("包襪人員:")
-      prepareCell("編織編號:")
+      prepareCell("編織批號:")
       prepareCell("總數量(打):" + toDozenStr(quantityList.sum))
       prepareCell("")
       prepareCell("包襪日期:")
-      prepareCell("")
+      prepareCell("品牌:" + brandString)
       prepareCell("備註:")
       prepareCell(dyeCard.remark.getOrElse(""))
 
