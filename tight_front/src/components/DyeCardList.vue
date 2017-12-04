@@ -41,7 +41,7 @@
                 <td>-</td>
                 <td>{{card.remark}}</td>
                 <td>
-                    <i class="fa fa-hourglass-half" style="color:red" aria-hidden="true" v-if='card.active'>處理中</i>
+                    <i class="fa fa-hourglass-half" :style="{color:getDyeCardStatusColor(card)}" aria-hidden="true" v-if='card.active'>{{getDyeCardStatus(card)}}</i>
                     <i class="fa fa-check" style="color:green" aria-hidden="true" v-else>結束</i>
                 </td>
             </tr>
@@ -234,6 +234,30 @@
                 }).catch((err)=>{
                     alert(err)
                 })
+            },
+            getDyeCardStatus(dyeCard){
+                if(dyeCard.active){
+                    if(dyeCard.startTime){
+                        if(dyeCard.endTime)
+                            return "結束"
+                        else
+                            return "漂染中"
+                    }else
+                        return "已出單"
+                }else
+                    return "結束"
+            },
+            getDyeCardStatusColor(dyeCard){
+                if(dyeCard.active){
+                    if(dyeCard.startTime){
+                        if(dyeCard.endTime)
+                            return "green"
+                        else
+                            return "blue"
+                    }else
+                        return "red"
+                }else
+                    return "green"
             }
         },
         components: {

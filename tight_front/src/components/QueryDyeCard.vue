@@ -2,6 +2,12 @@
     <div>
         <br>
         <div class="form-horizontal">
+            <div class="form-group"><label class="col-lg-1 control-label">訂單編號:</label>
+                <div class="col-lg-4"><input type="text" placeholder="訂單編號"
+                                             class="form-control"
+                                             v-model="queryParam.orderID">
+                </div>
+            </div>
             <div class="form-group"><label class="col-lg-1 control-label">漂染單編號:</label>
                 <div class="col-lg-4"><input type="text" placeholder="漂染單編號"
                                              class="form-control"
@@ -92,11 +98,15 @@
         },
         methods: {
             prepareParam(){
-                if (this.queryParam._id == "")
-                    this.queryParam._id = null
+                if (this.queryParam._id === "")
+                    this.queryParam._id = undefined
 
-                if (this.queryParam.color == '')
-                    this.queryParam.color = null
+                if (this.queryParam.color === "")
+                    this.queryParam.color = undefined
+                
+                if (this.queryParam.orderID === "")
+                    this.queryParam.orderID = undefined
+                
             },
             query(){
                 this.prepareParam()

@@ -323,28 +323,57 @@ object DyeCard {
   }
 
   case class QueryDyeCardParam(_id: Option[String], color: Option[String],
-                               start: Option[Long], end: Option[Long], active: Option[Boolean])
-  def query(param: QueryDyeCardParam)(skip: Int, limit: Int) = {
-    import org.mongodb.scala.model.Filters._
-    import org.mongodb.scala.model._
+                               start: Option[Long], end: Option[Long], active: Option[Boolean], orderID: Option[String])
 
+  def getFilter(param: QueryDyeCardParam) = {
+    import org.mongodb.scala.model.Filters._
     val idFilter = param._id map { _id => regex("_id", _id) }
     val colorFilter = param.color map { color => regex("color", color) }
     val startFilter = param.start map { gte("startTime", _) }
     val endFilter = param.end map { lt("startTime", _) }
     val activeFilter = param.active map { active => equal("active", active) }
-
     val filterList = List(idFilter, colorFilter, startFilter, endFilter, activeFilter).flatMap { f => f }
-    val filter = if (!filterList.isEmpty)
-      and(filterList: _*)
-    else
-      Filters.exists("_id")
+    if (param.orderID.isDefined) {
+      val orderID = param.orderID.get
+      val workCardIdFilterFuture =
+        for {
+          workCards <- WorkCard.getOrderProductionWorkCards(orderID)
+          workCardIDs = workCards map { _._id }
+        } yield in("workIdList", workCardIDs: _*)
 
-    val f = collection.find(filter).skip(skip).limit(limit).toFuture()
-    f.onFailure {
-      errorHandler
+      workCardIdFilterFuture map {
+        workCardIdFilter =>
+          and(workCardIdFilter::filterList: _*)
+      }
+    } else {
+      val filter = if (!filterList.isEmpty)
+        and(filterList: _*)
+      else
+        exists("_id")
+
+      import scala.concurrent._
+      Future {
+        filter
+      }
     }
-    for (records <- f)
+  }
+
+  def query(param: QueryDyeCardParam)(skip: Int, limit: Int) = {
+    import org.mongodb.scala.model.Filters._
+    import org.mongodb.scala.model._
+
+    val filterFuture = getFilter(param)
+
+    val docF = filterFuture flatMap {
+      filter =>
+        val f = collection.find(filter).skip(skip).limit(limit).toFuture()
+        f.onFailure {
+          errorHandler
+        }
+        f
+    }
+
+    for (records <- docF)
       yield records map {
       doc => toDyeCard(doc)
     }
@@ -353,23 +382,18 @@ object DyeCard {
   def count(param: QueryDyeCardParam) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
+    val filterFuture = getFilter(param)
 
-    val idFilter = param._id map { _id => regex("_id", _id) }
-    val colorFilter = param.color map { color => regex("color", color) }
-    val startFilter = param.start map { gte("startTime", _) }
-    val endFilter = param.end map { lt("startTime", _) }
-
-    val filterList = List(idFilter, colorFilter, startFilter, endFilter).flatMap { f => f }
-    val filter = if (!filterList.isEmpty)
-      and(filterList: _*)
-    else
-      Filters.exists("_id")
-
-    val f = collection.count(filter).toFuture()
-    f.onFailure {
-      errorHandler
+    val retF = filterFuture flatMap {
+      filter =>
+        val f = collection.count(filter).toFuture()
+        f.onFailure {
+          errorHandler
+        }
+        f
     }
-    for (countSeq <- f)
+
+    for (countSeq <- retF)
       yield countSeq(0)
   }
 
@@ -384,10 +408,10 @@ object DyeCard {
     collection.updateOne(equal("_id", _id),
       and(Updates.set("endTime", DateTime.now.getMillis), Updates.set("active", false))).toFuture()
   }
-  
-  def moveWorkCard(workCardId:String, moveOutDyeCardId:String, moveInDyeCardId:String) = {
+
+  def moveWorkCard(workCardId: String, moveOutDyeCardId: String, moveInDyeCardId: String) = {
     import org.mongodb.scala.model._
-    
+
     val f1 = collection.updateOne(equal("_id", moveOutDyeCardId), Updates.pull("workIdList", workCardId)).toFuture()
     val f2 = collection.updateOne(equal("_id", moveInDyeCardId), Updates.addToSet("workIdList", workCardId)).toFuture()
     import scala.concurrent._
