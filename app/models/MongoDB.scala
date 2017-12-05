@@ -19,6 +19,7 @@ object MongoDB {
       WorkCard.init(colNames)
       TidyCard.init(colNames)
       Identity.init(colNames)
+      Inventory.init(colNames)
     }
     //Program need to wait before init complete
     import scala.concurrent.Await

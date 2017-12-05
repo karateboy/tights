@@ -37,15 +37,14 @@
                 <ul class="nav nav-second-level collapse">
                     <router-link to='/Schedule/New' tag='li' role="presentation" active-class='active'><a>排定工作</a>
                     </router-link>
-                    <router-link to='/Schedule/ActiveDyeCardList' tag='li' role="presentation" active-class='active'><a>處理中漂染單</a>
-                    </router-link>
                     <router-link to='/Schedule/QueryDyeCard' tag='li' role="presentation" active-class='active'>
                         <a>查詢漂染單</a>
                     </router-link>
-                    <router-link to='/Schedule/WorkCard' tag='li' role="presentation" active-class='active'>
-                        <a>處理中流動卡</a>
-                    </router-link>
                     <router-link to='/Schedule/QueryWorkCard' tag='li' role="presentation" active-class='active'><a>查詢流動卡</a>
+                    </router-link>
+                    <router-link to='/Schedule/TransferDyeCard/WhiteTight' tag='li' role="presentation" active-class='active'><a>送白襪課</a>
+                    </router-link>
+                    <router-link to='/Schedule/TransferDyeCard/DyeDep' tag='li' role="presentation" active-class='active'><a>送漂染課</a>
                     </router-link>
                 </ul>
             </li>
@@ -137,24 +136,22 @@
 
 </style>
 <script>
-    import {mapGetters} from 'vuex'
-    import axios from 'axios'
-    export default{
-        data(){
-            axios.get('/Group').then((resp) => {
-                const ret = resp.data
-                for (let groupInfo of ret) {
-                    this.groupInfoMap[groupInfo.id] = groupInfo.name
-                }
-            })
-            return {
-                groupInfoMap: {}
-            }
-        },
-        computed: {
-            ...mapGetters(['user'])
-        }
-    }
-
-
+import { mapGetters } from "vuex";
+import axios from "axios";
+export default {
+  data() {
+    axios.get("/Group").then(resp => {
+      const ret = resp.data;
+      for (let groupInfo of ret) {
+        this.groupInfoMap[groupInfo.id] = groupInfo.name;
+      }
+    });
+    return {
+      groupInfoMap: {}
+    };
+  },
+  computed: {
+    ...mapGetters(["user"])
+  }
+};
 </script>

@@ -24,6 +24,7 @@ import TidyDep from './components/TidyDep.vue'
 import TidyReport from './components/TidyReport.vue'
 import StartDye from './components/StartDye.vue'
 import EndDye from './components/EndDye.vue'
+import TransferDyeCard from './components/TransferDyeCard.vue'
 
 export const routes = [
     {path: '/', component: Dashboard, name: 'Dashboard'},
@@ -44,6 +45,7 @@ export const routes = [
             {path: 'WorkCard', component: ActiveWorkCard},
             {path: 'QueryDyeCard', component: QueryDyeCard, name: 'QueryDyeCard'},
             {path: 'QueryWorkCard', component: QueryWorkCard, name: 'QueryWorkCard'},
+            {path: 'TransferDyeCard/:dep', component: TransferDyeCard, props:true}
         ]
     },
     {path: '/Dyeing', component:DyeingDep,

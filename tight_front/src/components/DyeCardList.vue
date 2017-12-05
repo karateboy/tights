@@ -61,209 +61,215 @@
     </div>
 </template>
 <style>
+
 </style>
 <script>
-    import moment from 'moment'
-    import axios from 'axios'
-    import DyeCardDetail from './DyeCardDetail.vue'
-    import WorkCardList from './WorkCardList.vue'
-    import baseUrl from '../baseUrl'
-    import cardHelper from '../cardHelper'
-    import {toDozenStr} from '../dozenExp'
-    import {Pagination, PaginationEvent} from 'vue-pagination-2'
+import moment from "moment";
+import axios from "axios";
+import DyeCardDetail from "./DyeCardDetail.vue";
+import WorkCardList from "./WorkCardList.vue";
+import baseUrl from "../baseUrl";
+import cardHelper from "../cardHelper";
+import { toDozenStr } from "../dozenExp";
+import { Pagination, PaginationEvent } from "vue-pagination-2";
 
-    export default{
-        props: {
-            url: {
-                type: String,
-                required: true
-            },
-            param: {
-                type: Object
-            }
-        },
-        data(){
-            return {
-                cardList:[],
-                skip:0,
-                limit:5,
-                total:0,
-                display: "",
-                selectedIdx:-1,
-                targetDyeCard: {},
-                workCardIdList:[]
-            }
-        },
-        mounted: function () {
-            this.fetchDyeCard(this.skip, this.limit)
-            PaginationEvent.$on('vue-pagination::cardList', this.handlePageChange)
-        },
-        watch: {
-            url: function (newUrl) {
-                console.log(newUrl)
-                this.fetchDyeCard(this.skip, this.limit)
-            },
-            param: function (newParam) {
-                console.log(newParam)
-                this.fetchDyeCard(this.skip, this.limit)
-            }
-        },
-
-        methods: {
-            processResp(resp){
-                const ret = resp.data
-                this.cardList.splice(0, this.cardList.length)
-
-                for(let dyeCard of ret){
-                    cardHelper.populateDyeCard(dyeCard)
-                    this.cardList.push(dyeCard)
-                }
-            },
-            fetchDyeCard(skip, limit){
-                let request_url = `${this.url}/${skip}/${limit}`
-
-                if (this.param) {
-                    axios.post(request_url, this.param).then(this.processResp).catch((err) => {
-                        alert(err)
-                    })
-                } else {
-                    axios.get(request_url).then(this.processResp).catch((err) => {
-                        alert(err)
-                    })
-                }
-                this.fetchDyeCardCount()
-            },
-            fetchDyeCardCount(){
-                let request_url = `${this.url}/count`
-                if (this.param) {
-                    axios.post(request_url, this.param).then(resp => {
-                        this.total = resp.data
-                    }).catch((err) => {
-                        alert(err)
-                    })
-                } else {
-                    axios.get(request_url).then(resp => {
-                        this.total = resp.data
-                    }).catch((err) => {
-                        alert(err)
-                    })
-                }
-            },
-            handlePageChange(page){
-                this.skip = (page - 1) * this.limit
-                this.fetchDyeCard(this.skip, this.limit)
-            },
-            mkStr(list, mapper){
-                let set = new Set()
-                for (let item of list) {
-                    set.add(mapper(item))
-                }
-                let ret = ""
-                for (let item of set) {
-                    if (ret === "")
-                        ret += item
-                    else
-                        ret += "<br/>" + item
-                }
-                return ret
-            },
-            displayOrderId(card){
-                return this.mkStr(card.workCards, (card) => card.orderId)
-            },
-            displayCustomerId(card){
-                return this.mkStr(card.workCards, (card) => card.order.customerId)
-            },
-            displayDeliverDate(card){
-                let deliverDate = Number.MAX_SAFE_INTEGER
-                for (let workCard of card.workCards) {
-                    if (deliverDate > workCard.order.expectedDeliverDate)
-                        deliverDate = workCard.order.expectedDeliverDate
-                }
-
-                return moment(deliverDate).format('YYYY-MM-DD')
-            },
-            displayFactoryId(card){
-                return this.mkStr(card.workCards, (card) => card.order.factoryId)
-            },
-            displaySize(card){
-                return this.mkStr(card.workCards,
-                        (card) => {
-                            if (card.order && card.order.details)
-                                return card.order.details[card.detailIndex].size
-                            else
-                                return ""
-                        })
-            },
-            totalQuantity(dyeCard){
-                let total = 0
-                for (let workCard of dyeCard.workCards) {
-                    total += workCard.quantity
-                }
-                return toDozenStr(total)
-            },
-            displayDyeCardDetail(dyeCard, idx){
-                this.selectedIdx = idx
-                this.display = 'detail'
-                this.targetDyeCard = dyeCard
-            },
-            dyeCardPDF(dyeCard){
-                let url = baseUrl() + "/DyeCardPDF/" + dyeCard._id
-                window.open(url)
-            },
-            displayWorkCards(dyeCard, idx){
-                this.selectedIdx = idx
-                this.workCardIdList.splice(0, this.workCardIdList.length)
-                for(let id of dyeCard.workIdList){
-                    this.workCardIdList.push(id)
-                }
-                this.display = 'workCards'
-            },
-            workCardLabel(dyeCard){
-                let url = baseUrl() + "/WorkCardLabelByDyeCard/" + dyeCard._id
-                window.open(url)
-            },
-            deleteDyeCard(dyeCard, idx){
-                axios.delete("/DyeCard/" + dyeCard._id).then((resp)=>{
-                    const ret = resp.data
-                    if(ret.ok){
-                        alert("刪除漂染卡!")
-                        this.cardList.splice(idx, 1)
-                    }else{
-                        alert("刪除失敗:" + ret.msg)
-                    }
-                }).catch((err)=>{
-                    alert(err)
-                })
-            },
-            getDyeCardStatus(dyeCard){
-                if(dyeCard.active){
-                    if(dyeCard.startTime){
-                        if(dyeCard.endTime)
-                            return "結束"
-                        else
-                            return "漂染中"
-                    }else
-                        return "已出單"
-                }else
-                    return "結束"
-            },
-            getDyeCardStatusColor(dyeCard){
-                if(dyeCard.active){
-                    if(dyeCard.startTime){
-                        if(dyeCard.endTime)
-                            return "green"
-                        else
-                            return "blue"
-                    }else
-                        return "red"
-                }else
-                    return "green"
-            }
-        },
-        components: {
-            DyeCardDetail,
-            WorkCardList,
-            Pagination
-        }
+export default {
+  props: {
+    url: {
+      type: String,
+      required: true
+    },
+    param: {
+      type: Object
     }
+  },
+  data() {
+    return {
+      cardList: [],
+      skip: 0,
+      limit: 5,
+      total: 0,
+      display: "",
+      selectedIdx: -1,
+      targetDyeCard: {},
+      workCardIdList: []
+    };
+  },
+  mounted: function() {
+    this.fetchDyeCard(this.skip, this.limit);
+    PaginationEvent.$on("vue-pagination::cardList", this.handlePageChange);
+  },
+  watch: {
+    url: function(newUrl) {
+      console.log(newUrl);
+      this.fetchDyeCard(this.skip, this.limit);
+    },
+    param: function(newParam) {
+      console.log(newParam);
+      this.fetchDyeCard(this.skip, this.limit);
+    }
+  },
+
+  methods: {
+    processResp(resp) {
+      const ret = resp.data;
+      this.cardList.splice(0, this.cardList.length);
+
+      for (let dyeCard of ret) {
+        cardHelper.populateDyeCard(dyeCard);
+        this.cardList.push(dyeCard);
+      }
+    },
+    fetchDyeCard(skip, limit) {
+      let request_url = `${this.url}/${skip}/${limit}`;
+
+      if (this.param) {
+        axios
+          .post(request_url, this.param)
+          .then(this.processResp)
+          .catch(err => {
+            alert(err);
+          });
+      } else {
+        axios
+          .get(request_url)
+          .then(this.processResp)
+          .catch(err => {
+            alert(err);
+          });
+      }
+      this.fetchDyeCardCount();
+    },
+    fetchDyeCardCount() {
+      let request_url = `${this.url}/count`;
+      if (this.param) {
+        axios
+          .post(request_url, this.param)
+          .then(resp => {
+            this.total = resp.data;
+          })
+          .catch(err => {
+            alert(err);
+          });
+      } else {
+        axios
+          .get(request_url)
+          .then(resp => {
+            this.total = resp.data;
+          })
+          .catch(err => {
+            alert(err);
+          });
+      }
+    },
+    handlePageChange(page) {
+      this.skip = (page - 1) * this.limit;
+      this.fetchDyeCard(this.skip, this.limit);
+    },
+    mkStr(list, mapper) {
+      let set = new Set();
+      for (let item of list) {
+        set.add(mapper(item));
+      }
+      let ret = "";
+      for (let item of set) {
+        if (ret === "") ret += item;
+        else ret += "<br/>" + item;
+      }
+      return ret;
+    },
+    displayOrderId(card) {
+      return this.mkStr(card.workCards, card => card.orderId);
+    },
+    displayCustomerId(card) {
+      return this.mkStr(card.workCards, card => card.order.customerId);
+    },
+    displayDeliverDate(card) {
+      let deliverDate = Number.MAX_SAFE_INTEGER;
+      for (let workCard of card.workCards) {
+        if (deliverDate > workCard.order.expectedDeliverDate)
+          deliverDate = workCard.order.expectedDeliverDate;
+      }
+
+      return moment(deliverDate).format("YYYY-MM-DD");
+    },
+    displayFactoryId(card) {
+      return this.mkStr(card.workCards, card => card.order.factoryId);
+    },
+    displaySize(card) {
+      return this.mkStr(card.workCards, card => {
+        if (card.order && card.order.details)
+          return card.order.details[card.detailIndex].size;
+        else return "";
+      });
+    },
+    totalQuantity(dyeCard) {
+      let total = 0;
+      for (let workCard of dyeCard.workCards) {
+        total += workCard.quantity;
+      }
+      return toDozenStr(total);
+    },
+    displayDyeCardDetail(dyeCard, idx) {
+      this.selectedIdx = idx;
+      this.display = "detail";
+      this.targetDyeCard = dyeCard;
+    },
+    dyeCardPDF(dyeCard) {
+      let url = baseUrl() + "/DyeCardPDF/" + dyeCard._id;
+      window.open(url);
+    },
+    displayWorkCards(dyeCard, idx) {
+      this.selectedIdx = idx;
+      this.workCardIdList.splice(0, this.workCardIdList.length);
+      for (let id of dyeCard.workIdList) {
+        this.workCardIdList.push(id);
+      }
+      this.display = "workCards";
+    },
+    workCardLabel(dyeCard) {
+      let url = baseUrl() + "/WorkCardLabelByDyeCard/" + dyeCard._id;
+      window.open(url);
+    },
+    deleteDyeCard(dyeCard, idx) {
+      axios
+        .delete("/DyeCard/" + dyeCard._id)
+        .then(resp => {
+          const ret = resp.data;
+          if (ret.ok) {
+            alert("刪除漂染卡!");
+            this.cardList.splice(idx, 1);
+          } else {
+            alert("刪除失敗:" + ret.msg);
+          }
+        })
+        .catch(err => {
+          alert(err);
+        });
+    },
+    getDyeCardStatus(dyeCard) {
+      if (dyeCard.active) {
+        if (!dyeCard.dep) return "已出單";
+        else if (dyeCard.dep === "WhiteTight") return "白襪準備中";
+        else if (dyeCard.dep === "DyeDep") {
+          if (!dyeCard.startTime) return "漂染準備中";
+          else return "漂染中";
+        }
+      } else return "結束";
+    },
+    getDyeCardStatusColor(dyeCard) {
+      if (dyeCard.active) {
+        if (dyeCard.startTime) {
+          if (dyeCard.endTime) return "green";
+          else return "blue";
+        } else return "red";
+      } else return "green";
+    }
+  },
+  components: {
+    DyeCardDetail,
+    WorkCardList,
+    Pagination
+  }
+};
 </script>

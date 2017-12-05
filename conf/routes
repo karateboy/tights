@@ -50,6 +50,7 @@ POST     /QueryDyeCard/:skip/:limit                 controllers.CardManager.quer
 POST     /QueryWorkCard/count                       controllers.CardManager.queryWorkCardCount
 POST     /QueryWorkCard/:skip/:limit                controllers.CardManager.queryWorkCard(skip:Int, limit:Int)
 
+POST     /TransferDyeCard                           controllers.CardManager.transferDyeCard
 POST     /StartDye                                  controllers.CardManager.startDye
 GET      /EndDye/:id                                controllers.CardManager.endDye(id)
 

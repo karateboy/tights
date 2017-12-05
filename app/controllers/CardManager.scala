@@ -97,7 +97,7 @@ object CardManager extends Controller {
       workCardF.onFailure(errorHandler)
 
       for (ret <- Future.sequence(List(dyeCardF, workCardF)))
-        yield Ok(Json.obj("Ok"->true))
+        yield Ok(Json.obj("Ok" -> true))
   }
 
   def getWorkCardCount = Security.Authenticated.async(BodyParsers.parse.json) {
@@ -525,6 +525,31 @@ object CardManager extends Controller {
       }
     }
   }
+  case class TransferDyeCardParam(_id: String, dep: String)
+  def transferDyeCard = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val reads = Json.reads[TransferDyeCardParam]
+      val ret = request.body.validate[TransferDyeCardParam]
+      ret.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, param => {
+        val validDep = List("WhiteTight", "DyeDep")
+        if (!validDep.contains(param.dep)) {
+          Future {
+            val msg = s"Invalid dep=${param.dep}"
+            Logger.error(msg)
+            BadRequest(msg)
+          }
+        } else {
+          val f = DyeCard.transferDep(param._id, param.dep)
+          for (ret <- f) yield Ok(Json.obj("ok" -> true))
+        }
+      })
+  }
+
   case class StartDyeParam(_id: String, operator: String)
   def startDye = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>

@@ -74,7 +74,8 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
                    dyeProcess: Option[DyeProcess],
                    postProcess: Option[PostProcess],
                    dryTemp: Option[Double], dryTime: Option[Long], machine: Option[String],
-                   var sizeCharts: Option[Seq[SizeChart]]) {
+                   var sizeCharts: Option[Seq[SizeChart]],
+                   dep: Option[String]) {
 
   implicit object TransformSizeChart extends BsonTransformer[SizeChart] {
     def apply(value: SizeChart): BsonDocument = value.toDocument.toBsonDocument
@@ -106,7 +107,7 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "postProcess" -> postProcess,
       "dryTime" -> dryTime, "dryTemp" -> dryTemp, "machine" -> machine,
       "sizeCharts" -> sizeCharts,
-      "active" -> active, "remark" -> remark)
+      "active" -> active, "remark" -> remark, "dep" -> dep)
   }
 
   def updateID: Unit = {
@@ -144,7 +145,8 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       postProcess = Some(PostProcess.default),
       dryTemp = None, dryTime = None, machine = None,
       sizeCharts = None,
-      remark = remark)
+      remark = remark,
+      dep = dep)
   }
 }
 
@@ -266,6 +268,7 @@ object DyeCard {
     val sizeCharts = getOptionArray("sizeCharts", (v) => { toSizeChart(v.asDocument()) })
     val active = doc.getBoolean("active")
     val remark = getOptionStr("remark")
+    val dep = getOptionStr("dep")
 
     DyeCard(_id = _id, workIdList = workIdList, color = color,
       startTime = startTime, endTime = endTime, updateTime = updateTime, remark = remark,
@@ -278,7 +281,8 @@ object DyeCard {
       dryTime = dryTime,
       machine = machine,
       sizeCharts = sizeCharts,
-      active = active)
+      active = active,
+      dep = dep)
   }
 
   def newCard(card: DyeCard) = {
@@ -343,7 +347,7 @@ object DyeCard {
 
       workCardIdFilterFuture map {
         workCardIdFilter =>
-          and(workCardIdFilter::filterList: _*)
+          and(workCardIdFilter :: filterList: _*)
       }
     } else {
       val filter = if (!filterList.isEmpty)
@@ -395,6 +399,12 @@ object DyeCard {
 
     for (countSeq <- retF)
       yield countSeq(0)
+  }
+
+  import org.mongodb.scala.model._
+
+  def transferDep(_id: String, dep: String) = {
+    collection.updateOne(equal("_id", _id), Updates.set("dep", dep)).toFuture()
   }
 
   def startDye(_id: String, operator: String) = {
