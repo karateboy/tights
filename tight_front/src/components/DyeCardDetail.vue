@@ -266,7 +266,10 @@
                 })
             },
             displayTime(v){
-                return moment(v).format('YYYY-MM-DD hh:mm');
+                if(v)
+                    return moment(v).format('YYYY-MM-DD hh:mm')
+                else
+                    return "未刷條碼"
             },
             displayDiff(a, b){
                 var start = moment(a);

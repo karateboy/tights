@@ -15,6 +15,7 @@
     "vue": "^2.3.4",
     "vue-pagination-2": "^0.3.2",
     "vue-router": "^2.1.1",
+    "vue-simple-spinner": "^1.2.8",
     "vue-strap": "^1.1.36",
     "vuejs-datepicker": "^0.8.5",
     "vuex": "^2.1.1"

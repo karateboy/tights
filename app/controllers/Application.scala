@@ -20,24 +20,6 @@ object Application extends Controller {
 
   val title = "佩登斯生產履歷系統"
 
-  def userManagement() = Security.Authenticated {
-    implicit request =>
-      val userInfoOpt = Security.getUserinfo(request)
-      if (userInfoOpt.isEmpty)
-        Forbidden("No such user!")
-      else {
-        val userInfo = userInfoOpt.get
-        val user = User.getUserByEmail(userInfo.id).get
-        val userList =
-          if (!user.isAdmin)
-            List.empty[User]
-          else
-            User.getAllUsers.toList
-
-        Ok(views.html.userManagement(userInfo, user, userList))
-      }
-  }
-
   import models.User._
 
   def newUser = Security.Authenticated.async(BodyParsers.parse.json) {

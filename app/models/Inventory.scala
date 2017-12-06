@@ -46,14 +46,14 @@ object Inventory {
       id => id)
   }
 
-  def upsert(factoryID: String, color: String, size: String, quantity: Int) = {
+  def upsert(inventory:Inventory) = {
     import org.mongodb.scala.model._
-    val filter1 = Filters.equal("factoryID", factoryID)
-    val filter2 = Filters.equal("color", color)
-    val filter3 = Filters.equal("size", size)
+    val filter1 = Filters.equal("factoryID", inventory.factoryID)
+    val filter2 = Filters.equal("color", inventory.color)
+    val filter3 = Filters.equal("size", inventory.size)
     val filter = Filters.and(filter1, filter2, filter3)
     val opt = UpdateOptions().upsert(true)
-    val f = collection.updateOne(filter, Updates.set("quantity", quantity), opt).toFuture()
+    val f = collection.updateOne(filter, Updates.set("quantity", inventory.quantity), opt).toFuture()
     f.onFailure(errorHandler)
     f
   }

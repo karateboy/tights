@@ -4,16 +4,12 @@ import play.api.mvc._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json
-import play.api.Play.current
-import play.api.data._
-import play.api.data.Forms._
-import play.api.libs.ws._
-import play.api.libs.ws.ning.NingAsyncHttpClientConfigBuilder
 import scala.concurrent.Future
 import play.api.libs.json._
 import com.github.nscala_time.time.Imports._
 import Highchart._
 import models._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Stat(
     avg: Option[Double],
@@ -63,5 +59,42 @@ object Query extends Controller {
     }
 
     count
+  }
+
+  import scala.concurrent._
+  def queryInventory() = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val reads = Json.reads[QueryInventoryParam]
+      val result = request.body.validate[QueryInventoryParam]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, param => {
+        val fInventory = Inventory.query(param)(0, 10)
+        for (Inventory <- fInventory) yield {
+          Ok(Json.toJson(Inventory))
+        }
+      })
+  }
+
+  def updateInventory = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      val result = request.body.validate[Inventory]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, inventory => {
+        val retF = Inventory.upsert(inventory)
+        for (ret <- retF) yield {
+          Ok(Json.obj("ok"->true))
+        }
+      })
+
   }
 }

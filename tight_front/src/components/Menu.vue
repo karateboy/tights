@@ -46,6 +46,8 @@
                     </router-link>
                     <router-link to='/Schedule/TransferDyeCard/DyeDep' tag='li' role="presentation" active-class='active'><a>送漂染課</a>
                     </router-link>
+                    <router-link to='/Schedule/InventoryEdit' tag='li' role="presentation" active-class='active'><a>庫存管理</a>
+                    </router-link>
                 </ul>
             </li>
             <li>

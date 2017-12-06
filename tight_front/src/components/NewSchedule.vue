@@ -1,4 +1,6 @@
 <template>
+    <div>
+    <spinner v-show="!fetched" size="big" message="讀取中..."></spinner>
     <div v-if="myDyeCardSpecList.length != 0">
         <br>
         <div class="form-horizontal">
@@ -101,7 +103,7 @@
             <strong>沒有可以排定的工作</strong>
         </div>
     </div>
-
+    </div>
 </template>
 <style>
 
@@ -110,6 +112,7 @@
     import axios from 'axios'
     import moment from 'moment'
     import * as dozenExp from '../dozenExp'
+    import Spinner from 'vue-simple-spinner'
 
     export default{
         data(){
@@ -222,6 +225,8 @@
                 )
             }
         },
-        components: {}
+        components: {
+            Spinner
+        }
     }
 </script>
