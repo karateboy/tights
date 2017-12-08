@@ -10,7 +10,6 @@ GET      /assets/*file                              controllers.Assets.versioned
 GET      /html/*file                                controllers.Assets.at(path="/public/html", file)
 GET      /dist/*file                                controllers.Assets.at(path="/public/dist", file)
 
-GET      /login                                     controllers.Login.prompt
 GET      /logout                                    controllers.Login.logout
 POST     /authenticate                              controllers.Login.authenticate
 GET      /testAuthenticated                         controllers.Login.testAuthenticated
@@ -79,8 +78,9 @@ GET      /ActiveWorkCard/count                      controllers.CardManager.getA
 GET      /ActiveWorkCard/:skip/:limit               controllers.CardManager.getActiveWorkCard(skip:Int, limit:Int)
 GET      /barcode/:fileName                         controllers.CardManager.getBarcode(fileName)
 
-POST	 /QueryInventory							controllers.Query.queryInventory()
-POST	 /UpdateInventory							controllers.Query.updateInventory
+POST     /QueryInventory/count                      controllers.Query.queryInventoryCount()
+POST     /QueryInventory/:skip/:limit               controllers.Query.queryInventory(skip:Int, limit:Int)
+POST     /UpsertInventory                           controllers.Query.upsertInventory
 
 POST     /User                                      controllers.Application.newUser
 GET      /User                                      controllers.Application.getAllUsers

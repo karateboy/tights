@@ -249,11 +249,18 @@ export default {
     },
     getDyeCardStatus(dyeCard) {
       if (dyeCard.active) {
-        if (!dyeCard.dep) return "已出單";
-        else if (dyeCard.dep === "WhiteTight") return "白襪準備中";
-        else if (dyeCard.dep === "DyeDep") {
-          if (!dyeCard.startTime) return "漂染準備中";
-          else return "漂染中";
+        if (!dyeCard.dep){ //老單
+          if (dyeCard.startTime) 
+            return "漂染中";
+          else 
+            return "已出單";
+        } else if (dyeCard.dep === "WhiteTight") {
+          return "白襪準備中";
+        } else if (dyeCard.dep === "DyeDep") {
+          if (!dyeCard.startTime) 
+            return "漂染準備中";
+          else 
+            return "漂染中";
         }
       } else return "結束";
     },

@@ -23,19 +23,20 @@
               <div class="col-lg-2"><input type="text" class="form-control" v-model="dozenNumber"></div>
           </div>
           <div class="form-group">
-            <div class="col-lg-1">
-              <button class="btn btn-primary" :class="{disabled: !readyForQuery}"
-                @click.prevent="query" :disabled="!readyForQuery">查詢庫存
+            <div class="col-lg-offset-1 col-lg-1">
+              <button class="btn btn-primary"
+                @click.prevent="query">查詢庫存
               </button>
             </div>
             <div class="col-lg-offset-1 col-lg-1">
-                <button class="btn btn-primary" :class="{disabled: !readyForQuery}"
-                  @click.prevent="update" :disabled="!readyForQuery">更新庫存
+                <button class="btn btn-primary" :class="{disabled: !readyForUpsert}"
+                  @click.prevent="upsert" :disabled="!readyForUpsert">新增庫存
                 </button>
             </div>
           </div>
         </div>
         <spinner v-if="loading"></spinner>
+        <inventory-list v-if="display" url="/QueryInventory" :param="queryParam"></inventory-list>
     </div>
 </template>
 <style scoped>
@@ -46,7 +47,8 @@ body {
 <script>
 import axios from "axios";
 import * as dozenExp from "../dozenExp";
-import Spinner from 'vue-simple-spinner'
+import Spinner from "vue-simple-spinner";
+import InventoryList from "./InventoryList.vue";
 
 export default {
   data() {
@@ -57,7 +59,9 @@ export default {
         size: "",
         quantity: 0
       },
-      loading:false,
+      loading: false,
+      display: false,
+      queryParam: {},
       sizeList: [
         "XS/S",
         "S/M",
@@ -113,53 +117,48 @@ export default {
         this.inventory.quantity = dozenExp.fromDozenStr(v);
       }
     },
-    readyForQuery(){
-      if(!this.inventory.factoryID || !this.inventory.size || !this.inventory.color)
-        return false
-      else
-        return true
+    readyForUpsert() {
+      if (
+        !this.inventory.factoryID ||
+        !this.inventory.size ||
+        !this.inventory.color
+      )
+        return false;
+      else return true;
     }
   },
   methods: {
     query() {
-      let url = `/QueryInventory`;
-      this.loading = true
-      axios
-        .post(url, this.inventory)
-        .then(resp => {
-          const ret = resp.data
-          if (resp.status == 200) {
-            const inventoryList = ret
-            if(inventoryList.length != 0)
-              this.inventory.quantity = inventoryList[0].quantity
-            else
-              this.inventory.quantity = 0
-          }
-          this.loading = false
-        })
-        .catch(err => {
-          this.loading = false
-          alert(err);
-        });
+      let param = {}
+      if(this.inventory.factoryID)
+        param.factoryID = this.inventory.factoryID
+      if(this.inventory.size)
+        param.size = this.inventory.size
+      if(this.inventory.color)
+        param.color = this.inventory.color
+
+      if (!this.display) this.display = true;
+
+      this.queryParam = Object.assign({}, param)
     },
-    update() {
-      let url = `/UpdateInventory`;
+    upsert() {
+      let url = `/UpsertInventory`;
 
       axios
         .post(url, this.inventory)
         .then(resp => {
-          const ret = resp.data
+          const ret = resp.data;
           if (resp.status == 200) {
-            alert("成功更新!")
+            alert("成功新增!");
           }
         })
         .catch(err => {
           alert(err);
         });
     }
-
   },
   components: {
+    InventoryList,
     Spinner
   }
 };

@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
 case class Inventory(factoryID: String, color: String, size: String, quantity: Int)
-case class QueryInventoryParam(factorID: Option[String], color: Option[String], size: Option[String])
+case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String])
 
 object Inventory {
   import scala.concurrent._
@@ -60,7 +60,7 @@ object Inventory {
 
   def getFilter(param: QueryInventoryParam) = {
     import org.mongodb.scala.model.Filters._
-    val factoryIdFilter = param.factorID map { factorID => regex("factorID", factorID) }
+    val factoryIdFilter = param.factoryID map { factorID => regex("factoryID", "(?i)" + factorID) }
     val colorFilter = param.color map { color => regex("color", color) }
     val sizeFilter = param.size map { equal("size", _) }
     val filterList = List(factoryIdFilter, colorFilter, sizeFilter).flatMap { f => f }

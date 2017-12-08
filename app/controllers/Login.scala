@@ -45,9 +45,6 @@ object Login extends Controller {
         Ok(Json.obj("ok" -> true, "user" -> user))
       }
   }
-  def prompt = Action {
-    Ok(views.html.login())
-  }
 
   def logout = Action {
     Ok(Json.obj(("ok"->true))).withNewSession

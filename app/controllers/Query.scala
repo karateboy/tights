@@ -62,7 +62,7 @@ object Query extends Controller {
   }
 
   import scala.concurrent._
-  def queryInventory() = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryInventory(skip:Int, limit:Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val reads = Json.reads[QueryInventoryParam]
       val result = request.body.validate[QueryInventoryParam]
@@ -73,14 +73,32 @@ object Query extends Controller {
           BadRequest(JsError.toJson(err).toString())
         }
       }, param => {
-        val fInventory = Inventory.query(param)(0, 10)
+        val fInventory = Inventory.query(param)(skip, limit)
         for (Inventory <- fInventory) yield {
           Ok(Json.toJson(Inventory))
         }
       })
   }
 
-  def updateInventory = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryInventoryCount = Security.Authenticated.async(BodyParsers.parse.json) {
+    implicit request =>
+      implicit val reads = Json.reads[QueryInventoryParam]
+      val result = request.body.validate[QueryInventoryParam]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, param => {
+        val fCount = Inventory.count(param)
+        for (count <- fCount) yield {
+          Ok(Json.toJson(count))
+        }
+      })
+  }
+
+  def upsertInventory = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val result = request.body.validate[Inventory]
 
