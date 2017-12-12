@@ -258,7 +258,7 @@ object WorkCard {
           val tidyCardsF = TidyCard.getTidyCardOfWorkCard(workCardID)
           for (tidyCards <- tidyCardsF) yield {
             val goodSeq = tidyCards map { _.good }
-            Math.min(goodSeq.min, good)
+            goodSeq.foldLeft(good)(Math.min)
           }
         }
       }

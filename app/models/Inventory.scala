@@ -20,7 +20,7 @@ object Inventory {
   implicit val reads = Json.reads[Inventory]
   implicit val write = Json.writes[Inventory]
   implicit val readQ = Json.reads[QueryInventoryParam]
-  
+
   def toDocument(inv: Inventory) = Document(Json.toJson(inv).toString())
 
   def init(colNames: Seq[String]) {
@@ -46,7 +46,7 @@ object Inventory {
       id => id)
   }
 
-  def upsert(inventory:Inventory) = {
+  def upsert(inventory: Inventory) = {
     import org.mongodb.scala.model._
     val filter1 = Filters.equal("factoryID", inventory.factoryID)
     val filter2 = Filters.equal("color", inventory.color)
@@ -61,18 +61,18 @@ object Inventory {
   def getFilter(param: QueryInventoryParam) = {
     import org.mongodb.scala.model.Filters._
     val factoryIdFilter = param.factoryID map { factorID => regex("factoryID", "(?i)" + factorID) }
-    val colorFilter = param.color map { color => regex("color", color) }
+    val colorFilter = param.color map { color => regex("color", "(?i)" + color) }
     val sizeFilter = param.size map { equal("size", _) }
     val filterList = List(factoryIdFilter, colorFilter, sizeFilter).flatMap { f => f }
-      val filter = if (!filterList.isEmpty)
-        and(filterList: _*)
-      else
-        exists("_id")
+    val filter = if (!filterList.isEmpty)
+      and(filterList: _*)
+    else
+      exists("_id")
 
-      import scala.concurrent._
-      Future {
-        filter
-      }
+    import scala.concurrent._
+    Future {
+      filter
+    }
   }
 
   def query(param: QueryInventoryParam)(skip: Int, limit: Int) = {
