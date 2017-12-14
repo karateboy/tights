@@ -27,6 +27,10 @@ case class OrderDetail(color: String, size: String, quantity: Int, complete: Boo
       "complete" -> complete)
   }
 }
+case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
+                           factoryId: Option[String], customerId: Option[String],
+                           start: Option[Long], end: Option[Long])
+
 object OrderDetail {
   implicit def toOrderDetail(implicit doc: BsonDocument) = {
     //OrderDetail(color: String, size: String, quantity: Int)
@@ -244,9 +248,9 @@ object Order {
     import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.bson.BsonString
 
-    if(order.date == Some(0) || order.date == None)
+    if (order.date == Some(0) || order.date == None)
       order.date = Some(DateTime.now().getMillis)
-      
+
     val col = MongoDB.database.getCollection(colName)
     val doc = order.toDocument
 
@@ -357,9 +361,6 @@ object Order {
     f
   }
 
-  case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
-                             factoryId: Option[String], customerId: Option[String],
-                             start: Option[Long], end: Option[Long])
   def queryOrder(param: QueryOrderParam)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._

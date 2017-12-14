@@ -349,4 +349,11 @@ object OrderManager extends Controller {
         BadRequest("No such order!")
     }
   }
+
+  def getColorSeq() = Security.Authenticated.async {
+    val colorSeqF = SysConfig.getColorSeq()
+    for (colorSeq <- colorSeqF) yield {
+      Ok(Json.toJson(colorSeq))
+    }
+  }
 }

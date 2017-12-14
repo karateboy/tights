@@ -7,6 +7,12 @@
           </div>
           <div class="form-group"><label class="col-lg-1 control-label">顏色:</label>
             <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.color"></div>
+            <div class="col-lg-10">
+              <div class="btn-group" data-toggle="buttons">
+                <label class="btn btn-outline btn-primary" v-for="color in colorList" @click="inventory.color=color">
+                <input type="radio">{{ color }} </label>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="col-lg-1 control-label">尺寸:</label>
@@ -62,6 +68,7 @@ export default {
       loading: false,
       display: false,
       queryParam: {},
+      colorList:[],
       sizeList: [
         "XS/S",
         "S/M",
@@ -107,6 +114,9 @@ export default {
         "6-8"
       ]
     };
+  },
+  mounted(){
+    console.log("mounted")
   },
   computed: {
     dozenNumber: {

@@ -82,6 +82,8 @@ POST     /QueryInventory/count                      controllers.Query.queryInven
 POST     /QueryInventory/:skip/:limit               controllers.Query.queryInventory(skip:Int, limit:Int)
 POST     /UpsertInventory                           controllers.Query.upsertInventory
 
+GET		 /ColorSeq									controllers.OrderManager.getColorSeq()
+
 POST     /User                                      controllers.Application.newUser
 GET      /User                                      controllers.Application.getAllUsers
 PUT      /User/:id                                  controllers.Application.updateUser(id)
