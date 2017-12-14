@@ -293,6 +293,14 @@ object WorkCard {
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
+  
+  def getOrderWorkCardGoods(orderId: String, detailIndex: Int) = {
+    import org.mongodb.scala.model._
+    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).projection(Projections.include("good")).toFuture()
+    f.onFailure { errorHandler }
+    for (goods <- f) yield goods.map { doc => doc.getInteger("good", 0) }
+  }
+  
 
   def getOrderProductionWorkCards(orderId: String) = {
     val f = collection.find(equal("orderId", orderId)).toFuture()

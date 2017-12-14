@@ -109,10 +109,9 @@ object OrderManager extends Controller {
       } yield {
         def needToProduceF(orderId: String, detailIndex: Int, detail: OrderDetail) = {
           def goodFuture = {
-            val fWorkCards = WorkCard.getOrderWorkCards(orderId, detailIndex)
-            for (workCards <- fWorkCards) yield {
-              val good = workCards map { _.good }
-              good.sum
+            val fGoods = WorkCard.getOrderWorkCardGoods(orderId, detailIndex)
+            for (goods <- fGoods) yield {
+              goods.sum
             }
           }
           for (good <- goodFuture)
