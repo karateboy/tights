@@ -9,51 +9,61 @@
             </div>
         </form>
         <div v-if='displayCard'>
-            <tidy-card :tidyCard='tidyCard' v-on:updated='cleanup' :quantity='quantity'></tidy-card>
+            <tidy-card :tidyCard='tidyCard' v-on:updated='cleanup' :quantity='quantity' :inventory="inventory"></tidy-card>
         </div>
     </div>
 </template>
 <style scoped>
-    body{
-        background-color:#ff0000;
-    }
+body {
+  background-color: #ff0000;
+}
 </style>
 <script>
-    import axios from 'axios'
-    import TidyCard from './TidyCard.vue'
+import axios from "axios";
+import TidyCard from "./TidyCard.vue";
 
-    export default{
-        data(){
-            return {
-                workCardID: "",
-                displayCard: false,
-                quantity:0,
-                tidyCard: {}
-            }
-        },
-        methods: {
-            query(){
-                const phase = this.$route.params.phase
-                axios.post("/GetTidyCard", {workCardID: this.workCardID, phase}).then((resp) => {
-                    const ret = resp.data
-                    this.quantity = ret.quantity
-                    this.tidyCard = ret.card
-                    this.displayCard = true
-                }).catch((error) => {
-                    if (error.response) {
-                        alert(error.response.data);
-                    } else {
-                        alert(error.message);
-                    }
-                })
-            },
-            cleanup(){
-                this.displayCard = false
-                this.workCardID = ""
-            }
-        },
-        components: {
-            TidyCard
-        }
+export default {
+  data() {
+    return {
+      workCardID: "",
+      displayCard: false,
+      inventory: 0,
+      quantity: 0,
+      tidyCard: {}
+    };
+  },
+  watch: {
+    "$route.params.phase": function(phase) {
+        this.cleanup()
     }
+  },
+  methods: {
+    query() {
+      const phase = this.$route.params.phase;
+      axios
+        .post("/GetTidyCard", { workCardID: this.workCardID, phase })
+        .then(resp => {
+          const ret = resp.data;
+          this.quantity = ret.quantity;
+          this.inventory = ret.inventory;
+          this.tidyCard = ret.card;
+          this.displayCard = true;
+        })
+        .catch(error => {
+          if (error.response) {
+            alert(error.response.data);
+          } else {
+            alert(error.message);
+          }
+        });
+    },
+    cleanup() {
+      this.displayCard = false;
+      this.workCardID = "";
+    }
+  },
+  components: {
+    TidyCard
+  }
+};
 </script>

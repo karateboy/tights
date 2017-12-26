@@ -4,6 +4,7 @@
             <thead>
             <tr>
                 <th rowspan="2">流動卡編號</th>
+                <th rowspan="2" class='text-center'>庫存</th>
                 <th rowspan="2" class='text-center'>數量<br>優/預定(打)</th>
                 <th rowspan="2" class='text-center'>漂染</th>
                 <th rowspan="2">定型</th>
@@ -20,6 +21,7 @@
             <tbody>
             <tr>
                 <td>{{workCard._id}}</td>
+                <td class='text-right'>{{displayQuantity(workCard.inventory)}}</td>
                 <td class='text-right'>{{displayGoodQuantity(workCard)}}</td>
                 <td class='text-right'>
                     <i class="fa fa-ban" style="color:red" aria-hidden="true"

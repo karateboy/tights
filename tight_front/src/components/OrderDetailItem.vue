@@ -13,6 +13,12 @@
                             <label class="col-lg-2 control-label">顏色:</label>
                             <div class="col-lg-2"><input type="text" class="form-control"
                                                          v-model="detail.color"></div>
+                            <div class="col-lg-8">
+                                <div class="btn-group" data-toggle="buttons">
+                                    <label class="btn btn-outline btn-primary" v-for="color in colorList" @click="detail.color=color">
+                                    <input type="radio">{{ color }} </label>
+                                </div>
+                            </div>                             
                         </div>
                         <div class="form-group">
                             <label class="col-lg-2 control-label">尺寸:</label>
@@ -48,60 +54,113 @@
     </div>
 </template>
 <style>
-    body{
-        background-color:#ff0000;
-    }
-
-
+body {
+  background-color: #ff0000;
+}
 </style>
 <script>
-    import * as dozenExp from '../dozenExp'
-    export default{
-        props: {
-            opType: {
-                type: String,
-                required: true
-            },
-            detailIndex: {
-                type: Number
-            },
-            detail: {
-                type: Object,
-                required: true
-            }
-        },
-        data(){
-            return {
-                sizeList: [
-                    'XS/S', 'S/M', 'M/L', 'L/XL', '2-6', '8-12', 'XXS', 'XS', 'SS', 'S', 'M', 'L', 'XL', 'XXL', 'M/S',
-                    'T', 'A/B', 'C/D', 'A', 'B', 'C', 'D', 'E',
-                    'XSml', 'Sml', 'Med', 'Lge', 'Xlge', 'Sml/Med', 'Lge/Xlge', 'ChSml', 'ChLge', 'Adult', 'ChSml/ChMed',
-                    'ChMed/ChLge', 'ChLge/ChXLge',
-                    '0-6', '6-12', '12-24', '2T3T', '4T5T', '6-8'
-                ]
-            }
-        },
-        computed:{
-            dozenNumber:{
-                get: function(){
-                    return dozenExp.toDozenStr(this.detail.quantity)
-                },
-                set: function(v){
-                    this.detail.quantity = dozenExp.fromDozenStr(v)
-                }
-            }
-        },
-        methods: {
-            addDetail(){
-                this.$emit('addOrderDetail', this.detail)
-            },
-            updateDetail(){
-                this.$emit('updateOrderDetail', {
-                    detailIndex:this.detailIndex,
-                    detail:this.detail
-                })
-            }
-        },
-        components: {}
+import axios from "axios";
+import * as dozenExp from "../dozenExp";
+export default {
+  props: {
+    opType: {
+      type: String,
+      required: true
+    },
+    detailIndex: {
+      type: Number
+    },
+    detail: {
+      type: Object,
+      required: true
     }
+  },
+  data() {
+    return {
+      sizeList: [
+        "XS/S",
+        "S/M",
+        "M/L",
+        "L/XL",
+        "2-6",
+        "8-12",
+        "XXS",
+        "XS",
+        "SS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL",
+        "M/S",
+        "T",
+        "A/B",
+        "C/D",
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "XSml",
+        "Sml",
+        "Med",
+        "Lge",
+        "Xlge",
+        "Sml/Med",
+        "Lge/Xlge",
+        "ChSml",
+        "ChLge",
+        "Adult",
+        "ChSml/ChMed",
+        "ChMed/ChLge",
+        "ChLge/ChXLge",
+        "0-6",
+        "6-12",
+        "12-24",
+        "2T3T",
+        "4T5T",
+        "6-8"
+      ],
+      colorList: []
+    };
+  },
+  mounted() {
+    axios
+      .get("/ColorSeq")
+      .then(resp => {
+        const ret = resp.data;
+        if (resp.status == 200) {
+          this.colorList.splice(0, this.colorList.length);
+          for (let color of ret) {
+            this.colorList.push(color);
+          }
+        }
+      })
+      .catch(err => {
+        alert(err);
+      });
+  },
+  computed: {
+    dozenNumber: {
+      get: function() {
+        return dozenExp.toDozenStr(this.detail.quantity);
+      },
+      set: function(v) {
+        this.detail.quantity = dozenExp.fromDozenStr(v);
+      }
+    }
+  },
+  methods: {
+    addDetail() {
+      this.$emit("addOrderDetail", this.detail);
+    },
+    updateDetail() {
+      this.$emit("updateOrderDetail", {
+        detailIndex: this.detailIndex,
+        detail: this.detail
+      });
+    }
+  },
+  components: {}
+};
 </script>

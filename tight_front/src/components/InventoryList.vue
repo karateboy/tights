@@ -7,7 +7,9 @@
                     <th>工廠代號</th>
                     <th class='text-center'>顏色</th>
                     <th class='text-center'>尺寸</th>
-                    <th class='text-center'>數量(隻)</th>
+                    <th class='text-center'>在庫數量</th>
+                    <th class='text-center'>排定用量</th>
+                    <th class='text-center'>流動卡</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -16,8 +18,12 @@
                     <td class='text-right'>{{inventory.color}}</td>
                     <td class='text-right'>{{inventory.size}}</td>
                     <td class='text-right'>
-                      <input type="number" v-model.number="inventory.quantity"> 
+                      <input type="number" v-model="inventory.quantityStr"> 
                       <button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button>
+                    </td>
+                    <td class='text-right'>{{displayLoan(inventory.loan)}}</td>
+                    <td>
+                      <div v-for='workCardID in inventory.workCardList'>{{workCardID}}</div>
                     </td>
                 </tr>
                 </tbody>
@@ -52,7 +58,7 @@ export default {
     return {
       inventoryList: [],
       skip: 0,
-      limit: 10,
+      limit: 5,
       total: 0,
       detail: -1,
       inventory: {}
@@ -76,6 +82,7 @@ export default {
       const ret = resp.data;
       this.inventoryList.splice(0, this.inventoryList.length);
       for (let inventory of ret) {
+        inventory.quantityStr = dozenExpr.toDozenStr(inventory.quantity)
         this.inventoryList.push(inventory);
       }
     },
@@ -127,7 +134,7 @@ export default {
     },
     upsert(inventory) {
       let url = `/UpsertInventory`;
-
+      inventory.quantity = dozenExpr.fromDozenStr(inventory.quantityStr)
       axios
         .post(url, inventory)
         .then(resp => {
@@ -139,6 +146,13 @@ export default {
         .catch(err => {
           alert(err);
         });
+    },
+    displayLoan(q){
+      if(!q){
+        return "-"
+      }else{
+        return dozenExpr.toDozenStr(q)
+      }
     }
   },
   components: {

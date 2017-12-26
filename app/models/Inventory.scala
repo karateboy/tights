@@ -8,7 +8,8 @@ import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
-case class Inventory(factoryID: String, color: String, size: String, quantity: Int)
+case class Inventory(factoryID: String, color: String, size: String, quantity: Int,
+                     var loan: Option[Int], workCardList: Option[Seq[String]])
 case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String])
 
 object Inventory {
@@ -46,16 +47,85 @@ object Inventory {
       id => id)
   }
 
+  import org.mongodb.scala.model._
   def upsert(inventory: Inventory) = {
-    import org.mongodb.scala.model._
-    val filter1 = Filters.equal("factoryID", inventory.factoryID)
-    val filter2 = Filters.equal("color", inventory.color)
-    val filter3 = Filters.equal("size", inventory.size)
-    val filter = Filters.and(filter1, filter2, filter3)
+    val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = UpdateOptions().upsert(true)
-    val f = collection.updateOne(filter, Updates.set("quantity", inventory.quantity), opt).toFuture()
+    val f = collection.replaceOne(filter, toDocument(inventory)).toFuture()
     f.onFailure(errorHandler)
     f
+  }
+
+  def lend(factoryID: String, color: String, size: String, q: Int, workCardID: String) = {
+    val filter = getFilter(factoryID, color, size)
+    val update = Updates.combine(
+      Updates.inc("loan", q),
+      Updates.addToSet("workCardList", workCardID))
+
+    val f = collection.updateOne(filter, update).toFuture()
+    f.onFailure(errorHandler)
+    f
+  }
+
+  def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String) = {
+    val filter = getFilter(factoryID, color, size)
+
+    val update = Updates.combine(Updates.inc("quantity", -q1), Updates.pull("workCardList", workCardID))
+
+    val f = collection.findOneAndUpdate(filter, update).toFuture()
+    f.onFailure(errorHandler)
+    f.onSuccess({
+      case _=>
+        refreshLoan(factoryID, color, size)
+    })
+    f
+  }
+
+  def refreshLoan(factoryID: String, color: String, size: String) = {
+    val filter = getFilter(factoryID, color, size)
+
+    for {
+      docSeq <- collection.find(filter).toFuture()
+      doc <- docSeq
+      inventory = toInventory(doc)
+      workCardList <- inventory.workCardList
+      newLoan <- recalculateLoan(workCardList)
+    } {
+      if(inventory.loan != Some(newLoan)){
+        inventory.loan = Some(newLoan)
+        collection.replaceOne(filter, toDocument(inventory)).toFuture()
+      }
+    }
+  }
+  
+  def recalculateLoan(workCardIdList: Seq[String]) = {
+    val workCardListF = WorkCard.getCards(workCardIdList)(0, 100)
+    for (workCardList <- workCardListF) yield {
+      val inventories = workCardList flatMap { _.inventory }
+      inventories.sum
+    }
+  }
+
+  def canLend(factoryID: String, color: String, size: String) = {
+    val filter = getFilter(factoryID, color, size)
+
+    val f = collection.find(filter).toFuture()
+    f.onFailure(errorHandler)
+    for (docs <- f) yield {
+      if (docs.isEmpty)
+        0
+      else {
+        val inventory = toInventory(docs.head)
+        inventory.quantity - inventory.loan.getOrElse(0)
+      }
+    }
+  }
+
+  def getFilter(factoryID: String, color: String, size: String) = {
+    val filter1 = Filters.equal("factoryID", factoryID)
+    val filter2 = Filters.equal("color", color)
+    val filter3 = Filters.equal("size", size)
+    Filters.and(filter1, filter2, filter3)
   }
 
   def getFilter(param: QueryInventoryParam) = {
@@ -69,28 +139,21 @@ object Inventory {
     else
       exists("_id")
 
-    import scala.concurrent._
-    Future {
-      filter
-    }
+    filter
   }
 
   def query(param: QueryInventoryParam)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 
-    val filterFuture = getFilter(param)
+    val filter = getFilter(param)
 
-    val docF = filterFuture flatMap {
-      filter =>
-        val f = collection.find(filter).skip(skip).limit(limit).toFuture()
-        f.onFailure {
-          errorHandler
-        }
-        f
+    val f = collection.find(filter).skip(skip).limit(limit).toFuture()
+    f.onFailure {
+      errorHandler
     }
 
-    for (records <- docF)
+    for (records <- f)
       yield records map {
       doc => toInventory(doc)
     }
@@ -99,18 +162,14 @@ object Inventory {
   def count(param: QueryInventoryParam) = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
-    val filterFuture = getFilter(param)
+    val filter = getFilter(param)
 
-    val retF = filterFuture flatMap {
-      filter =>
-        val f = collection.count(filter).toFuture()
-        f.onFailure {
-          errorHandler
-        }
-        f
+    val f = collection.count(filter).toFuture()
+    f.onFailure {
+      errorHandler
     }
 
-    for (countSeq <- retF)
+    for (countSeq <- f)
       yield countSeq(0)
   }
 }

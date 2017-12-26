@@ -97,7 +97,7 @@ object OrderManager extends Controller {
     }
   }
 
-  case class WorkCardSpec(orderId: String, factoryId: String, index: Int, detail: OrderDetail, due: Long, need: Int)
+  case class WorkCardSpec(orderId: String, factoryId: String, index: Int, detail: OrderDetail, due: Long, need: Int, inventory: Int)
   case class DyeCardSpec(color: String, due: Long, workCardSpecList: Seq[WorkCardSpec])
 
   def getDyeCardSpec = Security.Authenticated.async {
@@ -108,29 +108,36 @@ object OrderManager extends Controller {
         orderList <- f
       } yield {
         def needToProduceF(orderId: String, detailIndex: Int, detail: OrderDetail) = {
-          def goodFuture = {
-            val fGoods = WorkCard.getOrderWorkCardGoods(orderId, detailIndex)
-            for (goods <- fGoods) yield {
-              goods.sum
+          def shipmentFuture = {
+            val f = WorkCard.getOrderWorkCardShipment(orderId, detailIndex)
+            for (shipment <- f) yield {
+              shipment.sum
             }
           }
-          for (good <- goodFuture)
-            yield detail.quantity - good
+          for (shipment <- shipmentFuture)
+            yield detail.quantity - shipment
         }
 
         val colorWorkCardSpecSeq =
           for {
             order <- orderList
-            detail_idx <- order.details.zipWithIndex if !detail_idx._1.complete
-            detail = detail_idx._1
-            detailIndex = detail_idx._2
-            need = waitReadyResult(needToProduceF(order._id, detailIndex, detail))
+            (detail, detailIndex) <- order.details.zipWithIndex if !detail.complete
+            inventoryF = Inventory.canLend(order.factoryId, detail.color, detail.size)
+            needF = needToProduceF(order._id, detailIndex, detail)
           } yield {
-
-            if (need > 0)
-              Some(detail.color -> WorkCardSpec(order._id, order.factoryId, detailIndex, detail, order.expectedDeliverDate, need))
-            else
-              None
+            val f =
+              for {
+                inventory <- inventoryF
+                need <- needF
+              } yield {
+                if (need > 0)
+                  Some(detail.color ->
+                    WorkCardSpec(order._id, order.factoryId, detailIndex, detail,
+                      order.expectedDeliverDate, need, inventory))
+                else
+                  None
+              }
+            waitReadyResult(f)
           }
 
         import scala.collection.mutable.Map
@@ -209,12 +216,14 @@ object OrderManager extends Controller {
         param => {
           val now = DateTime.now()
           val rawDyeCard = param.dyeCard
+          val remark = rawDyeCard.remark
           val dyeCard = rawDyeCard.init
 
           val rawWorkCards = param.workCards
           val workCards = rawWorkCards map { raw =>
             val workCard = raw.init
             workCard.dyeCardID = Some(dyeCard._id)
+            workCard.remark = remark
             workCard
           }
 
@@ -249,9 +258,17 @@ object OrderManager extends Controller {
             workCard =>
               Order.addOrderDetailWorkID(workCard.orderId, workCard.detailIndex, workCard._id)
           })
-
-          val f4 = Future.sequence(List(f1, f2, f3))
-          for (ret <- f3) yield {
+          val f4 = Future.sequence(workCards flatMap {
+            workCard =>
+              workCard.inventory map {
+                borrow =>
+                  val order = orderMap(workCard.orderId)
+                  val detail = order.details(workCard.detailIndex)
+                  Inventory.lend(order.factoryId, detail.color, detail.size, borrow, workCard._id)
+              }
+          })
+          val f5 = Future.sequence(List(f1, f2, f3, f4))
+          for (ret <- f5) yield {
             Ok(Json.obj("ok" -> true))
           }
         })

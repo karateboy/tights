@@ -41,7 +41,7 @@ object SysConfig {
         waitReadyResult(initColorSeq)
       } else {
         implicit val doc = config.head
-        val colorSeqOpt = getOptionArray(ColorSeqID, _.toString())
+        val colorSeqOpt = getOptionArray(ColorSeqID, _.asString().getValue)
         colorSeqOpt.getOrElse(Seq.empty[String])
       }
     }

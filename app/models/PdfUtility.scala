@@ -114,22 +114,21 @@ object PdfUtility {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val defaultFont = new Font(bf, 12)
     val bigFont = new Font(bf, 18, Font.BOLD)
-    
-    def prepareCell(str: String, add: Boolean = true, colspan:Int = 1)(implicit tab: PdfPTable, font:Font = defaultFont) = {
+
+    def prepareCell(str: String, add: Boolean = true, colspan: Int = 1)(implicit tab: PdfPTable, font: Font = defaultFont) = {
       val cell = new PdfPCell(new Paragraph(str, font))
       cell.setHorizontalAlignment(Element.ALIGN_LEFT)
       cell.setVerticalAlignment(Element.ALIGN_MIDDLE)
       cell.setPaddingBottom(8)
-      if(colspan != 1)
+      if (colspan != 1)
         cell.setColspan(colspan)
-        
+
       if (add)
         tab.addCell(cell)
 
       cell
     }
-    
-    
+
     val sizeList = workSeq.map {
       work =>
         val order = orderMap(work.orderId)
@@ -143,11 +142,11 @@ object PdfUtility {
       prepareCell("訂單編號:\n" + orderStr)(topTable, bigFont)
       val deliverDate = new DateTime(orderMap.values.map { _.expectedDeliverDate }.min)
       prepareCell("出貨日:\n" + deliverDate.toString("YYYY-MM-dd"))(topTable, bigFont)
-            prepareCell("顏色:\n" + dyeCard.color)(topTable, bigFont)
+      prepareCell("顏色:\n" + dyeCard.color)(topTable, bigFont)
       topTable.addCell(getBarCodeImg(dyeCard._id)(writer))
-      
-      val brandSet = {orderMap.values map {order => order.brand}}.toSet
-      val brandString = brandSet.mkString("\n")  
+
+      val brandSet = { orderMap.values map { order => order.brand } }.toSet
+      val brandString = brandSet.mkString("\n")
       val quantityList = workSeq.map { _.quantity }
       prepareCell("包襪人員:")
       prepareCell("編織批號:")
@@ -157,8 +156,6 @@ object PdfUtility {
       prepareCell("品牌:" + brandString)
       prepareCell("備註:")
       prepareCell(dyeCard.remark.getOrElse(""))
-
-      
 
       doc.add(topTable)
     }
@@ -175,7 +172,7 @@ object PdfUtility {
       prepareCell("打數")
       prepareCell("包數")
       prepareCell("襪袋")
-      
+
       for (workCard <- workSeq) {
         val order = orderMap(workCard.orderId)
         prepareCell(order.name, true, 2)
@@ -184,7 +181,7 @@ object PdfUtility {
         prepareCell(workCard._id)
         prepareCell(order.details(workCard.detailIndex).size)
         prepareCell(toDozenStr(workCard.quantity))
-        prepareCell(" ")        
+        prepareCell(" ")
         prepareCell(" ")
       }
       tab2.setSpacingBefore(12f)
@@ -271,7 +268,7 @@ object PdfUtility {
         prepareCell("")
         prepareCell("")
       }
-      if(sizeList.length % 2 == 1){
+      if (sizeList.length % 2 == 1) {
         prepareCell("")
         prepareCell("")
         prepareCell("")
@@ -532,9 +529,15 @@ object PdfUtility {
     val code128 = new Barcode128()
     code128.setCodeType(Barcode.CODE128_UCC)
     code128.setCode(code)
+    code128.setSize(11)
     val bar2Img = code128.createImageWithBarcode(writer.getDirectContent, BaseColor.BLACK, BaseColor.GRAY)
     bar2Img.setAlignment(Element.ALIGN_MIDDLE)
     bar2Img
+  }
+
+  def getBarCodeCell(code: String)(implicit writer: PdfWriter) = {
+    val cell = new PdfPCell(getBarCodeImg(code)(writer))
+    cell.setRowspan(2)
   }
 
   def workSheetProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
@@ -555,6 +558,17 @@ object PdfUtility {
     def prepareSheet(workCard: WorkCard) = {
       val sheetTab = new PdfPTable(8)
       sheetTab.setWidthPercentage(100)
+      def getQuantityStr() = {
+        val quantityStr = toDozenStr(workCard.quantity)
+        val inventoryStr =
+          if (workCard.inventory.isEmpty || workCard.inventory.get == 0)
+            s""
+          else
+            s"/庫存:${toDozenStr(workCard.inventory.get)}"
+        
+        quantityStr + inventoryStr
+      }
+
       def whiteSock() {
         implicit val tab = new PdfPTable(1)
         tab.setSpacingBefore(6f)
@@ -575,8 +589,8 @@ object PdfUtility {
         val tab2 = new PdfPTable(8)
         tab2.setWidthPercentage(100)
         prepareCell("編卡號碼", 4)(tab2)
-        prepareCell("數量",2)(tab2)
-        prepareCell("工號",2)(tab2)
+        prepareCell("數量", 2)(tab2)
+        prepareCell("工號", 2)(tab2)
         for (i <- 1 to 6) {
           prepareCell(" ", 4)(tab2)
           prepareCell(" ", 2)(tab2)
@@ -586,8 +600,7 @@ object PdfUtility {
         cell1.setBorder(Rectangle.NO_BORDER)
         cell1.setRowspan(7)
         tab.addCell(cell1)
-        
-        prepareCell("備註:")
+
         prepareCell("主管審核:")
 
         val cell = new PdfPCell(tab)
@@ -601,20 +614,31 @@ object PdfUtility {
         cardTab.setSpacingBefore(6f)
         cardTab.setWidthPercentage(100)
 
-        //header
+        //header1
         {
-          implicit val tab = new PdfPTable(1)
+          implicit val tab = new PdfPTable(2)
           tab.setWidthPercentage(100)
           tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
+          val remarkStr = s"備註:${workCard.remark.getOrElse("")}"
+          val remarkCell = prepareCell(remarkStr, 1, false)
+          remarkCell.setRowspan(3)
+          tab.addCell(remarkCell)
 
-          prepareCell("定型組/整理課")
+          prepareCell("定型組/整理課");
           prepareCell("訂單:" + workCard.orderId)
+          val cell = new PdfPCell(tab)
+          cell.setBorder(Rectangle.NO_BORDER)
+
+          cardTab.addCell(cell)
+        }
+        {
+          implicit val tab = new PdfPTable(1)
           val order = orderMap(workCard.orderId)
           prepareCell("工廠代號:" + order.factoryId)
           prepareCell("客戶編號:" + order.customerId)
           prepareCell("尺寸:" + order.details(workCard.detailIndex).size)
           prepareCell("顏色:" + order.details(workCard.detailIndex).color)
-          prepareCell("數量:" + toDozenStr(workCard.quantity))
+          prepareCell("數量:" + getQuantityStr)
 
           val cell = new PdfPCell(tab)
           cell.setBorder(Rectangle.NO_BORDER)
@@ -623,7 +647,7 @@ object PdfUtility {
         }
         // body
         {
-          val bodyTab = new PdfPTable(9)
+          val bodyTab = new PdfPTable(8)
           bodyTab.setWidthPercentage(100)
 
           {
@@ -639,14 +663,14 @@ object PdfUtility {
           {
             implicit val tab = bodyTab
             def emptyCells() {
-              for (i <- 1 to 8)
+              for (i <- 1 to 7)
                 prepareCell("")
             }
 
             prepareCell("檢襪\n分襪")
             prepareCell("巡襪")
             prepareCell("車洗標"); prepareCell("剪線頭");
-            prepareCell("整理\n包裝"); prepareCell("成品\n倉庫"); prepareCell("備註")
+            prepareCell("整理\n包裝"); prepareCell("成品\n倉庫"); //prepareCell("備註")
 
             prepareCell("日期"); emptyCells
             prepareCell("優"); emptyCells
@@ -659,7 +683,6 @@ object PdfUtility {
             prepareCell("油"); emptyCells
             prepareCell("襪頭"); emptyCells
             prepareCell("工號"); emptyCells
-            prepareCell("備註"); emptyCells
             prepareCell("主管審核"); emptyCells
           }
 
@@ -704,7 +727,6 @@ object PdfUtility {
         prepareCell("油:")
         prepareCell("襪頭");
         prepareCell("工號:")
-        prepareCell("備註:")
         prepareCell("主管審核:")
 
         val cell = new PdfPCell(tab)
@@ -739,7 +761,6 @@ object PdfUtility {
         prepareCell("油:")
         prepareCell("襪頭")
         prepareCell("工號:")
-        prepareCell("備註:")
         prepareCell("主管審核:")
 
         val cell = new PdfPCell(tab)

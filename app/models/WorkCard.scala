@@ -2,14 +2,10 @@ package models
 import play.api._
 import com.github.nscala_time.time.Imports._
 import models.ModelHelper._
-import models._
-import org.mongodb.scala.bson.Document
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Json
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.implicitConversions
+//import scala.language.implicitConversions
 import org.mongodb.scala.bson._
 
 case class StylingCard(operator: Seq[String], good: Int,
@@ -59,7 +55,8 @@ object StylingCard {
 
 case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity: Int, good: Int, active: Boolean,
                     startTime: Option[Long], endTime: Option[Long],
-                    var dyeCardID: Option[String], tidyIDs: Option[Seq[Long]], stylingCard: Option[StylingCard]) {
+                    var dyeCardID: Option[String], tidyIDs: Option[Seq[Long]], stylingCard: Option[StylingCard],
+                    var remark: Option[String], inventory: Option[Int]) {
   def toDocument = {
     Document("_id" -> _id,
       "orderId" -> orderId,
@@ -71,7 +68,9 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
       "endTime" -> endTime,
       "dyeCardID" -> dyeCardID,
       "tidyIDs" -> tidyIDs,
-      "stylingCard" -> stylingCard)
+      "stylingCard" -> stylingCard,
+      "remark" -> remark,
+      "inventory" -> inventory)
   }
 
   def updateID: Unit = {
@@ -104,7 +103,9 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
       endTime = None,
       dyeCardID = dyeCardID,
       tidyIDs = Some(Seq.empty[Long]),
-      stylingCard = None)
+      stylingCard = stylingCard,
+      remark = remark,
+      inventory = inventory)
   }
 }
 
@@ -141,6 +142,8 @@ object WorkCard {
     val dyeCardID = getOptionStr("dyeCardID")
     val tidyIDs = getOptionArray("tidyIDs", (v) => { v.asInt64().getValue })
     val stylingCard = getOptionDoc("stylingCard") map { StylingCard.toStylingCard(_) }
+    val remark = getOptionStr("remark")
+    val inventory = getOptionInt("inventory")
 
     WorkCard(_id = _id,
       orderId = orderId,
@@ -152,7 +155,9 @@ object WorkCard {
       endTime = endTime,
       dyeCardID = dyeCardID,
       tidyIDs = tidyIDs,
-      stylingCard = stylingCard)
+      stylingCard = stylingCard,
+      remark = remark,
+      inventory = inventory)
   }
 
   def newCard(card: WorkCard) = {
@@ -246,12 +251,16 @@ object WorkCard {
     f
   }
 
-  def updateGoodAndActive(workCardID: String, good: Int, active: Boolean) = {
+  def updateGoodAndActive(workCardID: String, good: Int, inventory: Int, active: Boolean) = {
     import org.mongodb.scala.model.Updates
     val workCardF = WorkCard.getCard(workCardID)
+    var refreshInventory = false
     val minGoodFF =
       for (workCardOpt <- workCardF) yield {
         val workCard = workCardOpt.get
+        if (workCard.inventory != Some(inventory))
+          refreshInventory = true
+
         if (workCard.good >= good) {
           Future { good }
         } else {
@@ -271,15 +280,36 @@ object WorkCard {
           Updates.combine(
             Updates.set("good", minGood),
             Updates.set("active", active),
+            Updates.set("inventory", inventory),
             Updates.set("endTime", now))).toFuture()
         f.onFailure { errorHandler }
         f.onSuccess({
           case _ =>
-            if (!active && good > 0) {
-              val workCardF = WorkCard.getCard(workCardID)
-              for (cardOpt <- workCardF) yield {
-                val card = cardOpt.get
-                checkOrderDetailComplete(card.orderId, card.detailIndex)
+            for {
+              workCardOpt <- WorkCard.getCard(workCardID)
+              workCard <- workCardOpt
+              orderOptF = Order.getOrder(workCard.orderId)
+              orderOpt <- orderOptF
+              order <- orderOpt
+              detail = order.details(workCard.detailIndex)
+            } {
+              if (active) {
+                if (refreshInventory) {
+                  Inventory.refreshLoan(order.factoryId, detail.color, detail.size)
+                }
+              } else {
+                Inventory.closePosition(order.factoryId, detail.color, detail.size, inventory, workCardID)
+                if (good > 0) {
+                  for {
+                    cards <- getOrderWorkCards(workCard.orderId, workCard.detailIndex)
+                  } yield {
+                    val finishedCards = cards.filter { !_.active }
+                    val finishedGood = finishedCards.map { _.good }
+                    val finished = finishedGood.sum
+                    if (finished >= order.details(workCard.detailIndex).quantity)
+                      Order.setOrderDetailComplete(workCard.orderId, workCard.detailIndex, true)
+                  }
+                }
               }
             }
         })
@@ -293,14 +323,18 @@ object WorkCard {
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map { toWorkCard(_) }
   }
-  
-  def getOrderWorkCardGoods(orderId: String, detailIndex: Int) = {
+
+  def getOrderWorkCardShipment(orderId: String, detailIndex: Int) = {
     import org.mongodb.scala.model._
-    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).projection(Projections.include("good")).toFuture()
+    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).projection(Projections.include("good", "inventory")).toFuture()
     f.onFailure { errorHandler }
-    for (goods <- f) yield goods.map { doc => doc.getInteger("good", 0) }
+    for (shipment <- f) yield shipment.map {
+      doc =>
+        val inventory = doc.getInteger("inventory", 0)
+        val good = doc.getInteger("good", 0)
+        good + inventory
+    }
   }
-  
 
   def getOrderProductionWorkCards(orderId: String) = {
     val f = collection.find(equal("orderId", orderId)).toFuture()

@@ -311,7 +311,7 @@ object CardManager extends Controller {
   }
 
   case class GetTidyParam(workCardID: String, phase: String)
-  case class GetTidyResp(quantity: Int, card: TidyCard)
+  case class GetTidyResp(quantity: Int, inventory: Int, card: TidyCard)
   def getTidyCard = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val read = Json.reads[GetTidyParam]
@@ -335,9 +335,9 @@ object CardManager extends Controller {
             val rets = waitReadyResult(f)
             val tidyResp =
               if (rets.isEmpty)
-                GetTidyResp(workCard.quantity, TidyCard.default(param.workCardID, param.phase))
+                GetTidyResp(workCard.quantity, workCard.inventory.getOrElse(0), TidyCard.default(param.workCardID, param.phase))
               else
-                GetTidyResp(workCard.quantity, rets(0))
+                GetTidyResp(workCard.quantity, workCard.inventory.getOrElse(0), rets(0))
 
             implicit val write = Json.writes[GetTidyResp]
             Ok(Json.toJson(tidyResp))
@@ -355,21 +355,24 @@ object CardManager extends Controller {
 
   }
 
+  case class UpsertTidyParam(tidyCard:TidyCard, inventory:Int)
   def upsertTidyCard(activeStr: String) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val active = activeStr.toBoolean
 
-      val result = request.body.validate[TidyCard]
+      implicit val reads = Json.reads[UpsertTidyParam]
+      val result = request.body.validate[UpsertTidyParam]
 
       result.fold(err => {
         Future {
           Logger.error(JsError.toJson(err).toString())
           BadRequest(JsError.toJson(err).toString())
         }
-      }, card => {
-        card.date = DateTime.now.getMillis
+      }, param => {
+                
+        param.tidyCard.date = DateTime.now.getMillis
 
-        val f = TidyCard.upsertCard(card, active)
+        val f = TidyCard.upsertCard(param.tidyCard, param.inventory, active)
 
         for (rets <- f) yield {
           val ret = rets(0)

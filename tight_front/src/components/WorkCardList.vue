@@ -45,6 +45,7 @@
                     <th>流動卡編號</th>
                     <th>訂單編號</th>
                     <th class='text-center'>數量<br>優/預定(打)</th>
+                    <th class='text-center'>從庫存</th>
                     <th class='text-center'>顏色</th>
                     <th class='text-center'>尺寸</th>
                     <th class='text-center'>漂染卡號</th>
@@ -63,6 +64,7 @@
                     <td class='text-right'>{{workCard._id}}</td>
                     <td class='text-right'>{{workCard.orderId}}</td>
                     <td class='text-right'>{{displayGoodQuantity(workCard)}}</td>
+                    <td class='text-right'>{{displayQuantity(workCard.inventory)}}</td>
                     <td class='text-right'>{{displayColor(workCard)}}</td>
                     <td class='text-right'>{{displaySize(workCard)}}</td>
                     <td class='text-right'>{{workCard.dyeCardID}}</td>
@@ -229,6 +231,9 @@
             displayGoodQuantity(workCard){
                 //workCard.good + "/" +workCard.quantity
                 return dozenExpr.toDozenStr(workCard.good) + "/" + dozenExpr.toDozenStr(workCard.quantity)
+            },
+            displayQuantity(v){
+                return dozenExpr.toDozenStr(v)
             }
         },
         components: {

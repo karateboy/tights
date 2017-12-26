@@ -6,7 +6,7 @@
             <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.factoryID"></div>
           </div>
           <div class="form-group"><label class="col-lg-1 control-label">顏色:</label>
-            <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.color"></div>
+            <div class="col-lg-1"><input type="text" class="form-control" v-model="inventory.color"></div>
             <div class="col-lg-10">
               <div class="btn-group" data-toggle="buttons">
                 <label class="btn btn-outline btn-primary" v-for="color in colorList" @click="inventory.color=color">
@@ -116,7 +116,20 @@ export default {
     };
   },
   mounted(){
-    console.log("mounted")
+    axios
+        .get("/ColorSeq")
+        .then(resp => {
+          const ret = resp.data;
+          if (resp.status == 200) {
+            this.colorList.splice(0, this.colorList.length)
+            for(let color of ret){
+              this.colorList.push(color)
+            }
+          }
+        })
+        .catch(err => {
+          alert(err);
+        });
   },
   computed: {
     dozenNumber: {

@@ -30,7 +30,9 @@
                                 <th>工廠代號</th>
                                 <th>尺寸</th>
                                 <th>已排定產量/需求數量 (打)</th>
-                                <th>排定產量 (打)</th>
+                                <th>庫存</th>
+                                <th>排定產量(打)</th>
+                                <th>使用庫存(打)</th>
                                 <th>條碼</th>
                             </tr>
                             </thead>
@@ -46,7 +48,9 @@
                                 <td>{{workSpec.factoryId}}</td>
                                 <td>{{workSpec.detail.size}}</td>
                                 <td>{{workCardTotalQuantity(workSpec) + "/" + displayQuantity(workSpec.need)}}</td>
+                                <td>{{workSpecInventory(workSpec)}}</td>
                                 <td><input type="text" v-model="workSpec.toProduce"></td>
+                                <td><input type="text" v-model="workSpec.fromInventory"></td>
                                 <td><input type="text" v-model="workSpec.barcode"></td>
                             </tr>
                             </tbody>
@@ -64,6 +68,7 @@
                                 <th>工廠代號</th>
                                 <th>尺寸</th>
                                 <th>生產數量(打)</th>
+                                <th>使用庫存</th>
                                 <th>條碼</th>
                             </tr>
                             </thead>
@@ -78,6 +83,7 @@
                                 <td>{{workCard.workCardSpec.factoryId}}</td>
                                 <td>{{workCard.workCardSpec.detail.size}}</td>
                                 <td>{{displayQuantity(workCard.quantity)}}</td>
+                                <td>{{displayQuantity(workCard.inventory)}}</td>
                                 <td>{{barcode(workCard._id)}}</td>
                             </tr>
                             </tbody>
@@ -165,15 +171,18 @@
             },
             addWorkCard(workCardSpec){
                 let quantity = parseInt(dozenExp.fromDozenStr(workCardSpec.toProduce))
+                let inventory = parseInt(dozenExp.fromDozenStr(workCardSpec.fromInventory))
                 let workCard = {
                     _id: "",
                     orderId: workCardSpec.orderId,
                     detailIndex: workCardSpec.index,
                     quantity,
                     good: quantity,
+                    inventory,
                     active: true,
                     workCardSpec
                 }
+                console.log(workCard)
                 if (workCardSpec.barcode)
                     workCard._id = workCardSpec.barcode
 
@@ -183,10 +192,19 @@
                 let total = 0
                 for (let workCard of this.workCards) {
                     if (workCard.workCardSpec == workCardSpec) {
-                        total += workCard.quantity
+                        total += workCard.quantity + workCard.inventory
                     }
                 }
                 return dozenExp.toDozenStr(total)
+            },
+            workSpecInventory(workCardSpec){
+                let total = 0
+                for (let workCard of this.workCards) {
+                    if (workCard.workCardSpec == workCardSpec) {
+                        total += workCard.inventory
+                    }
+                }
+                return dozenExp.toDozenStr(workCardSpec.inventory - total)
             },
             barcode(id){
                 if (id == "")

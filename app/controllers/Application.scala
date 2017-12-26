@@ -112,7 +112,7 @@ object Application extends Controller {
   }
 
   import scala.concurrent.ExecutionContext.Implicits.global
-  def getGroupInfoList = Security.Authenticated {
+  def getGroupInfoList = Action {
     val infoList = Group.getInfoList
     implicit val write = Json.writes[GroupInfo]
     Ok(Json.toJson(infoList))
