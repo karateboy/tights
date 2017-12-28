@@ -62,7 +62,7 @@ object Query extends Controller {
   }
 
   import scala.concurrent._
-  def queryInventory(skip:Int, limit:Int) = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryInventory(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val reads = Json.reads[QueryInventoryParam]
       val result = request.body.validate[QueryInventoryParam]
@@ -110,9 +110,23 @@ object Query extends Controller {
       }, inventory => {
         val retF = Inventory.upsert(inventory)
         for (ret <- retF) yield {
-          Ok(Json.obj("ok"->true))
+          Ok(Json.obj("ok" -> true))
         }
       })
-
   }
+
+  def refreshInventoryLoan = Security.Authenticated(BodyParsers.parse.json) {
+    implicit request =>
+      val result = request.body.validate[Inventory]
+
+      result.fold(err => {
+        Logger.error(JsError.toJson(err).toString())
+        BadRequest(JsError.toJson(err).toString())
+      }, inv => {
+        val retF = Inventory.refreshLoan(inv.factoryID, inv.color, inv.size)
+
+        Ok(Json.obj("ok" -> true))
+      })
+  }
+
 }

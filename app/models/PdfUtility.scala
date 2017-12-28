@@ -667,13 +667,23 @@ object PdfUtility {
                 prepareCell("")
             }
 
+            def emptyWithInventoryCells() {
+              for (i <- 1 to 6)
+                prepareCell("")
+                
+              if(workCard.inventory.isDefined &&workCard.inventory.get != 0)
+                prepareCell(s"${toDozenStr(workCard.inventory.get)}")
+              else
+                prepareCell("")
+            }
+            
             prepareCell("檢襪\n分襪")
             prepareCell("巡襪")
             prepareCell("車洗標"); prepareCell("剪線頭");
             prepareCell("整理\n包裝"); prepareCell("成品\n倉庫"); //prepareCell("備註")
 
             prepareCell("日期"); emptyCells
-            prepareCell("優"); emptyCells
+            prepareCell("優"); emptyWithInventoryCells
             prepareCell("副"); emptyCells
             prepareCell("副未包"); emptyCells
             prepareCell("汙"); emptyCells

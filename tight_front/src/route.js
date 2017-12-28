@@ -26,6 +26,7 @@ import StartDye from './components/StartDye.vue'
 import EndDye from './components/EndDye.vue'
 import TransferDyeCard from './components/TransferDyeCard.vue'
 import InventoryEdit from './components/InventoryEdit.vue'
+import InventoryDep from './components/InventoryDep.vue'
 
 export const routes = [
     {path: '/', component: Dashboard, name: 'Dashboard'},
@@ -68,6 +69,9 @@ export const routes = [
             {path: 'TidyCard/:phase', component: UpdateTidyCard, name: 'UpdateTidyCard'},
             {path:'Report', component:TidyReport, name: 'TidyReport'}
         ]
+    },
+    {
+        path: '/Inventory', component:InventoryDep
     },
     {
         path: '/System', component: SystemManagement, name: 'SystemManagement',

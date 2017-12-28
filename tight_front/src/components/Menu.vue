@@ -111,6 +111,8 @@
                         <span class="nav-label">報表</span> </a></router-link>
                 </ul>
             </li>
+            <router-link tag="li" to="/Inventory" active-class="active" exact><a><i class="fa fa-th-large"></i> <span
+                    class="nav-label">成品倉庫課</span></a></router-link>
             <li>
                 <a><i class="fa fa-th-large"></i> <span class="nav-label">系統管理</span> <span
                         class="fa arrow"></span></a>

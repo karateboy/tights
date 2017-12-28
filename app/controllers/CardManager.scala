@@ -52,8 +52,9 @@ object CardManager extends Controller {
         Ok(Json.obj("ok" -> false, "msg" -> "漂染卡不存在"))
       else {
         val dyeCard = dyeCardOpt.get
-        for (workCardId <- dyeCard.workIdList)
+        for (workCardId <- dyeCard.workIdList) {
           WorkCard.deleteCard(workCardId)
+        }
 
         DyeCard.deleteCard(id)
         Ok(Json.obj("ok" -> true))
@@ -82,7 +83,7 @@ object CardManager extends Controller {
           BadRequest(JsError.toJson(err).toString())
         }
       }, card => {
-        val f = WorkCard.updateCard(card)
+        val f = WorkCard.updateGoodAndActive(card._id, card.good, card.inventory.getOrElse(0), card.active)
         for (ret <- f) yield {
           Ok(Json.obj("ok" -> true))
         }
@@ -355,7 +356,7 @@ object CardManager extends Controller {
 
   }
 
-  case class UpsertTidyParam(tidyCard:TidyCard, inventory:Int)
+  case class UpsertTidyParam(tidyCard: TidyCard, inventory: Int)
   def upsertTidyCard(activeStr: String) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val active = activeStr.toBoolean
@@ -369,15 +370,20 @@ object CardManager extends Controller {
           BadRequest(JsError.toJson(err).toString())
         }
       }, param => {
-                
+
         param.tidyCard.date = DateTime.now.getMillis
 
         val f = TidyCard.upsertCard(param.tidyCard, param.inventory, active)
 
         for (rets <- f) yield {
-          val ret = rets(0)
-          Ok(Json.obj("ok" -> (ret.getModifiedCount == 1 || ret.getUpsertedId.isDocument() ||
-            ret.getMatchedCount == 1)))
+          if (rets.isEmpty) {
+            Logger.warn("update is empty!")
+            Ok(Json.obj("ok" -> false))
+          } else {
+            val ret = rets.head
+            Ok(Json.obj("ok" -> (ret.getModifiedCount == 1 || ret.getUpsertedId.isDocument() ||
+              ret.getMatchedCount == 1)))
+          }
         }
       })
   }

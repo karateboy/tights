@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
 case class Inventory(factoryID: String, color: String, size: String, quantity: Int,
-                     var loan: Option[Int], workCardList: Option[Seq[String]])
+                     var loan: Option[Int], var workCardList: Option[Seq[String]])
 case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String])
 
 object Inventory {
@@ -67,6 +67,26 @@ object Inventory {
     f
   }
 
+  def freeWorkCardLoan(workCardID: String) = {
+    val f = collection.findOneAndUpdate(Filters.eq("workCardList", workCardID),
+      Updates.pull("workCardList", workCardID)).toFuture()
+
+    for {
+      updatedDocs <- f if !updatedDocs.isEmpty
+      inventory = toInventory(updatedDocs.head)
+      workCardListOpt = inventory.workCardList if workCardListOpt.isDefined
+      workCardList = workCardListOpt.get
+      (newLoan, newWorkCardList) <- recalculateLoan(workCardList)
+    } {
+      inventory.loan = Some(newLoan)
+      inventory.workCardList = Some(newWorkCardList)
+      val filter = getFilter(inventory)
+      collection.replaceOne(filter, toDocument(inventory)).toFuture()
+    }
+    
+    f
+  }
+
   def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String) = {
     val filter = getFilter(factoryID, color, size)
 
@@ -75,7 +95,7 @@ object Inventory {
     val f = collection.findOneAndUpdate(filter, update).toFuture()
     f.onFailure(errorHandler)
     f.onSuccess({
-      case _=>
+      case _ =>
         refreshLoan(factoryID, color, size)
     })
     f
@@ -89,20 +109,23 @@ object Inventory {
       doc <- docSeq
       inventory = toInventory(doc)
       workCardList <- inventory.workCardList
-      newLoan <- recalculateLoan(workCardList)
+      (newLoan, newWorkCardList) <- recalculateLoan(workCardList)
     } {
-      if(inventory.loan != Some(newLoan)){
+      if (inventory.loan != Some(newLoan)) {
         inventory.loan = Some(newLoan)
+        inventory.workCardList = Some(newWorkCardList)
         collection.replaceOne(filter, toDocument(inventory)).toFuture()
       }
     }
   }
-  
+
   def recalculateLoan(workCardIdList: Seq[String]) = {
     val workCardListF = WorkCard.getCards(workCardIdList)(0, 100)
     for (workCardList <- workCardListF) yield {
-      val inventories = workCardList flatMap { _.inventory }
-      inventories.sum
+      val activeWorkCard = workCardList.filter { workCard => workCard.active }
+      val activeWorkCardIDs = activeWorkCard map { _._id }
+      val inventories = activeWorkCard flatMap { _.inventory }
+      (inventories.sum, activeWorkCardIDs)
     }
   }
 
@@ -127,6 +150,9 @@ object Inventory {
     val filter3 = Filters.equal("size", size)
     Filters.and(filter1, filter2, filter3)
   }
+
+  import org.mongodb.scala.bson.conversions._
+  def getFilter(inv: Inventory): Bson = getFilter(inv.factoryID, inv.color, inv.size)
 
   def getFilter(param: QueryInventoryParam) = {
     import org.mongodb.scala.model.Filters._

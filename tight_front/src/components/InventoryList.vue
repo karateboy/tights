@@ -21,7 +21,11 @@
                       <input type="number" v-model="inventory.quantityStr"> 
                       <button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button>
                     </td>
-                    <td class='text-right'>{{displayLoan(inventory.loan)}}</td>
+                    <td class='text-right'>{{displayLoan(inventory.loan)}}
+                      <!--
+                      <button class='btn btn-info' @click="refreshLoan(inventory)"><i class="fa fa-check"></i>&nbsp;重新整理</button>
+                       -->                      
+                    </td>
                     <td>
                       <div v-for='workCardID in inventory.workCardList'>{{workCardID}}</div>
                     </td>
@@ -82,7 +86,7 @@ export default {
       const ret = resp.data;
       this.inventoryList.splice(0, this.inventoryList.length);
       for (let inventory of ret) {
-        inventory.quantityStr = dozenExpr.toDozenStr(inventory.quantity)
+        inventory.quantityStr = dozenExpr.toDozenStr(inventory.quantity);
         this.inventoryList.push(inventory);
       }
     },
@@ -134,7 +138,7 @@ export default {
     },
     upsert(inventory) {
       let url = `/UpsertInventory`;
-      inventory.quantity = dozenExpr.fromDozenStr(inventory.quantityStr)
+      inventory.quantity = dozenExpr.fromDozenStr(inventory.quantityStr);
       axios
         .post(url, inventory)
         .then(resp => {
@@ -147,12 +151,26 @@ export default {
           alert(err);
         });
     },
-    displayLoan(q){
-      if(!q){
-        return "-"
-      }else{
-        return dozenExpr.toDozenStr(q)
+    displayLoan(q) {
+      if (!q) {
+        return "-";
+      } else {
+        return dozenExpr.toDozenStr(q);
       }
+    },
+    refreshLoan(inventory) {
+      let url = `/RefreshInventoryLoan`;
+      axios
+        .post(url, inventory)
+        .then(resp => {
+          const ret = resp.data;
+          if (resp.status == 200) {
+            alert("成功更新!");
+          }
+        })
+        .catch(err => {
+          alert(err);
+        });
     }
   },
   components: {

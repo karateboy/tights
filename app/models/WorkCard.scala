@@ -171,6 +171,7 @@ object WorkCard {
 
   import org.mongodb.scala.model.Filters._
   def deleteCard(id: String) = {
+    waitReadyResult(Inventory.freeWorkCardLoan(id))
     collection.deleteOne(equal("_id", id)).toFuture()
   }
 
