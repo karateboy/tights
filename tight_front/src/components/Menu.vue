@@ -101,11 +101,6 @@
                                  params:{ phase:'整理包裝'}}" active-class="active">
                         <a><i class="fa fa-th-large"></i>
                             <span class="nav-label">整理包裝</span> </a></router-link>
-                    <router-link tag="li"
-                                 :to="{name:'UpdateTidyCard',
-                                 params:{ phase:'成品倉庫'}}" active-class="active">
-                        <a><i class="fa fa-th-large"></i>
-                            <span class="nav-label">成品倉庫</span> </a></router-link>
                     <router-link tag="li" :to="{name:'TidyReport'}" active-class="active"><a>
                         <i class="fa fa-th-large"></i>
                         <span class="nav-label">報表</span> </a></router-link>

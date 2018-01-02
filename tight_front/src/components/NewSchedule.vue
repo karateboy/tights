@@ -182,10 +182,20 @@
                     active: true,
                     workCardSpec
                 }
-                console.log(workCard)
                 if (workCardSpec.barcode)
                     workCard._id = workCardSpec.barcode
 
+                let total = 0
+                for (let workCard of this.workCards) {
+                    if (workCard.workCardSpec == workCardSpec) {
+                        total += workCard.inventory
+                    }
+                }
+                if(workCardSpec.inventory < total + workCard.inventory){
+                    alert("庫存使用量超過現有庫存!")
+                    return;
+                }
+                
                 this.workCards.push(workCard)
             },
             workCardTotalQuantity(workCardSpec){
