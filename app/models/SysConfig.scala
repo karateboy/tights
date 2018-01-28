@@ -1,4 +1,5 @@
 package models
+import play.api._
 import play.api.libs.json._
 import models.ModelHelper._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,8 +49,20 @@ object SysConfig {
   }
 
   def setColorSeq(colorSeq: Seq[String]) = {
-    val doc = Document(ColorSeqID -> colorSeq)
+    val doc = Document("_id" -> ColorSeqID, ColorSeqID -> colorSeq)
     upsert(ColorSeqID, doc)
+  }
+
+  def addColorSeq(colorSeq: Seq[String]) =
+    collection.updateOne(
+      Filters.equal("_id", ColorSeqID),
+      Updates.addEachToSet(ColorSeqID, colorSeq: _*)).toFuture()
+
+  def delColorSeq(colorSeq: Seq[String]) = {
+    Logger.debug(colorSeq.toString)
+    collection.updateOne(
+      Filters.equal("_id", ColorSeqID),
+      Updates.pullAll(ColorSeqID, colorSeq: _*)).toFuture()
   }
 
   def initColorSeq() = {
@@ -69,11 +82,11 @@ object SysConfig {
         }
         colorSet.toSeq
       }
-    
+
     for (colorSeq <- allColorSeqF) yield {
       setColorSeq(colorSeq)
     }
-    
+
     allColorSeqF
   }
 }

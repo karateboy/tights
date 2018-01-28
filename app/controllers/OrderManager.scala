@@ -373,4 +373,19 @@ object OrderManager extends Controller {
       Ok(Json.toJson(colorSeq))
     }
   }
+
+  case class ColorSeqParam(colorSeq: Seq[String])
+  def deleteColorSeq(json: String) = Security.Authenticated.async {
+    implicit val reads = Json.reads[ColorSeqParam]
+    val ret = Json.parse(json).validate[ColorSeqParam]
+    ret.fold(err => {
+      Logger.error(JsError.toJson(err).toString())
+      Future {
+        BadRequest("")
+      }
+    }, param => {
+      for (f <- SysConfig.delColorSeq(param.colorSeq)) 
+        yield Ok(Json.obj("ok" -> true))
+    })
+  }
 }

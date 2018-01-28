@@ -48,6 +48,8 @@
                     </router-link>
                     <router-link to='/Schedule/InventoryEdit' tag='li' role="presentation" active-class='active'><a>庫存管理</a>
                     </router-link>
+                    <router-link to='/Schedule/ColorEdit' tag='li' role="presentation" active-class='active'><a>顏色管理</a>
+                    </router-link>
                 </ul>
             </li>
             <li>

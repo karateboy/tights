@@ -85,6 +85,7 @@ POST     /UpsertInventory                           controllers.Query.upsertInve
 POST     /RefreshInventoryLoan                      controllers.Query.refreshInventoryLoan
 
 GET      /ColorSeq                                  controllers.OrderManager.getColorSeq()
+DELETE 	 /ColorSeq/:json							controllers.OrderManager.deleteColorSeq(json)
 
 POST     /User                                      controllers.Application.newUser
 GET      /User                                      controllers.Application.getAllUsers

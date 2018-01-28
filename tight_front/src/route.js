@@ -27,59 +27,157 @@ import EndDye from './components/EndDye.vue'
 import TransferDyeCard from './components/TransferDyeCard.vue'
 import InventoryEdit from './components/InventoryEdit.vue'
 import InventoryDep from './components/InventoryDep.vue'
+import ColorEdit from './components/ColorEdit.vue'
 
-export const routes = [
-    {path: '/', component: Dashboard, name: 'Dashboard'},
-    {path: '/Login', component: Login, name: 'Login'},
-    {
-        path: '/Order', component: Order, name: 'Order',
-        children: [
-            {path: 'New', component: NewOrder, name: 'NewOrder'},
-            {path: 'Mine', component: MyOrder, name: 'MyOrder'},
-            {path: 'Query', component: QueryOrder}
-        ]
+export const routes = [{
+        path: '/',
+        component: Dashboard,
+        name: 'Dashboard'
     },
     {
-        path: '/Schedule', component: Schedule, name: 'Schedule',
-        children: [
-            {path: 'New', component: NewSchedule},
-            {path: 'ActiveDyeCardList', component: ActiveDyeCardList, name: 'ActiveDyeCardList'},
-            {path: 'WorkCard', component: ActiveWorkCard},
-            {path: 'QueryDyeCard', component: QueryDyeCard, name: 'QueryDyeCard'},
-            {path: 'QueryWorkCard', component: QueryWorkCard, name: 'QueryWorkCard'},
-            {path: 'TransferDyeCard/:dep', component: TransferDyeCard, props:true},
-            {path: 'InventoryEdit', component: InventoryEdit}
-        ]
+        path: '/Login',
+        component: Login,
+        name: 'Login'
     },
-    {path: '/Dyeing', component:DyeingDep,
-        children:[
-            {path:'Update', component:UpdateDyeCard, name: 'UpdateDyeCard'},
-            {path:'StartDye', component:StartDye, name:'StartDye'},
-            {path:'EndDye', component:EndDye, name:'EndDye'}
-        ]
-    },
-    {path: '/Styling', component: StylingDep,
-        children:[
-            {path:'Update', component:UpdateStylingCard, name: 'UpdateStylingCard'},
-            {path:'Report', component:StylingReport, name: 'StylingReport'}
-        ]
-    },
-    {path: '/Tidy', component:TidyDep,
-        children:[
-            {path: 'TidyCard/:phase', component: UpdateTidyCard, name: 'UpdateTidyCard'},
-            {path:'Report', component:TidyReport, name: 'TidyReport'}
+    {
+        path: '/Order',
+        component: Order,
+        name: 'Order',
+        children: [{
+                path: 'New',
+                component: NewOrder,
+                name: 'NewOrder'
+            },
+            {
+                path: 'Mine',
+                component: MyOrder,
+                name: 'MyOrder'
+            },
+            {
+                path: 'Query',
+                component: QueryOrder
+            }
         ]
     },
     {
-        path: '/Inventory', component:InventoryDep
-    },
-    {
-        path: '/System', component: SystemManagement, name: 'SystemManagement',
-        children: [
-            {path: 'AddUser', component:AddUser, name:'AddUser' },
-            {path: 'DelUser', component:DelUser, name:'DelUser' },
-            {path: 'UpdateUser', component:UpdateUser, name:'UpdateUser' },
+        path: '/Schedule',
+        component: Schedule,
+        name: 'Schedule',
+        children: [{
+                path: 'New',
+                component: NewSchedule
+            },
+            {
+                path: 'ActiveDyeCardList',
+                component: ActiveDyeCardList,
+                name: 'ActiveDyeCardList'
+            },
+            {
+                path: 'WorkCard',
+                component: ActiveWorkCard
+            },
+            {
+                path: 'QueryDyeCard',
+                component: QueryDyeCard,
+                name: 'QueryDyeCard'
+            },
+            {
+                path: 'QueryWorkCard',
+                component: QueryWorkCard,
+                name: 'QueryWorkCard'
+            },
+            {
+                path: 'TransferDyeCard/:dep',
+                component: TransferDyeCard,
+                props: true
+            },
+            {
+                path: 'InventoryEdit',
+                component: InventoryEdit
+            },
+            {
+                path: 'ColorEdit',
+                component: ColorEdit
+            }
         ]
     },
-    {path: '*', redirect: '/'}
+    {
+        path: '/Dyeing',
+        component: DyeingDep,
+        children: [{
+                path: 'Update',
+                component: UpdateDyeCard,
+                name: 'UpdateDyeCard'
+            },
+            {
+                path: 'StartDye',
+                component: StartDye,
+                name: 'StartDye'
+            },
+            {
+                path: 'EndDye',
+                component: EndDye,
+                name: 'EndDye'
+            }
+        ]
+    },
+    {
+        path: '/Styling',
+        component: StylingDep,
+        children: [{
+                path: 'Update',
+                component: UpdateStylingCard,
+                name: 'UpdateStylingCard'
+            },
+            {
+                path: 'Report',
+                component: StylingReport,
+                name: 'StylingReport'
+            }
+        ]
+    },
+    {
+        path: '/Tidy',
+        component: TidyDep,
+        children: [{
+                path: 'TidyCard/:phase',
+                component: UpdateTidyCard,
+                name: 'UpdateTidyCard'
+            },
+            {
+                path: 'Report',
+                component: TidyReport,
+                name: 'TidyReport'
+            }
+        ]
+    },
+    {
+        path: '/Inventory',
+        component: InventoryDep
+    },
+    {
+        path: '/System',
+        component: SystemManagement,
+        name: 'SystemManagement',
+        children: [{
+                path: 'AddUser',
+                component: AddUser,
+                name: 'AddUser'
+            },
+            {
+                path: 'DelUser',
+                component: DelUser,
+                name: 'DelUser'
+            },
+            {
+                path: 'UpdateUser',
+                component: UpdateUser,
+                name: 'UpdateUser'
+            },
+        ]
+    },
+    {
+        path: '*',
+        redirect: '/'
+    }
 ];

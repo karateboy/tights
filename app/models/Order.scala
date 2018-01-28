@@ -253,7 +253,8 @@ object Order {
 
     val col = MongoDB.database.getCollection(colName)
     val doc = order.toDocument
-
+    val colorSeq = getOrderColor(order)
+    SysConfig.addColorSeq(colorSeq)
     val f = col.replaceOne(equal("_id", doc("_id")), doc, UpdateOptions().upsert(true)).toFuture()
     f.onFailure({
       case ex: Exception => Logger.error(ex.getMessage, ex)
@@ -261,6 +262,13 @@ object Order {
     f
   }
 
+  def getOrderColor(order: Order) = {
+    var colorSet = Set.empty[String]
+    for(detail <- order.details){
+      colorSet += detail.color
+    }
+    colorSet.toSeq
+  }
   def getOrder(orderId: String) = {
     val f = collection.find(equal("_id", orderId)).toFuture()
     f.onFailure {
