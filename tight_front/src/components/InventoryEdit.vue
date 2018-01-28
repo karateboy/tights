@@ -5,6 +5,9 @@
           <div class="form-group"><label class="col-lg-1 control-label">工廠代號:</label>
             <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.factoryID"></div>
           </div>
+          <div class="form-group"><label class="col-lg-1 control-label">客戶編號:</label>
+            <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.customerID"></div>
+          </div>
           <div class="form-group"><label class="col-lg-1 control-label">顏色:</label>
             <div class="col-lg-1"><input type="text" class="form-control" v-model="inventory.color"></div>
             <div class="col-lg-10">
@@ -60,15 +63,16 @@ export default {
   data() {
     return {
       inventory: {
-        factoryID: "",
-        color: "",
-        size: "",
+        factoryID: undefined,
+        customerID: undefined,
+        color: undefined,
+        size: undefined,
         quantity: 0
       },
       loading: false,
       display: false,
       queryParam: {},
-      colorList:[],
+      colorList: [],
       sizeList: [
         "XS/S",
         "S/M",
@@ -115,21 +119,21 @@ export default {
       ]
     };
   },
-  mounted(){
+  mounted() {
     axios
-        .get("/ColorSeq")
-        .then(resp => {
-          const ret = resp.data;
-          if (resp.status == 200) {
-            this.colorList.splice(0, this.colorList.length)
-            for(let color of ret){
-              this.colorList.push(color)
-            }
+      .get("/ColorSeq")
+      .then(resp => {
+        const ret = resp.data;
+        if (resp.status == 200) {
+          this.colorList.splice(0, this.colorList.length);
+          for (let color of ret) {
+            this.colorList.push(color);
           }
-        })
-        .catch(err => {
-          alert(err);
-        });
+        }
+      })
+      .catch(err => {
+        alert(err);
+      });
   },
   computed: {
     dozenNumber: {
@@ -152,17 +156,16 @@ export default {
   },
   methods: {
     query() {
-      let param = {}
-      if(this.inventory.factoryID)
-        param.factoryID = this.inventory.factoryID
-      if(this.inventory.size)
-        param.size = this.inventory.size
-      if(this.inventory.color)
-        param.color = this.inventory.color
+      let param = {};
+      if (this.inventory.factoryID) param.factoryID = this.inventory.factoryID;
+      if (this.inventory.size) param.size = this.inventory.size;
+      if (this.inventory.color) param.color = this.inventory.color;
+      if (this.inventory.customerID)
+        param.customerID = this.inventory.customerID;
 
       if (!this.display) this.display = true;
 
-      this.queryParam = Object.assign({}, param)
+      this.queryParam = Object.assign({}, param);
     },
     upsert() {
       let url = `/UpsertInventory`;

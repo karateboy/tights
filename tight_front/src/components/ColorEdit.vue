@@ -2,9 +2,9 @@
     <div>
         <br>
         <div class="form-horizontal">
+          <div class="alert alert-info" role="alert">刪除已經不用的顏色不會影響已經開出的流動卡</div>
           <div class="form-group"><label class="col-lg-1 control-label">顏色:</label>
-            <div class="col-lg-1"><input type="text" class="form-control" v-model="color"></div>
-            <div class="col-lg-10">
+            <div class="col-lg-11">
               <div data-toggle="buttons-checkbox" class="btn-group">
                 <label class="btn btn-primary" v-for="color in colorList" :key="color" :for="color">
                   <input type="checkbox" :id="color" :value="color" v-model="selectedColor"> {{ color }}</label>                            
@@ -16,11 +16,6 @@
               <button class="btn btn-primary"
                 @click.prevent="deleteColor">刪除
               </button>
-            </div>
-            <div class="col-lg-offset-1 col-lg-1">
-                <button class="btn btn-primary" 
-                  @click.prevent="addColor" >新增
-                </button>
             </div>
           </div>
         </div>
@@ -77,8 +72,7 @@ export default {
           }
         })
         .catch(err => alert(err));
-    },
-    addColor() {}
+    }
   },
   components: {}
 };

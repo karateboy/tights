@@ -62,10 +62,10 @@ object Query extends Controller {
   }
 
   import scala.concurrent._
-  def queryInventory(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryInventory(paramJson: String, skip: Int, limit: Int) = Security.Authenticated.async {
     implicit request =>
       implicit val reads = Json.reads[QueryInventoryParam]
-      val result = request.body.validate[QueryInventoryParam]
+      val result = Json.parse(paramJson).validate[QueryInventoryParam]
 
       result.fold(err => {
         Future {
@@ -80,10 +80,11 @@ object Query extends Controller {
       })
   }
 
-  def queryInventoryCount = Security.Authenticated.async(BodyParsers.parse.json) {
+  def queryInventoryCount(json: String) = Security.Authenticated.async {
     implicit request =>
       implicit val reads = Json.reads[QueryInventoryParam]
-      val result = request.body.validate[QueryInventoryParam]
+
+      val result = Json.parse(json).validate[QueryInventoryParam]
 
       result.fold(err => {
         Future {

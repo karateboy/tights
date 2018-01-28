@@ -9,8 +9,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
 case class Inventory(factoryID: String, color: String, size: String, quantity: Int,
-                     var loan: Option[Int], var workCardList: Option[Seq[String]])
-case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String])
+                     var loan: Option[Int], var workCardList: Option[Seq[String]], customerID: Option[String])
+case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String], customerID: Option[String])
 
 object Inventory {
   import scala.concurrent._
@@ -51,7 +51,7 @@ object Inventory {
   def upsert(inventory: Inventory) = {
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = UpdateOptions().upsert(true)
-    val f = collection.replaceOne(filter, toDocument(inventory)).toFuture()
+    val f = collection.replaceOne(filter, toDocument(inventory), UpdateOptions().upsert(true)).toFuture()
     f.onFailure(errorHandler)
     f
   }
@@ -83,7 +83,7 @@ object Inventory {
       val filter = getFilter(inventory)
       collection.replaceOne(filter, toDocument(inventory)).toFuture()
     }
-    
+
     f
   }
 
@@ -159,6 +159,7 @@ object Inventory {
     val factoryIdFilter = param.factoryID map { factorID => regex("factoryID", "(?i)" + factorID) }
     val colorFilter = param.color map { color => regex("color", "(?i)" + color) }
     val sizeFilter = param.size map { equal("size", _) }
+    val customerIdFilter = param.customerID map { customerID => regex("customerID", "(?i)" + customerID) }
     val filterList = List(factoryIdFilter, colorFilter, sizeFilter).flatMap { f => f }
     val filter = if (!filterList.isEmpty)
       and(filterList: _*)

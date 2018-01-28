@@ -79,13 +79,13 @@ GET      /ActiveWorkCard/count                      controllers.CardManager.getA
 GET      /ActiveWorkCard/:skip/:limit               controllers.CardManager.getActiveWorkCard(skip:Int, limit:Int)
 GET      /barcode/:fileName                         controllers.CardManager.getBarcode(fileName)
 
-POST     /QueryInventory/count                      controllers.Query.queryInventoryCount()
-POST     /QueryInventory/:skip/:limit               controllers.Query.queryInventory(skip:Int, limit:Int)
+GET      /QueryInventory/:param/count               controllers.Query.queryInventoryCount(param)
+GET      /QueryInventory/:param/:skip/:limit        controllers.Query.queryInventory(param, skip:Int, limit:Int)
 POST     /UpsertInventory                           controllers.Query.upsertInventory
 POST     /RefreshInventoryLoan                      controllers.Query.refreshInventoryLoan
 
 GET      /ColorSeq                                  controllers.OrderManager.getColorSeq()
-DELETE 	 /ColorSeq/:json							controllers.OrderManager.deleteColorSeq(json)
+DELETE   /ColorSeq/:json                            controllers.OrderManager.deleteColorSeq(json)
 
 POST     /User                                      controllers.Application.newUser
 GET      /User                                      controllers.Application.getAllUsers

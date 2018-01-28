@@ -4,7 +4,9 @@
             <table class="table table-bordered table-condensed">
                 <thead>
                 <tr class='info'>
-                    <th>工廠代號</th>
+                    <th></th>
+                    <th class='text-center'>工廠代號</th>
+                    <th class='text-center'>客戶編號</th>
                     <th class='text-center'>顏色</th>
                     <th class='text-center'>尺寸</th>
                     <th class='text-center'>在庫數量</th>
@@ -14,12 +16,13 @@
                 </thead>
                 <tbody>
                 <tr v-for='(inventory, idx) in inventoryList' :class='{success:idx==detail}'>
+                    <td><button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button></td>
                     <td class='text-right'>{{inventory.factoryID}}</td>
+                    <td class='text-right'><input type="text" v-model="inventory.customerID"></td>
                     <td class='text-right'>{{inventory.color}}</td>
                     <td class='text-right'>{{inventory.size}}</td>
                     <td class='text-right'>
                       <input type="number" v-model="inventory.quantityStr"> 
-                      <button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button>
                     </td>
                     <td class='text-right'>{{displayLoan(inventory.loan)}}
                       <!--
@@ -55,7 +58,7 @@ export default {
       required: true
     },
     param: {
-      type: [Object, Array]
+      type: [Object]
     }
   },
   data() {
@@ -91,46 +94,29 @@ export default {
       }
     },
     fetchCard(skip, limit) {
-      let request_url = `${this.url}/${skip}/${limit}`;
+      let paramJson = encodeURIComponent(JSON.stringify(this.param));
 
-      if (this.param) {
-        axios
-          .post(request_url, this.param)
-          .then(this.processResp)
-          .catch(err => {
-            alert(err);
-          });
-      } else {
-        axios
-          .get(request_url)
-          .then(this.processResp)
-          .catch(err => {
-            alert(err);
-          });
-      }
+      let request_url = `${this.url}/${paramJson}/${skip}/${limit}`;
+
+      axios
+        .get(request_url)
+        .then(this.processResp)
+        .catch(err => {
+          alert(err);
+        });
       this.fetchCardCount();
     },
     fetchCardCount() {
-      let request_url = `${this.url}/count`;
-      if (this.param) {
-        axios
-          .post(request_url, this.param)
-          .then(resp => {
-            this.total = resp.data;
-          })
-          .catch(err => {
-            alert(err);
-          });
-      } else {
-        axios
-          .get(request_url)
-          .then(resp => {
-            this.total = resp.data;
-          })
-          .catch(err => {
-            alert(err);
-          });
-      }
+      let paramJson = encodeURIComponent(JSON.stringify(this.param));
+      let request_url = `${this.url}/${paramJson}/count`;
+      axios
+        .get(request_url, this.param)
+        .then(resp => {
+          this.total = resp.data;
+        })
+        .catch(err => {
+          alert(err);
+        });
     },
     handlePageChange(page) {
       this.skip = (page - 1) * this.limit;
