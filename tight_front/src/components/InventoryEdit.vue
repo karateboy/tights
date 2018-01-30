@@ -158,14 +158,16 @@ export default {
     query() {
       let param = {};
       if (this.inventory.factoryID) param.factoryID = this.inventory.factoryID;
+
       if (this.inventory.size) param.size = this.inventory.size;
+
       if (this.inventory.color) param.color = this.inventory.color;
+
       if (this.inventory.customerID)
         param.customerID = this.inventory.customerID;
 
       if (!this.display) this.display = true;
-
-      this.queryParam = Object.assign({}, param);
+      this.queryParam = JSON.parse(JSON.stringify(param));
     },
     upsert() {
       let url = `/UpsertInventory`;

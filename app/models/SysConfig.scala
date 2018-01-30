@@ -117,12 +117,12 @@ object SysConfig {
         val trimSeq =
           colorSeq map { _.trim }
 
-        Seq(trimSeq: _*)
+        Set(trimSeq: _*)
       }
 
     for (trimSet <- trimSetF) {
       val f =
-        setColorSeq(trimSet)
+        setColorSeq(trimSet.toSeq)
 
       f.onComplete { case _ => Logger.info("ColorSeq has been trimmed!") }
     }

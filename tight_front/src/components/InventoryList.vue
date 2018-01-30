@@ -17,7 +17,7 @@
                 <tbody>
                 <tr v-for='(inventory, idx) in inventoryList' :class='{success:idx==detail}'>
                     <td><button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button>
-                      <button class='btn btn-danger' @click="delete(inventory)"><i class="fa fa-check"></i>&nbsp;刪除</button>
+                      <button class='btn btn-danger' @click="del(inventory)"><i class="fa fa-check"></i>&nbsp;刪除</button>
                     </td>
                     <td class='text-right'>{{inventory.factoryID}}</td>
                     <td class='text-right'><input type="text" v-model="inventory.customerID"></td>
@@ -69,8 +69,7 @@ export default {
       skip: 0,
       limit: 5,
       total: 0,
-      detail: -1,
-      inventory: {}
+      detail: -1
     };
   },
   mounted() {
@@ -139,9 +138,10 @@ export default {
           alert(err);
         });
     },
-    delete(inventory) {
+    del(inventory) {
       let paramJson = encodeURIComponent(JSON.stringify(this.param));
       let url = `/Inventory/${paramJson}`;
+
       axios
         .delete(url)
         .then(resp => {
