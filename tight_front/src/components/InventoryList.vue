@@ -16,7 +16,9 @@
                 </thead>
                 <tbody>
                 <tr v-for='(inventory, idx) in inventoryList' :class='{success:idx==detail}'>
-                    <td><button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button></td>
+                    <td><button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button>
+                      <button class='btn btn-danger' @click="delete(inventory)"><i class="fa fa-check"></i>&nbsp;刪除</button>
+                    </td>
                     <td class='text-right'>{{inventory.factoryID}}</td>
                     <td class='text-right'><input type="text" v-model="inventory.customerID"></td>
                     <td class='text-right'>{{inventory.color}}</td>
@@ -71,7 +73,7 @@ export default {
       inventory: {}
     };
   },
-  mounted: function() {
+  mounted() {
     this.fetchCard(this.skip, this.limit);
     PaginationEvent.$on("vue-pagination::inventoryList", this.handlePageChange);
   },
@@ -123,7 +125,7 @@ export default {
       this.fetchCard(this.skip, this.limit);
     },
     upsert(inventory) {
-      let url = `/UpsertInventory`;
+      let url = `/Inventory`;
       inventory.quantity = dozenExpr.fromDozenStr(inventory.quantityStr);
       axios
         .post(url, inventory)
@@ -131,6 +133,22 @@ export default {
           const ret = resp.data;
           if (resp.status == 200) {
             alert("成功更新!");
+          }
+        })
+        .catch(err => {
+          alert(err);
+        });
+    },
+    delete(inventory) {
+      let paramJson = encodeURIComponent(JSON.stringify(this.param));
+      let url = `/Inventory/${paramJson}`;
+      axios
+        .delete(url)
+        .then(resp => {
+          const ret = resp.data;
+          if (resp.status == 200) {
+            alert("成功刪除!");
+            this.fetchCard(this.skip, this.limit);
           }
         })
         .catch(err => {

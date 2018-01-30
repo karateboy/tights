@@ -33,6 +33,19 @@ object SysConfig {
     f
   }
 
+  def get(_id: String, defaultDoc: Document) = {
+    val f = collection.find(Filters.equal("_id", _id)).toFuture()
+    f.onFailure(errorHandler)
+    for (docs <- f) yield {
+      if (docs.length == 0) {
+        upsert(_id, defaultDoc)
+        defaultDoc(_id)
+      } else {
+        docs.head(_id)
+      }
+    }
+  }
+
   val ColorSeqID = "ColorSeq"
   def getColorSeq() = {
     val configF = collection.find(Filters.equal("_id", ColorSeqID)).toFuture()
@@ -89,4 +102,30 @@ object SysConfig {
 
     allColorSeqF
   }
+
+  val TrimOrderKey = "TrimOrder"
+  def getTrimOrderConfig = get(TrimOrderKey, Document(TrimOrderKey -> false))
+  def setTrimOrderConfig(v: Boolean) = upsert(TrimOrderKey, Document(TrimOrderKey -> v))
+
+  val TrimColorSeqKey = "TrimColorSeq"
+  def getTrimColorSeq = get(TrimColorSeqKey, Document(TrimColorSeqKey -> false))
+  def setTrimColorSeq(v: Boolean) = upsert(TrimColorSeqKey, Document(TrimColorSeqKey -> v))
+  def trimColorSeq = {
+    val colorSeqF = getColorSeq
+    val trimSetF =
+      for (colorSeq <- colorSeqF) yield {
+        val trimSeq =
+          colorSeq map { _.trim }
+
+        Seq(trimSeq: _*)
+      }
+
+    for (trimSet <- trimSetF) {
+      val f =
+        setColorSeq(trimSet)
+
+      f.onComplete { case _ => Logger.info("ColorSeq has been trimmed!") }
+    }
+  }
+
 }

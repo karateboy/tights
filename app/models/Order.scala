@@ -26,6 +26,8 @@ case class OrderDetail(color: String, size: String, quantity: Int, complete: Boo
       "quantity" -> quantity,
       "complete" -> complete)
   }
+
+  def trim = OrderDetail(color.trim(), size.trim(), quantity, complete)
 }
 case class QueryOrderParam(_id: Option[String], brand: Option[String], name: Option[String],
                            factoryId: Option[String], customerId: Option[String],
@@ -138,6 +140,14 @@ case class Order(_id: String, salesId: String, name: String, expectedDeliverDate
       "packageInfo" -> packageInfo,
       "active" -> active)
   }
+
+  def trim = {
+    Order(_id, salesId, name.trim(), expectedDeliverDate, finalDeliverDate,
+      factoryId.trim(),
+      customerId.trim(), brand.trim, date,
+      details.map { _.trim }, notices, packageInfo, active)
+  }
+
 }
 
 object Order {
@@ -264,7 +274,7 @@ object Order {
 
   def getOrderColor(order: Order) = {
     var colorSet = Set.empty[String]
-    for(detail <- order.details){
+    for (detail <- order.details) {
       colorSet += detail.color
     }
     colorSet.toSeq
@@ -437,5 +447,36 @@ object Order {
 
   def deleteOrder(_id: String) = {
     collection.deleteOne(equal("_id", _id)).toFuture()
+  }
+
+  import org.mongodb.scala.model._
+  def trimOrder() = {
+    val f = collection.find().toFuture()
+    val orderListF =
+      for (docList <- f) yield {
+        docList map { toOrder }
+      }
+
+    val modelsF =
+      for (orderList <- orderListF) yield {
+        import org.mongodb.scala.model.ReplaceOneModel
+        orderList map {
+          order =>
+            ReplaceOneModel(Filters.eq("_id", order._id), order.trim.toDocument)
+        }
+
+      }
+
+    val upgradeFF =
+      for (models <- modelsF) yield {
+        val f = collection.bulkWrite(models).toFuture()
+        f.onFailure(errorHandler)
+        f
+      }
+    val upgradeF = upgradeFF.flatMap { x => x }
+    for(upgradeSeq <- upgradeF) {
+      val upgradeCount = upgradeSeq.map { _.getModifiedCount }.sum
+      Logger.info(s"$upgradeCount orders are trimmed.")
+    }
   }
 }

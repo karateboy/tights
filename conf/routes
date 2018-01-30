@@ -81,7 +81,8 @@ GET      /barcode/:fileName                         controllers.CardManager.getB
 
 GET      /QueryInventory/:param/count               controllers.Query.queryInventoryCount(param)
 GET      /QueryInventory/:param/:skip/:limit        controllers.Query.queryInventory(param, skip:Int, limit:Int)
-POST     /UpsertInventory                           controllers.Query.upsertInventory
+POST     /Inventory                           controllers.Query.upsertInventory
+DELETE   /Inventory/:param							controllers.Query.deleteInventory(param)
 POST     /RefreshInventoryLoan                      controllers.Query.refreshInventoryLoan
 
 GET      /ColorSeq                                  controllers.OrderManager.getColorSeq()

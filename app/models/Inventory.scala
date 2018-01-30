@@ -156,11 +156,15 @@ object Inventory {
 
   def getFilter(param: QueryInventoryParam) = {
     import org.mongodb.scala.model.Filters._
-    val factoryIdFilter = param.factoryID map { factorID => regex("factoryID", "(?i)" + factorID) }
-    val colorFilter = param.color map { color => regex("color", "(?i)" + color) }
+    import java.util.regex.Pattern
+    val factoryIdFilter = param.factoryID map { factorID => regex("factoryID", Pattern.quote(factorID)) }
+    val colorFilter = param.color map { color => regex("color", Pattern.quote(color)) }
     val sizeFilter = param.size map { equal("size", _) }
-    val customerIdFilter = param.customerID map { customerID => regex("customerID", "(?i)" + customerID) }
-    val filterList = List(factoryIdFilter, colorFilter, sizeFilter).flatMap { f => f }
+    val customerIdFilter = param.customerID map { customerID =>
+      regex("customerID", Pattern.quote(customerID))
+    }
+
+    val filterList = List(factoryIdFilter, colorFilter, sizeFilter, customerIdFilter).flatMap { f => f }
     val filter = if (!filterList.isEmpty)
       and(filterList: _*)
     else
@@ -187,8 +191,6 @@ object Inventory {
   }
 
   def count(param: QueryInventoryParam) = {
-    import org.mongodb.scala.model.Filters._
-    import org.mongodb.scala.model._
     val filter = getFilter(param)
 
     val f = collection.count(filter).toFuture()
@@ -198,5 +200,14 @@ object Inventory {
 
     for (countSeq <- f)
       yield countSeq(0)
+  }
+
+  def delete(param: QueryInventoryParam) = {
+    val filter = getFilter(param)
+    val f = collection.deleteOne(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    f
   }
 }

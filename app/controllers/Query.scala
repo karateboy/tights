@@ -116,6 +116,20 @@ object Query extends Controller {
       })
   }
 
+  def deleteInventory(param: String) = Security.Authenticated.async {
+    import Inventory._
+    val result = Json.parse(param).validate[QueryInventoryParam]
+    result.fold(err => {
+      Future {
+        Logger.error(JsError.toJson(err).toString())
+        BadRequest(JsError.toJson(err).toString())
+      }
+    }, param => {
+      val f = Inventory.delete(param)
+      for (ret <- f) yield Ok(Json.obj("ok" -> true))
+    })
+  }
+
   def refreshInventoryLoan = Security.Authenticated(BodyParsers.parse.json) {
     implicit request =>
       val result = request.body.validate[Inventory]

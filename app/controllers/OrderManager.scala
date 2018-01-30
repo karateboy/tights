@@ -28,7 +28,8 @@ object OrderManager extends Controller {
             BadRequest(JsError.toJson(err).toString())
           },
         order => {
-          val f = Order.upsertOrder(order)
+          val trimedOrder = order.trim
+          val f = Order.upsertOrder(trimedOrder)
           if (order.date.isEmpty)
             order.date = Some(DateTime.now().getMillis)
 
@@ -370,7 +371,8 @@ object OrderManager extends Controller {
   def getColorSeq() = Security.Authenticated.async {
     val colorSeqF = SysConfig.getColorSeq()
     for (colorSeq <- colorSeqF) yield {
-      Ok(Json.toJson(colorSeq))
+      val sortedSeq = colorSeq.sortWith(_.compareTo(_) < 0)
+      Ok(Json.toJson(sortedSeq))
     }
   }
 
@@ -384,7 +386,7 @@ object OrderManager extends Controller {
         BadRequest("")
       }
     }, param => {
-      for (f <- SysConfig.delColorSeq(param.colorSeq)) 
+      for (f <- SysConfig.delColorSeq(param.colorSeq))
         yield Ok(Json.obj("ok" -> true))
     })
   }
