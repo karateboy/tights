@@ -139,7 +139,7 @@ export default {
         });
     },
     del(inventory) {
-      let paramJson = encodeURIComponent(JSON.stringify(this.param));
+      let paramJson = encodeURIComponent(JSON.stringify(inventory));
       let url = `/Inventory/${paramJson}`;
 
       axios

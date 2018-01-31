@@ -170,7 +170,7 @@ export default {
       this.queryParam = JSON.parse(JSON.stringify(param));
     },
     upsert() {
-      let url = `/UpsertInventory`;
+      let url = `/Inventory`;
 
       axios
         .post(url, this.inventory)
