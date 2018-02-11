@@ -68,23 +68,21 @@ object Inventory {
   }
 
   def freeWorkCardLoan(workCardID: String) = {
-    val f = collection.findOneAndUpdate(Filters.eq("workCardList", workCardID),
-      Updates.pull("workCardList", workCardID)).toFuture()
+    import com.mongodb.client.model.ReturnDocument.AFTER
+
+    val f = collection.findOneAndUpdate(Filters.all("workCardList", workCardID),
+      Updates.pull("workCardList", workCardID), FindOneAndUpdateOptions().returnDocument(AFTER)).toFuture()
 
     for {
-      updatedDocs <- f if !updatedDocs.isEmpty
+      updatedDocs <- f
       inventory = toInventory(updatedDocs.head)
-      workCardListOpt = inventory.workCardList if workCardListOpt.isDefined
-      workCardList = workCardListOpt.get
+      workCardList = inventory.workCardList.getOrElse(Seq.empty[String])
       (newLoan, newWorkCardList) <- recalculateLoan(workCardList)
     } {
       inventory.loan = Some(newLoan)
       inventory.workCardList = Some(newWorkCardList)
-      val filter = getFilter(inventory)
-      collection.replaceOne(filter, toDocument(inventory)).toFuture()
+      collection.replaceOne(getFilter(inventory), toDocument(inventory)).toFuture()
     }
-
-    f
   }
 
   def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String) = {
@@ -172,7 +170,6 @@ object Inventory {
 
     filter
   }
-
 
   def query(param: QueryInventoryParam)(skip: Int, limit: Int) = {
     import org.mongodb.scala.model.Filters._
