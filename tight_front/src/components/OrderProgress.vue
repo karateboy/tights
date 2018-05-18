@@ -7,13 +7,13 @@
                 <th>尺寸</th>
                 <th>數量(打)</th>
                 <th>完成</th>
-                <th>進度(打): (生產中/已結束)</th>
+                <th>進度(打): (已漂染/生產中)</th>
                 <th>生產百分比</th>
                 <th>損耗百分比(%)</th>
             </tr>
             </thead>
             <tbody>
-            <tr v-for='(detail, idx) in order.details'>
+            <tr v-for='(detail, idx) in order.details' :key="idx">
                 <td>{{detail.color}}</td>
                 <td>{{detail.size}}</td>
                 <td>{{ showDozen(detail.quantity)}}</td>
@@ -51,63 +51,78 @@
 <style>
 </style>
 <script>
-    import {mapGetters} from 'vuex'
-    import axios from 'axios'
-    import * as dozenExpr from '../dozenExp'
+import { mapGetters } from "vuex";
+import axios from "axios";
+import * as dozenExpr from "../dozenExp";
 
-    export default{
-        data(){
-            return {
-                productionSummary_: []
+export default {
+  data() {
+    return {
+      productionSummary_: []
+    };
+  },
+  computed: {
+    ...mapGetters(["order"]),
+    productionSummary() {
+      this.productionSummary_.splice(0, this.productionSummary_.length);
+      this.order.details.forEach((detail, idx) => {
+        let summary = {
+          inProduction: 0,
+          finished: 0,
+          overhead: 0
+        };
+
+        this.productionSummary_.push(summary);
+        axios
+          .get("/OrderWorkCard/" + this.order._id + "/" + idx)
+          .then(resp => {
+            const ret = resp.data;
+            summary.nWorkCard = ret.length;
+            for (let workCard of ret) {
+              if (workCard.active) {
+                summary.inProduction += workCard.good;
+              } else {
+                summary.finished += workCard.good;
+              }
+              summary.overhead += workCard.quantity - workCard.good;
             }
-        },
-        computed: {
-            ...mapGetters(['order']),
-            productionSummary(){
-                this.productionSummary_.splice(0, this.productionSummary_.length)
-                this.order.details.forEach((detail, idx) => {
-                    let summary = {
-                        inProduction: 0,
-                        finished: 0,
-                        overhead: 0
-                    }
-
-                    this.productionSummary_.push(summary)
-                    axios.get("/OrderWorkCard/" + this.order._id + '/' + idx).then((resp) => {
-                        const ret = resp.data
-                        summary.nWorkCard = ret.length
-                        for (let workCard of ret) {
-                            if (workCard.active) {
-                                summary.inProduction += workCard.good
-                            } else {
-                                summary.finished += workCard.good
-                            }
-                            summary.overhead += (workCard.quantity - workCard.good)
-                        }
-                    }).catch((err) => {
-                        alert(err)
-                    })
-                })
-                return this.productionSummary_
-            }
-        },
-        methods: {
-            productionPercent(idx){
-                let percent = (this.productionSummary_[idx].inProduction + this.productionSummary_[idx].finished)*100/this.order.details[idx].quantity
-                return parseInt(percent)
-            },
-            overheadPercent(idx){
-                let percent = 0
-                if(this.productionSummary_[idx].inProduction + this.productionSummary_[idx].finished != 0)
-                    percent = this.productionSummary_[idx].overhead * 100/(this.productionSummary_[idx].inProduction + this.productionSummary_[idx].finished)
-
-                return parseInt(percent)
-            },
-
-            showDozen(v){
-                return dozenExpr.toDozenStr(v)
-            }
-        },
-        components: {}
+          })
+          .catch(err => {
+            alert(err);
+          });
+      });
+      return this.productionSummary_;
     }
+  },
+  methods: {
+    productionPercent(idx) {
+      let percent =
+        (this.productionSummary_[idx].inProduction +
+          this.productionSummary_[idx].finished) *
+        100 /
+        this.order.details[idx].quantity;
+      return parseInt(percent);
+    },
+    overheadPercent(idx) {
+      let percent = 0;
+      if (
+        this.productionSummary_[idx].inProduction +
+          this.productionSummary_[idx].finished !=
+        0
+      )
+        percent =
+          this.productionSummary_[idx].overhead *
+          100 /
+          (this.productionSummary_[idx].inProduction +
+            this.productionSummary_[idx].finished);
+
+      return parseInt(percent);
+    },
+
+    showDozen(v) {
+      return dozenExpr.toDozenStr(v);
+    }
+  },
+  components: {}
+};
 </script>

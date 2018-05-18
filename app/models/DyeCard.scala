@@ -427,4 +427,11 @@ object DyeCard {
     import scala.concurrent._
     Future.sequence(List(f1, f2))
   }
+  
+  def markDyeCardFinished(workCardID:String) = {
+    val filter = Filters.and(Filters.eq("active", true), Filters.in("workIdList", workCardID))
+    val f = collection.findOneAndUpdate(filter, Updates.set("active", false)).toFuture()
+    f.onFailure(errorHandler)
+    f
+  }
 }

@@ -185,7 +185,8 @@ object CardManager extends Controller {
       val orderPair = orders map { order =>
         order._id -> order
       }
-      Ok.sendFile(createItextPdf(dyeCardProc(dyeCard, workCards, orderPair.toMap)),
+      Ok.sendFile(
+        createItextPdf(dyeCardProc(dyeCard, workCards, orderPair.toMap)),
         fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
     }
@@ -227,10 +228,11 @@ object CardManager extends Controller {
       Ok.sendFile(createWorkCardLabel(workCardLabelProc(workCards, orderPair.toMap)),
         fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
-          * 
+          *
           */
 
-      Ok.sendFile(createWorkSheet(workSheetProc(workCards, orderPair.toMap)),
+      Ok.sendFile(
+        createWorkSheet(workSheetProc(workCards, orderPair.toMap)),
         fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"${fileName}.pdf", "UTF-8"))
 
@@ -299,6 +301,7 @@ object CardManager extends Controller {
           card.date = DateTime.now().getMillis
 
         val f = WorkCard.updateStylingCard(workCardID, card)
+        val f2 = DyeCard.markDyeCardFinished(workCardID)
         for (rets <- f) yield {
           val ret = rets(0)
           if (ret.getMatchedCount != 1)
