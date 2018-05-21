@@ -47,20 +47,18 @@
                 <label class="col-lg-1 control-label">庫存:</label>
                 <div class="col-lg-2"><input type="text" class="form-control" v-model="inventoryStr"></div>
             </div>
-            <div class="alert alert-info" role="alert">若該站已經是流動工作卡最後一站, 請選擇"結束工作卡"</div>
             <div class="form-group">
-                <div class="col-lg-offset-1 col-lg-1">
+                <div v-show="displayUpdateBtn" class="col-lg-offset-1 col-lg-1">
                     <button class='btn btn-primary' @click='update'>更新</button>
                 </div>
-                <div class="col-lg-1">
-                    <button class='btn btn-primary' @click='close'>結束工作卡</button>
+                <div v-show="displayFinishBtn" class="col-lg-1">
+                    <button class='btn btn-primary' @click='close'>更新並結束工作卡</button>
                 </div>
             </div>
         </div>
     </div>
 </template>
 <style>
-
 </style>
 <script>
 import axios from "axios";
@@ -96,8 +94,8 @@ export default {
     }
   },
   data() {
-      console.log(this.inventory)
-    return {        
+    console.log(this.inventory);
+    return {
       myCard: {
         good: toDozenStr(this.tidyCard.good),
         sub: toDozenStr(this.tidyCard.sub),
@@ -112,6 +110,26 @@ export default {
       },
       inventoryStr: toDozenStr(this.inventory)
     };
+  },
+  computed: {
+    displayUpdateBtn() {
+      if (
+        this.tidyCard._id.phase === "檢襪" ||
+        this.tidyCard._id.phase === "車洗標" ||
+        this.tidyCard._id.phase === "剪線頭"
+      )
+        return true;
+      else return false;
+    },
+    displayFinishBtn() {
+      if (
+        this.tidyCard._id.phase === "檢襪" ||
+        this.tidyCard._id.phase === "車洗標" ||
+        this.tidyCard._id.phase === "剪線頭"
+      )
+        return false;
+      else return true;
+    }
   },
   methods: {
     prepareTidyCard() {

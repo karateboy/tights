@@ -391,24 +391,52 @@ object CardManager extends Controller {
       })
   }
 
-  def getOrderDetailWorkCards(orderId: String, detailIndex: Int) = Security.Authenticated.async {
+  case class OrderProductionSummary(dyed: Int, produced: Int, inProduction: Int, overhead: Int)
+  def getOrderDetailProductionSummary(orderId: String, detailIndex: Int) = Security.Authenticated.async {
     val f = WorkCard.getOrderWorkCards(orderId, detailIndex)
-    for (cards <- f) yield {
-      Ok(Json.toJson(cards))
-    }
-  }
-
-  case class OrderProductionSummary(produced: Int, inProduction: Int, overhead: Int)
-  def getOrderProductionSummary(orderId: String) = Security.Authenticated.async {
-    val f = WorkCard.getOrderProductionWorkCards(orderId)
-    for (cards <- f) yield {
+    val param = DyeCard.QueryDyeCardParam(
+      _id = None,
+      color = None,
+      start = None, end = None, active = None, orderID = Some(orderId))
+    val dyeCardF = DyeCard.query(param)(0, 100)
+    for {
+      cards <- f
+      dyeCards <- dyeCardF
+      dyeCardPairs = dyeCards map { card => card._id -> card }
+      dyeCardMap = dyeCardPairs.toMap
+    } yield {
+      val dyed = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }.map { _.good }.sum
       val produced = cards.filter { !_.active }.map { _.good }.sum
       val inProduction = cards.filter { _.active }.map { _.good }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
 
       implicit val writer = Json.writes[OrderProductionSummary]
 
-      Ok(Json.toJson(OrderProductionSummary(produced, inProduction, overhead)))
+      Ok(Json.toJson(OrderProductionSummary(dyed, produced, inProduction, overhead)))
+    }
+  }
+
+  def getOrderProductionSummary(orderId: String) = Security.Authenticated.async {
+    val f = WorkCard.getOrderProductionWorkCards(orderId)
+    val param = DyeCard.QueryDyeCardParam(
+      _id = None,
+      color = None,
+      start = None, end = None, active = None, orderID = Some(orderId))
+    val dyeCardF = DyeCard.query(param)(0, 100)
+    for {
+      cards <- f
+      dyeCards <- dyeCardF
+      dyeCardPairs = dyeCards map { card => card._id -> card }
+      dyeCardMap = dyeCardPairs.toMap
+    } yield {
+      val dyed = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }.map { _.good }.sum
+      val produced = cards.filter { !_.active }.map { _.good }.sum
+      val inProduction = cards.filter { _.active }.map { _.good }.sum
+      val overhead = cards.map { x => x.quantity - x.good }.sum
+
+      implicit val writer = Json.writes[OrderProductionSummary]
+
+      Ok(Json.toJson(OrderProductionSummary(dyed, produced, inProduction, overhead)))
     }
   }
 

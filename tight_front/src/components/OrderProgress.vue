@@ -7,7 +7,7 @@
                 <th>尺寸</th>
                 <th>數量(打)</th>
                 <th>完成</th>
-                <th>進度(打): (已漂染/生產中)</th>
+                <th>進度(打): (已漂染/生產中/已完成)</th>
                 <th>生產百分比</th>
                 <th>損耗百分比(%)</th>
             </tr>
@@ -23,8 +23,9 @@
                 </td>
                 <td>
                     <div v-if='productionSummary[idx]'>
+                        <span class='text-info'>{{ showDozen(productionSummary[idx].dyed)}}</span>/
                         <span class='text-warning'>{{ showDozen(productionSummary[idx].inProduction)}}</span>/
-                        <span class='text-success'>{{ showDozen(productionSummary[idx].finished)}}</span>
+                        <span class='text-success'>{{ showDozen(productionSummary[idx].produced)}}</span>
                     </div>
                 </td>
                 <td>
@@ -67,25 +68,21 @@ export default {
       this.productionSummary_.splice(0, this.productionSummary_.length);
       this.order.details.forEach((detail, idx) => {
         let summary = {
+          dyed: 0,
           inProduction: 0,
-          finished: 0,
+          produced: 0,
           overhead: 0
         };
 
         this.productionSummary_.push(summary);
         axios
-          .get("/OrderWorkCard/" + this.order._id + "/" + idx)
+          .get("/OrderDetailProductionSummary/" + this.order._id + "/" + idx)
           .then(resp => {
             const ret = resp.data;
-            summary.nWorkCard = ret.length;
-            for (let workCard of ret) {
-              if (workCard.active) {
-                summary.inProduction += workCard.good;
-              } else {
-                summary.finished += workCard.good;
-              }
-              summary.overhead += workCard.quantity - workCard.good;
-            }
+            summary.dyed = ret.dyed;
+            summary.inProduction = ret.inProduction;
+            summary.produced = ret.produced;
+            summary.overhead = ret.overhead;
           })
           .catch(err => {
             alert(err);
@@ -98,7 +95,7 @@ export default {
     productionPercent(idx) {
       let percent =
         (this.productionSummary_[idx].inProduction +
-          this.productionSummary_[idx].finished) *
+          this.productionSummary_[idx].produced) *
         100 /
         this.order.details[idx].quantity;
       return parseInt(percent);
@@ -107,14 +104,14 @@ export default {
       let percent = 0;
       if (
         this.productionSummary_[idx].inProduction +
-          this.productionSummary_[idx].finished !=
+          this.productionSummary_[idx].produced !=
         0
       )
         percent =
           this.productionSummary_[idx].overhead *
           100 /
           (this.productionSummary_[idx].inProduction +
-            this.productionSummary_[idx].finished);
+            this.productionSummary_[idx].produced);
 
       return parseInt(percent);
     },

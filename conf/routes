@@ -69,7 +69,7 @@ GET      /WorkCard/:id                              controllers.CardManager.getW
 POST     /WorkCard                                  controllers.CardManager.updateWorkCard
 GET      /MoveWorkCard/:workId/:outDyeId/:inDyeId   controllers.CardManager.moveWorkCard(workId, outDyeId, inDyeId)
 GET      /OrderProductionSummary/:orderId           controllers.CardManager.getOrderProductionSummary(orderId)
-GET      /OrderWorkCard/:id/:idx                    controllers.CardManager.getOrderDetailWorkCards(id, idx:Int)
+GET      /OrderDetailProductionSummary/:id/:idx     controllers.CardManager.getOrderDetailProductionSummary(id, idx:Int)
 
 POST     /GetWorkCards                              controllers.CardManager.getAllWorkCards
 POST     /GetWorkCards/count                        controllers.CardManager.getWorkCardCount
