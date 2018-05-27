@@ -391,7 +391,7 @@ object CardManager extends Controller {
       })
   }
 
-  case class OrderProductionSummary(dyed: Int, produced: Int, inProduction: Int, overhead: Int)
+  case class OrderProductionSummary(dyed: Int, produced: Int, inProduction: Int, overhead: Int, quantity: Int)
   def getOrderDetailProductionSummary(orderId: String, detailIndex: Int) = Security.Authenticated.async {
     val f = WorkCard.getOrderWorkCards(orderId, detailIndex)
     val param = DyeCard.QueryDyeCardParam(
@@ -406,13 +406,19 @@ object CardManager extends Controller {
       dyeCardMap = dyeCardPairs.toMap
     } yield {
       val dyed = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }.map { _.good }.sum
+      val producedDyeCardID = Set(cards flatMap { _.dyeCardID }: _*)
       val produced = cards.filter { !_.active }.map { _.good }.sum
       val inProduction = cards.filter { _.active }.map { _.good }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
+      val quantity = cards.map { _.quantity }.sum
 
+      val dyedStage = if (dyed - inProduction - produced >= 0)
+        dyed - inProduction - produced
+      else
+        0
       implicit val writer = Json.writes[OrderProductionSummary]
 
-      Ok(Json.toJson(OrderProductionSummary(dyed, produced, inProduction, overhead)))
+      Ok(Json.toJson(OrderProductionSummary(dyedStage, produced, inProduction, overhead, quantity)))
     }
   }
 
@@ -433,10 +439,11 @@ object CardManager extends Controller {
       val produced = cards.filter { !_.active }.map { _.good }.sum
       val inProduction = cards.filter { _.active }.map { _.good }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
+      val quantity = cards.map { _.quantity }.sum
 
       implicit val writer = Json.writes[OrderProductionSummary]
 
-      Ok(Json.toJson(OrderProductionSummary(dyed, produced, inProduction, overhead)))
+      Ok(Json.toJson(OrderProductionSummary(dyed, produced, inProduction, overhead, quantity)))
     }
   }
 

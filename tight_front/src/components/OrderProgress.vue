@@ -83,6 +83,7 @@ export default {
             summary.inProduction = ret.inProduction;
             summary.produced = ret.produced;
             summary.overhead = ret.overhead;
+            summary.quantity = ret.quantity;
           })
           .catch(err => {
             alert(err);
@@ -93,26 +94,18 @@ export default {
   },
   methods: {
     productionPercent(idx) {
+      let production = this.productionSummary_[idx].dyed + this.productionSummary_[idx].inProduction + this.productionSummary_[idx].produced; 
       let percent =
-        (this.productionSummary_[idx].inProduction +
-          this.productionSummary_[idx].produced) *
-        100 /
-        this.order.details[idx].quantity;
+        production /
+        this.order.details[idx].quantity *
+        100;
       return parseInt(percent);
     },
     overheadPercent(idx) {
-      let percent = 0;
-      if (
-        this.productionSummary_[idx].inProduction +
-          this.productionSummary_[idx].produced !=
-        0
-      )
-        percent =
-          this.productionSummary_[idx].overhead *
-          100 /
-          (this.productionSummary_[idx].inProduction +
-            this.productionSummary_[idx].produced);
-
+      let percent =
+        this.productionSummary_[idx].overhead /
+        this.productionSummary_[idx].quantity *
+        100;
       return parseInt(percent);
     },
 
