@@ -405,20 +405,17 @@ object CardManager extends Controller {
       dyeCardPairs = dyeCards map { card => card._id -> card }
       dyeCardMap = dyeCardPairs.toMap
     } yield {
-      val dyed = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }.map { _.good }.sum
+      val dyedWorkCards = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }
+      val dyed = dyedWorkCards.map { _.good }.sum
       val producedDyeCardID = Set(cards flatMap { _.dyeCardID }: _*)
-      val produced = cards.filter { !_.active }.map { _.good }.sum
-      val inProduction = cards.filter { _.active }.map { _.good }.sum
+      val produced = dyedWorkCards.filter { !_.active }.map { _.good }.sum
+      val inProduction = dyedWorkCards.filter { _.active }.map { _.good }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
       val quantity = cards.map { _.quantity }.sum
 
-      val dyedStage = if (dyed - inProduction - produced >= 0)
-        dyed - inProduction - produced
-      else
-        0
       implicit val writer = Json.writes[OrderProductionSummary]
 
-      Ok(Json.toJson(OrderProductionSummary(dyedStage, produced, inProduction, overhead, quantity)))
+      Ok(Json.toJson(OrderProductionSummary(dyed, produced, inProduction, overhead, quantity)))
     }
   }
 
