@@ -73,6 +73,43 @@ object CardManager extends Controller {
       }
   }
 
+  def getWorkCardChangeTime(id: String) = Security.Authenticated.async {
+    implicit request =>
+      val f = WorkCard.getCard(id)
+      for (card <- f) yield {
+        if (card.isEmpty)
+          Results.NoContent
+        else {
+          val workCard = card.get
+          val dyeCardF = if (workCard.dyeCardID.isDefined)
+            DyeCard.getCard(workCard.dyeCardID.get)
+          else
+            Future {
+              None
+            }
+          val tidyCardF = TidyCard.getTidyCardOfWorkCard(workCard._id)
+          val changeTimeF =
+            for {
+              dyeCardOpt <- dyeCardF
+              tidyCards <- tidyCardF
+            } yield {
+              val dyeTime = if (dyeCardOpt.isEmpty)
+                0l
+              else {
+                val dyeCard = dyeCardOpt.get
+                dyeCard.date.getOrElse(0l)
+              }
+
+              val tidyTime = tidyCards map { _.date }
+              tidyTime.+:(dyeTime).max
+            }
+          val changeTime = waitReadyResult(changeTimeF)
+          Ok(Json.obj("changeTime" -> changeTime))
+        }
+
+      }
+  }
+
   def updateWorkCard = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val result = request.body.validate[WorkCard]

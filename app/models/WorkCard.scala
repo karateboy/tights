@@ -55,10 +55,11 @@ object StylingCard {
 
 case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity: Int, good: Int, active: Boolean,
                     startTime: Option[Long], endTime: Option[Long],
-                    var dyeCardID: Option[String], tidyIDs: Option[Seq[Long]], stylingCard: Option[StylingCard],
+                    var dyeCardID: Option[String], stylingCard: Option[StylingCard],
                     var remark: Option[String], inventory: Option[Int]) {
   def toDocument = {
-    Document("_id" -> _id,
+    Document(
+      "_id" -> _id,
       "orderId" -> orderId,
       "detailIndex" -> detailIndex,
       "quantity" -> quantity,
@@ -67,7 +68,6 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
       "startTime" -> startTime,
       "endTime" -> endTime,
       "dyeCardID" -> dyeCardID,
-      "tidyIDs" -> tidyIDs,
       "stylingCard" -> stylingCard,
       "remark" -> remark,
       "inventory" -> inventory)
@@ -93,7 +93,8 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
     if (_id == "")
       updateID
 
-    WorkCard(_id = _id,
+    WorkCard(
+      _id = _id,
       orderId = orderId,
       detailIndex = detailIndex,
       quantity = quantity,
@@ -102,7 +103,6 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
       startTime = Some(DateTime.now.getMillis),
       endTime = None,
       dyeCardID = dyeCardID,
-      tidyIDs = Some(Seq.empty[Long]),
       stylingCard = stylingCard,
       remark = remark,
       inventory = inventory)
@@ -140,12 +140,12 @@ object WorkCard {
     val startTime = getOptionTime("startTime")
     val endTime = getOptionTime("endTime")
     val dyeCardID = getOptionStr("dyeCardID")
-    val tidyIDs = getOptionArray("tidyIDs", (v) => { v.asInt64().getValue })
     val stylingCard = getOptionDoc("stylingCard") map { StylingCard.toStylingCard(_) }
     val remark = getOptionStr("remark")
     val inventory = getOptionInt("inventory")
 
-    WorkCard(_id = _id,
+    WorkCard(
+      _id = _id,
       orderId = orderId,
       detailIndex = detailIndex,
       quantity = quantity,
@@ -154,7 +154,6 @@ object WorkCard {
       startTime = startTime,
       endTime = endTime,
       dyeCardID = dyeCardID,
-      tidyIDs = tidyIDs,
       stylingCard = stylingCard,
       remark = remark,
       inventory = inventory)
@@ -243,8 +242,10 @@ object WorkCard {
   def updateStylingCard(workCardID: String, stylingCard: StylingCard) = {
     import org.mongodb.scala.model.Updates
     val now = DateTime.now().getMillis
-    val f = collection.updateOne(equal("_id", workCardID),
-      Updates.combine(Updates.set("stylingCard", stylingCard.toDocument),
+    val f = collection.updateOne(
+      equal("_id", workCardID),
+      Updates.combine(
+        Updates.set("stylingCard", stylingCard.toDocument),
         Updates.min("good", stylingCard.good),
         Updates.set("active", stylingCard.good != 0),
         Updates.set("endTime", now))).toFuture()
@@ -252,7 +253,7 @@ object WorkCard {
     f
   }
 
-  def updateGoodAndActive(workCardID: String, good: Int, inventory: Int, active: Boolean) = {
+  def updateGoodAndActive(workCardID: String, good: Int, inventory: Int, active: Boolean, overWrite: Boolean = false) = {
     import org.mongodb.scala.model.Updates
     val workCardF = WorkCard.getCard(workCardID)
     var refreshInventory = false
@@ -262,13 +263,17 @@ object WorkCard {
         if (workCard.inventory != Some(inventory))
           refreshInventory = true
 
-        if (workCard.good >= good) {
+        if (overWrite) {
           Future { good }
         } else {
-          val tidyCardsF = TidyCard.getTidyCardOfWorkCard(workCardID)
-          for (tidyCards <- tidyCardsF) yield {
-            val goodSeq = tidyCards map { _.good }
-            goodSeq.foldLeft(good)(Math.min)
+          if (workCard.good >= good) {
+            Future { good }
+          } else {
+            val tidyCardsF = TidyCard.getTidyCardOfWorkCard(workCardID)
+            for (tidyCards <- tidyCardsF) yield {
+              val goodSeq = tidyCards map { _.good }
+              goodSeq.foldLeft(good)(Math.min)
+            }
           }
         }
       }
@@ -277,7 +282,8 @@ object WorkCard {
     val retFF =
       for (minGood <- minGoodF) yield {
         val now = DateTime.now().getMillis
-        val f = collection.updateOne(equal("_id", workCardID),
+        val f = collection.updateOne(
+          equal("_id", workCardID),
           Updates.combine(
             Updates.set("good", minGood),
             Updates.set("active", active),

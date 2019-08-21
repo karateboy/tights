@@ -77,7 +77,8 @@ object TidyCard {
     val notEven = getOptionInt("notEven")
     val head = getOptionInt("head")
     val date = doc.getLong("date")
-    TidyCard(_id = _id,
+    TidyCard(
+      _id = _id,
       workCardID = workCardID,
       phase = phase,
       operator = operator,
@@ -100,9 +101,9 @@ object TidyCard {
   def upsertCard(card: TidyCard, inventory: Int, active: Boolean) = {
     import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.model.Filters._
-    val workCardF = 
-      WorkCard.updateGoodAndActive(card.workCardID, card.good, inventory, 
-          active && (card.good + inventory) != 0)
+    val workCardF =
+      WorkCard.updateGoodAndActive(card.workCardID, card.good, inventory,
+        active && (card.good + inventory) != 0, card.phase == "整理包裝")
     workCardF.onFailure { errorHandler }
 
     val f = collection.replaceOne(equal("_id", card._id.toDocument), card.toDocument, UpdateOptions().upsert(true)).toFuture()

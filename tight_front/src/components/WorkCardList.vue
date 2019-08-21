@@ -50,6 +50,7 @@
                     <th class='text-center'>尺寸</th>
                     <th class='text-center'>漂染卡號</th>
                     <th class='text-center'>排程時間</th>
+                    <th class='text-center'>最近變換時間</th>
                     <th class='text-center'>狀態</th>
                 </tr>
                 </thead>
@@ -69,6 +70,7 @@
                     <td class='text-right'>{{displaySize(workCard)}}</td>
                     <td class='text-right'>{{workCard.dyeCardID}}</td>
                     <td class='text-right'>{{displayTime(workCard.startTime)}}</td>
+                    <td class='text-right'>{{displayTime(workCard.changeTime)}}</td>
                     <td>
                         <i class="fa fa-hourglass-half" style="color:red" aria-hidden="true"
                            v-if='workCard.active'>處理中</i>
@@ -210,7 +212,7 @@
             },
 
             displayTime(millis){
-                return moment(millis).format('LL')
+                return moment(millis).format('LLL')
             },
             showDetail(idx){
                 this.workCard = this.workCardList[idx]

@@ -8,7 +8,7 @@ import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 
-case class Inventory(factoryID: String, color: String, size: String, quantity: Int,
+case class Inventory(factoryID: String, color: String, size: String, var quantity: Int,
                      var loan: Option[Int], var workCardList: Option[Seq[String]], customerID: Option[String])
 case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String], customerID: Option[String])
 
@@ -40,7 +40,8 @@ object Inventory {
   def toInventory(doc: Document) = {
     val ret = Json.parse(doc.toJson()).validate[Inventory]
 
-    ret.fold(error => {
+    ret.fold(
+      error => {
       Logger.error(JsError.toJson(error).toString())
       throw new Exception(JsError.toJson(error).toString)
     },
@@ -70,14 +71,15 @@ object Inventory {
   def freeWorkCardLoan(workCardID: String) = {
     import com.mongodb.client.model.ReturnDocument.AFTER
 
-    val f = collection.findOneAndUpdate(Filters.all("workCardList", workCardID),
+    val f = collection.findOneAndUpdate(
+      Filters.all("workCardList", workCardID),
       Updates.pull("workCardList", workCardID), FindOneAndUpdateOptions().returnDocument(AFTER)).toFuture()
 
     for {
       updatedDocs <- f
       inventory = toInventory(updatedDocs.head)
       workCardList = inventory.workCardList.getOrElse(Seq.empty[String])
-      (newLoan, newWorkCardList) <- recalculateLoan(workCardList)
+      (newLoan, newWorkCardList) <- calculateLoan(workCardList)
     } {
       inventory.loan = Some(newLoan)
       inventory.workCardList = Some(newWorkCardList)
@@ -87,7 +89,6 @@ object Inventory {
 
   def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String) = {
     val filter = getFilter(factoryID, color, size)
-
     val update = Updates.combine(Updates.inc("quantity", -q1), Updates.pull("workCardList", workCardID))
 
     val f = collection.findOneAndUpdate(filter, update).toFuture()
@@ -107,9 +108,14 @@ object Inventory {
       doc <- docSeq
       inventory = toInventory(doc)
       workCardList <- inventory.workCardList
-      (newLoan, newWorkCardList) <- recalculateLoan(workCardList)
+      (newLoan, newWorkCardList) <- calculateLoan(workCardList)
     } {
       if (inventory.loan != Some(newLoan)) {
+        if (inventory.quantity < 0){
+          Logger.warn(s"Inventory ${inventory.toString()} quantity is negative!")
+          inventory.quantity = 0
+        }
+        
         inventory.loan = Some(newLoan)
         inventory.workCardList = Some(newWorkCardList)
         collection.replaceOne(filter, toDocument(inventory)).toFuture()
@@ -117,13 +123,12 @@ object Inventory {
     }
   }
 
-  def recalculateLoan(workCardIdList: Seq[String]) = {
+  def calculateLoan(workCardIdList: Seq[String]) = {
     val workCardListF = WorkCard.getCards(workCardIdList)(0, 100)
     for (workCardList <- workCardListF) yield {
-      val activeWorkCard = workCardList.filter { workCard => workCard.active }
-      val activeWorkCardIDs = activeWorkCard map { _._id }
-      val inventories = activeWorkCard flatMap { _.inventory }
-      (inventories.sum, activeWorkCardIDs)
+      val workCardIDs = workCardList map { _._id }
+      val inventories = workCardList flatMap { _.inventory }
+      (inventories.sum, workCardIDs)
     }
   }
 

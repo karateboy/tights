@@ -24,3 +24,5 @@ server.pid
 /conf/cdx.conf
 /node_modules
 .idea
+/public/dist
+/tight_front/*.log

@@ -66,6 +66,7 @@ GET      /TidyReport/:start/:end                    controllers.CardManager.tidy
 GET      /TidyReport/Excel/:start/:end              controllers.CardManager.tidyCardReport(start: Long, end: Long, output="excel")
 
 GET      /WorkCard/:id                              controllers.CardManager.getWorkCard(id)
+GET      /WorkCard/ChangeTime/:id					controllers.CardManager.getWorkCardChangeTime(id)
 POST     /WorkCard                                  controllers.CardManager.updateWorkCard
 GET      /MoveWorkCard/:workId/:outDyeId/:inDyeId   controllers.CardManager.moveWorkCard(workId, outDyeId, inDyeId)
 GET      /OrderProductionSummary/:orderId           controllers.CardManager.getOrderProductionSummary(orderId)
