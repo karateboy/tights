@@ -396,7 +396,7 @@ object CardManager extends Controller {
 
   }
 
-  case class UpsertTidyParam(tidyCard: TidyCard, inventory: Int)
+  case class UpsertTidyParam(tidyCard: TidyCard, inventory: Int, quantity: Int)
   def upsertTidyCard(activeStr: String) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val active = activeStr.toBoolean
@@ -413,7 +413,7 @@ object CardManager extends Controller {
 
         param.tidyCard.date = DateTime.now.getMillis
 
-        val f = TidyCard.upsertCard(param.tidyCard, param.inventory, active)
+        val f = TidyCard.upsertCard(param.tidyCard, param.inventory, param.quantity, active)
 
         for (rets <- f) yield {
           if (rets.isEmpty) {

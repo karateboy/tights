@@ -161,10 +161,7 @@ export default {
         this.tidyCard.stain +
         this.tidyCard.broken +
         this.tidyCard.notEven;
-      if (total > this.quantity * 1.1) {
-        alert("數量超過總量!");
-        return false;
-      }
+      this.quantity = total;
 
       return true;
     },
@@ -178,7 +175,8 @@ export default {
       axios
         .post("/TidyCard", {
           tidyCard: this.tidyCard,
-          inventory
+          inventory,
+          quantity: this.quantity
         })
         .then(resp => {
           const ret = resp.data;

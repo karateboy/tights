@@ -98,11 +98,11 @@ object TidyCard {
     collection.insertOne(card.toDocument).toFuture()
   }
 
-  def upsertCard(card: TidyCard, inventory: Int, active: Boolean) = {
+  def upsertCard(card: TidyCard, inventory: Int, quantity: Int, active: Boolean) = {
     import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.model.Filters._
     val workCardF =
-      WorkCard.updateGoodAndActive(card.workCardID, card.good, inventory,
+      WorkCard.updateGoodAndActive(card.workCardID, card.good, inventory, quantity,
         active && (card.good + inventory) != 0, card.phase == "整理包裝")
     workCardF.onFailure { errorHandler }
 

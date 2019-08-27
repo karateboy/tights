@@ -253,7 +253,8 @@ object WorkCard {
     f
   }
 
-  def updateGoodAndActive(workCardID: String, good: Int, inventory: Int, active: Boolean, overWrite: Boolean = false) = {
+  def updateGoodAndActive(workCardID: String, good: Int, inventory: Int, quantity: Int,
+                          active: Boolean, overWrite: Boolean = false) = {
     import org.mongodb.scala.model.Updates
     val workCardF = WorkCard.getCard(workCardID)
     var refreshInventory = false
@@ -282,13 +283,18 @@ object WorkCard {
     val retFF =
       for (minGood <- minGoodF) yield {
         val now = DateTime.now().getMillis
+        val updateList = List(
+          Updates.set("good", minGood),
+          Updates.set("active", active),
+          Updates.set("inventory", inventory),
+          Updates.set("endTime", now))
+        val updates = 
+          if(overWrite)
+            Updates.combine(updateList:_*)
+          else
+            Updates.combine(updateList.:+(Updates.set("quantity", quantity)):_*)
         val f = collection.updateOne(
-          equal("_id", workCardID),
-          Updates.combine(
-            Updates.set("good", minGood),
-            Updates.set("active", active),
-            Updates.set("inventory", inventory),
-            Updates.set("endTime", now))).toFuture()
+          equal("_id", workCardID), updates).toFuture()
         f.onFailure { errorHandler }
         f.onSuccess({
           case _ =>
