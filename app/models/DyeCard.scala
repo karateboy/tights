@@ -36,7 +36,7 @@ object DyePotion {
 
 case class DyeProcess(evenDye: Option[Double], vNH3: Option[Double], nh3: Option[Double], iceV: Option[Double],
                       evenDyeType: Option[String],
-                      dyeTime: Option[Int], dyeTemp: Option[Double],
+                      dyeTime:     Option[Int], dyeTemp: Option[Double],
                       phStart: Option[Double], phEnd: Option[Double]) {
   def toDocument = Document("evenDye" -> evenDye, "vNH3" -> vNH3, "nh3" -> nh3,
     "iceV" -> iceV, "evenDyeType" -> evenDyeType, "dyeTime" -> dyeTime, "dyeTemp" -> dyeTemp,
@@ -47,10 +47,12 @@ object DyeProcess {
   val default = DyeProcess(None, None, None, None, None, None, None, None, None)
 }
 
-case class PostProcess(fixedPotion: Option[Double],
-                       iceV: Option[Double], silicon: Option[Double], postiveSoftener: Option[Double],
-                       softenTime: Option[Int], temp: Option[Double]) {
-  def toDocument = Document("fixedPotion" -> fixedPotion,
+case class PostProcess(
+  fixedPotion: Option[Double],
+  iceV:        Option[Double], silicon: Option[Double], postiveSoftener: Option[Double],
+  softenTime: Option[Int], temp: Option[Double]) {
+  def toDocument = Document(
+    "fixedPotion" -> fixedPotion,
     "iceV" -> iceV, "silicon" -> silicon, "postiveSoftener" -> postiveSoftener,
     "softenTime" -> softenTime, "temp" -> temp)
 
@@ -70,12 +72,12 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
                    startTime: Option[Long], endTime: Option[Long], var updateTime: Option[Long], var active: Boolean, remark: Option[String],
                    operator: Option[String], date: Option[Long], pot: Option[String], weight: Option[Double],
                    refineProcess: Option[RefineProcess],
-                   dyePotion: Option[DyePotion],
-                   dyeProcess: Option[DyeProcess],
-                   postProcess: Option[PostProcess],
-                   dryTemp: Option[Double], dryTime: Option[Long], machine: Option[String],
+                   dyePotion:     Option[DyePotion],
+                   dyeProcess:    Option[DyeProcess],
+                   postProcess:   Option[PostProcess],
+                   dryTemp:       Option[Double], dryTime: Option[Long], machine: Option[String],
                    var sizeCharts: Option[Seq[SizeChart]],
-                   dep: Option[String]) {
+                   dep:            Option[String]) {
 
   implicit object TransformSizeChart extends BsonTransformer[SizeChart] {
     def apply(value: SizeChart): BsonDocument = value.toDocument.toBsonDocument
@@ -404,18 +406,21 @@ object DyeCard {
   import org.mongodb.scala.model._
 
   def transferDep(_id: String, dep: String) = {
-    collection.updateOne(equal("_id", _id), Updates.set("dep", dep)).toFuture()
+    val update = Updates.combine(Updates.set("dep", dep), Updates.set("updateTime", DateTime.now().millis))
+    collection.updateOne(equal("_id", _id), update).toFuture()
   }
 
   def startDye(_id: String, operator: String) = {
     import org.mongodb.scala.model._
-    collection.updateOne(equal("_id", _id),
+    collection.updateOne(
+      equal("_id", _id),
       and(Updates.set("operator", operator), Updates.set("startTime", DateTime.now.getMillis))).toFuture()
   }
 
   def endDye(_id: String) = {
     import org.mongodb.scala.model._
-    collection.updateOne(equal("_id", _id),
+    collection.updateOne(
+      equal("_id", _id),
       and(Updates.set("endTime", DateTime.now.getMillis), Updates.set("active", false))).toFuture()
   }
 
@@ -427,8 +432,8 @@ object DyeCard {
     import scala.concurrent._
     Future.sequence(List(f1, f2))
   }
-  
-  def markDyeCardFinished(workCardID:String) = {
+
+  def markDyeCardFinished(workCardID: String) = {
     val filter = Filters.and(Filters.eq("active", true), Filters.in("workIdList", workCardID))
     val f = collection.findOneAndUpdate(filter, Updates.set("active", false)).toFuture()
     f.onFailure(errorHandler)

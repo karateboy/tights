@@ -289,7 +289,7 @@ object WorkCard {
           Updates.set("inventory", inventory),
           Updates.set("endTime", now))
         val updates = 
-          if(overWrite)
+          if(!overWrite)
             Updates.combine(updateList:_*)
           else
             Updates.combine(updateList.:+(Updates.set("quantity", quantity)):_*)

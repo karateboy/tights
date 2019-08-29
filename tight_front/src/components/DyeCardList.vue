@@ -1,67 +1,85 @@
 <template>
-    <div>
-        <div v-if="cardList.length != 0">
-        <table class="table  table-bordered table-condensed">
-            <thead>
-            <tr class='info'>
-                <th></th>
-                <th>流動卡</th>
-                <th>漂染卡編號</th>
-                <th>訂單編號</th>
-                <th>客戶</th>
-                <th>出貨日</th>
-                <th>工廠代號</th>
-                <th>尺寸</th>
-                <th>顏色</th>
-                <th>數量(打)</th>
-                <th>編織批號</th>
-                <th>備註</th>
-                <th>狀態</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="(card, idx) in cardList" :class='{success: selectedIdx==idx}'>
-                <td>
-                    <button class="btn btn-primary" @click="displayDyeCardDetail(card, idx)"><i class="fa fa-eye" aria-hidden="true"></i>&nbsp;內容</button>
-                    <button class="btn btn-primary" @click="dyeCardPDF(card)"><i class="fa fa-print" aria-hidden="true"></i>&nbsp;列印</button>
-                    <button class="btn btn-danger" @click="deleteDyeCard(card, idx)"><i class="fa fa-trash" aria-hidden="true"></i>&nbsp;刪除</button>
-                </td>
-                <td>
-                    <button class="btn btn-primary" @click="displayWorkCards(card, idx)"><i class="fa fa-eye" aria-hidden="true"></i>&nbsp;檢視</button>
-                    <button class="btn btn-primary" @click="workCardLabel(card)"><i class="fa fa-print" aria-hidden="true"></i>&nbsp;列印標籤</button>
-                </td>
-                <td>{{card._id}}</td>
-                <td v-html="displayOrderId(card)"></td>
-                <td v-html="displayCustomerId(card)"></td>
-                <td>{{displayDeliverDate(card)}}</td>
-                <td v-html="displayFactoryId(card)"></td>
-                <td v-html="displaySize(card)"></td>
-                <td>{{card.color}}</td>
-                <td>{{totalQuantity(card)}}</td>
-                <td>-</td>
-                <td>{{card.remark}}</td>
-                <td>
-                    <i class="fa fa-hourglass-half" :style="{color:getDyeCardStatusColor(card)}" aria-hidden="true" v-if='card.active'>{{getDyeCardStatus(card)}}</i>
-                    <i class="fa fa-check" style="color:green" aria-hidden="true" v-else>結束</i>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        <pagination for="cardList" :records="total" :per-page="5"
-                    count-text="第{from}到第{to}筆/共{count}筆|{count} 筆|1筆"></pagination>
-        </div>
-        <div v-else class="alert alert-info" role="alert">沒有符合的漂染卡</div>
-        <hr/>
-        <div v-if="display=='detail'">
-            <dye-card-detail :dyeCard="targetDyeCard" :edit='false'></dye-card-detail>
-        </div>
-        <div v-else-if="display=='workCards'">
-            <work-card-list url="/GetWorkCards" :param="workCardIdList"></work-card-list>
-        </div>
+  <div>
+    <div v-if="cardList.length != 0">
+      <table class="table table-bordered table-condensed">
+        <thead>
+          <tr class="info">
+            <th></th>
+            <th>流動卡</th>
+            <th>漂染卡編號</th>
+            <th>訂單編號</th>
+            <th>客戶</th>
+            <th>出貨日</th>
+            <th>工廠代號</th>
+            <th>尺寸</th>
+            <th>顏色</th>
+            <th>數量(打)</th>
+            <th>編織批號</th>
+            <th>備註</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(card, idx) in cardList" :class="{success: selectedIdx==idx}">
+            <td>
+              <button class="btn btn-primary" @click="displayDyeCardDetail(card, idx)">
+                <i class="fa fa-eye" aria-hidden="true"></i>&nbsp;內容
+              </button>
+              <button class="btn btn-primary" @click="dyeCardPDF(card)">
+                <i class="fa fa-print" aria-hidden="true"></i>&nbsp;列印
+              </button>
+              <button class="btn btn-danger" @click="deleteDyeCard(card, idx)">
+                <i class="fa fa-trash" aria-hidden="true"></i>&nbsp;刪除
+              </button>
+            </td>
+            <td>
+              <button class="btn btn-primary" @click="displayWorkCards(card, idx)">
+                <i class="fa fa-eye" aria-hidden="true"></i>&nbsp;檢視
+              </button>
+              <button class="btn btn-primary" @click="workCardLabel(card)">
+                <i class="fa fa-print" aria-hidden="true"></i>&nbsp;列印標籤
+              </button>
+            </td>
+            <td>{{card._id}}</td>
+            <td v-html="displayOrderId(card)"></td>
+            <td v-html="displayCustomerId(card)"></td>
+            <td>{{displayDeliverDate(card)}}</td>
+            <td v-html="displayFactoryId(card)"></td>
+            <td v-html="displaySize(card)"></td>
+            <td>{{card.color}}</td>
+            <td>{{totalQuantity(card)}}</td>
+            <td>-</td>
+            <td>{{card.remark}}</td>
+            <td>
+              <i
+                class="fa fa-hourglass-half"
+                :style="{color:getDyeCardStatusColor(card)}"
+                aria-hidden="true"
+                v-if="card.active"
+              >{{getDyeCardStatus(card)}}</i>
+              <i class="fa fa-check" style="color:green" aria-hidden="true" v-else>結束</i>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <pagination
+        for="cardList"
+        :records="total"
+        :per-page="5"
+        count-text="第{from}到第{to}筆/共{count}筆|{count} 筆|1筆"
+      ></pagination>
     </div>
+    <div v-else class="alert alert-info" role="alert">沒有符合的漂染卡</div>
+    <hr />
+    <div v-if="display=='detail'">
+      <dye-card-detail :dyeCard="targetDyeCard" :edit="false"></dye-card-detail>
+    </div>
+    <div v-else-if="display=='workCards'">
+      <work-card-list url="/GetWorkCards" :param="workCardIdList"></work-card-list>
+    </div>
+  </div>
 </template>
 <style>
-
 </style>
 <script>
 import moment from "moment";
@@ -249,20 +267,18 @@ export default {
     },
     getDyeCardStatus(dyeCard) {
       if (dyeCard.active) {
-        if (!dyeCard.dep){ //老單
-          if (dyeCard.startTime) 
-            return "漂染中";
-          else 
-            return "已出單";
+        if (!dyeCard.dep) {
+          //老單
+          if (dyeCard.startTime)
+            return "漂染中:" + moment(dyeCard.startTime).format("LLL");
+          else return "已出單";
         } else if (dyeCard.dep === "WhiteTight") {
-          return "白襪準備中";
+          return "白襪準備中:" + moment(dyeCard.updateTime).format("LLL");
         } else if (dyeCard.dep === "DyeDep") {
-          if (!dyeCard.startTime) 
-            return "漂染準備中";
-          else 
-            return "漂染中";
+          if (!dyeCard.startTime) return "漂染準備中";
+          else return "漂染中:" + moment(dyeCard.startTime).format("LLL");
         }
-      } else return "結束";
+      } else return "結束:" + moment(dyeCard.endTime).format("LLL");
     },
     getDyeCardStatusColor(dyeCard) {
       if (dyeCard.active) {

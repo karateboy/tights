@@ -120,7 +120,7 @@ object CardManager extends Controller {
           BadRequest(JsError.toJson(err).toString())
         }
       }, card => {
-        val f = WorkCard.updateGoodAndActive(card._id, card.good, card.inventory.getOrElse(0), card.active)
+        val f = WorkCard.updateGoodAndActive(card._id, card.good, card.inventory.getOrElse(0), card.quantity, card.active)
         for (ret <- f) yield {
           Ok(Json.obj("ok" -> true))
         }
