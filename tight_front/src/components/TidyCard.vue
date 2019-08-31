@@ -1,62 +1,84 @@
 <template>
-    <div>
-        <div class="alert alert-info" role="alert">工作卡總量: {{ displayDozenStr(quantity) }}</div>
-        <div class="form-horizontal">
-            <div class="form-group">
-                <label class="col-lg-1 control-label">優:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.good"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">副:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.sub"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">副未包:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.subNotPack"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">汙:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.stain"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">長短:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.longShort"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">破:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.broken"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">不均:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.notEven"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">油:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.oil"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">襪頭:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.head"></div>
-            </div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">工號:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="myCard.operator"></div>
-            </div>
-            <div class="alert alert-info" role="alert">更新實際使用的庫存</div>
-            <div class="form-group">
-                <label class="col-lg-1 control-label">庫存:</label>
-                <div class="col-lg-2"><input type="text" class="form-control" v-model="inventoryStr"></div>
-            </div>
-            <div class="form-group">
-                <div v-show="displayUpdateBtn" class="col-lg-offset-1 col-lg-1">
-                    <button class='btn btn-primary' @click='update'>更新</button>
-                </div>
-                <div v-show="displayFinishBtn" class="col-lg-1">
-                    <button class='btn btn-primary' @click='close'>更新並結束工作卡</button>
-                </div>
-            </div>
+  <div>
+    <div class="alert alert-info" role="alert">工作卡總量: {{ displayDozenStr(quantity) }}</div>
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-lg-1 control-label">優:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.good" />
         </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">副:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.sub" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">副未包:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.subNotPack" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">汙:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.stain" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">長短:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.longShort" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">破:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.broken" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">不均:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.notEven" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">油:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.oil" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">襪頭:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.head" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">工號:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.operator" />
+        </div>
+      </div>
+      <div class="alert alert-info" role="alert">更新實際使用的庫存</div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">庫存:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="inventoryStr" />
+        </div>
+      </div>
+      <div class="form-group">
+        <div v-show="displayUpdateBtn" class="col-lg-offset-1 col-lg-1">
+          <button class="btn btn-primary" @click="update">更新</button>
+        </div>
+        <div v-show="displayFinishBtn" class="col-lg-1">
+          <button class="btn btn-primary" @click="close">更新並結束工作卡</button>
+        </div>
+      </div>
     </div>
+  </div>
 </template>
 <style>
 </style>
@@ -154,15 +176,6 @@ export default {
         return false;
       }
 
-      //FIXME
-      let total =
-        this.tidyCard.good +
-        this.tidyCard.sub +
-        this.tidyCard.stain +
-        this.tidyCard.broken +
-        this.tidyCard.notEven;
-      this.quantity = total;
-
       return true;
     },
     displayDozenStr(v) {
@@ -172,11 +185,19 @@ export default {
       if (!this.prepareTidyCard()) return;
 
       let inventory = fromDozenStr(this.inventoryStr);
+      let total =
+        this.tidyCard.good +
+        this.tidyCard.sub +
+        this.tidyCard.stain +
+        this.tidyCard.broken +
+        this.tidyCard.notEven +
+        inventory;
+
       axios
         .post("/TidyCard", {
           tidyCard: this.tidyCard,
           inventory,
-          quantity: this.quantity
+          quantity: total
         })
         .then(resp => {
           const ret = resp.data;
@@ -193,10 +214,19 @@ export default {
       if (!this.prepareTidyCard()) return;
 
       let inventory = fromDozenStr(this.inventoryStr);
+      let total =
+        this.tidyCard.good +
+        this.tidyCard.sub +
+        this.tidyCard.stain +
+        this.tidyCard.broken +
+        this.tidyCard.notEven +
+        inventory;
+
       axios
         .post("/FinalTidyCard", {
           tidyCard: this.tidyCard,
-          inventory
+          inventory,
+          quantity: total
         })
         .then(resp => {
           const ret = resp.data;
