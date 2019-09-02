@@ -406,7 +406,7 @@ object DyeCard {
   import org.mongodb.scala.model._
 
   def transferDep(_id: String, dep: String) = {
-    val update = Updates.combine(Updates.set("dep", dep), Updates.set("updateTime", DateTime.now().millis))
+    val update = Updates.combine(Updates.set("dep", dep), Updates.set("updateTime", DateTime.now().getMillis))
     collection.updateOne(equal("_id", _id), update).toFuture()
   }
 
