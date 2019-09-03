@@ -106,7 +106,7 @@ object TidyCard {
         active && (card.good + inventory) != 0, card.phase == "整理包裝")
     workCardF.onFailure { errorHandler }
 
-    val f = collection.replaceOne(equal("_id", card._id.toDocument), card.toDocument, UpdateOptions().upsert(true)).toFuture()
+    val f = collection.replaceOne(equal("_id", card._id.toDocument.toBsonDocument), card.toDocument, UpdateOptions().upsert(true)).toFuture()
     f.onFailure(errorHandler)
     f
   }

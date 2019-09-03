@@ -17,6 +17,9 @@ case class StylingCard(operator: Seq[String], good: Int,
       "broken" -> broken, "notEven" -> notEven, "oil" -> oil, "head" -> head,
       "date" -> date)
   }
+
+  def total = good + sub.getOrElse(0) + subNotPack.getOrElse(0) + stain.getOrElse(0) + longShort.getOrElse(0)
+  +broken.getOrElse(0) + notEven.getOrElse(0) + oil.getOrElse(0) + head.getOrElse(0)
 }
 object StylingCard {
   implicit val read = Json.reads[StylingCard]
@@ -247,6 +250,7 @@ object WorkCard {
       Updates.combine(
         Updates.set("stylingCard", stylingCard.toDocument),
         Updates.min("good", stylingCard.good),
+        Updates.set("quantity", stylingCard.total),
         Updates.set("active", stylingCard.good != 0),
         Updates.set("endTime", now))).toFuture()
     f.onFailure { errorHandler }
@@ -288,11 +292,11 @@ object WorkCard {
           Updates.set("active", active),
           Updates.set("inventory", inventory),
           Updates.set("endTime", now))
-        val updates = 
-          if(!overWrite)
-            Updates.combine(updateList:_*)
+        val updates =
+          if (!overWrite)
+            Updates.combine(updateList: _*)
           else
-            Updates.combine(updateList.:+(Updates.set("quantity", quantity)):_*)
+            Updates.combine(updateList.:+(Updates.set("quantity", quantity)): _*)
         val f = collection.updateOne(
           equal("_id", workCardID), updates).toFuture()
         f.onFailure { errorHandler }

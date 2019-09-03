@@ -126,11 +126,6 @@ export default {
                 return false
             }
 
-            let total = this.stylingCard.good + this.stylingCard.sub + this.stylingCard.stain + this.stylingCard.broken + this.stylingCard.notEven
-            if (total > this.quantity * 1.1) {
-                alert("超過總量")
-                return false
-            }
             return true
         },
         update() {
