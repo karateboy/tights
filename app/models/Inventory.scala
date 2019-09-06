@@ -50,6 +50,7 @@ object Inventory {
 
   import org.mongodb.scala.model._
   def upsert(inventory: Inventory) = {
+    Logger.debug("upsert inventory=>" + inventory.toString())
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = UpdateOptions().upsert(true)
     val f = collection.replaceOne(filter, toDocument(inventory), UpdateOptions().upsert(true)).toFuture()
@@ -58,6 +59,7 @@ object Inventory {
   }
 
   def lend(factoryID: String, color: String, size: String, q: Int, workCardID: String) = {
+    Logger.debug("inventory lend")
     val filter = getFilter(factoryID, color, size)
     val update = Updates.combine(
       Updates.inc("loan", q),
@@ -95,6 +97,7 @@ object Inventory {
     f.onFailure(errorHandler)
     f.onSuccess({
       case _ =>
+        Logger.debug(s"closePosition ${factoryID} ${color} ${size} ${q1} ${workCardID}")
         refreshLoan(factoryID, color, size)
     })
     f

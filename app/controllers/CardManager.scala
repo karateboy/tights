@@ -421,9 +421,7 @@ object CardManager extends Controller {
             Logger.warn("update is empty!")
             Ok(Json.obj("ok" -> false))
           } else {
-            val ret = rets.head
-            Ok(Json.obj("ok" -> (ret.getModifiedCount == 1 || ret.getUpsertedId.isDocument() ||
-              ret.getMatchedCount == 1)))
+            Ok(Json.obj("ok" -> true))
           }
         }
       })
