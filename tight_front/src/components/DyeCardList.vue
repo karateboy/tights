@@ -275,7 +275,8 @@ export default {
         } else if (dyeCard.dep === "WhiteTight") {
           return "白襪準備中:" + moment(dyeCard.updateTime).format("LLL");
         } else if (dyeCard.dep === "DyeDep") {
-          if (!dyeCard.startTime) return "漂染準備中";
+          if (!dyeCard.startTime)
+            return "漂染準備中" + moment(dyeCard.updateTime).format("LLL");
           else return "漂染中:" + moment(dyeCard.startTime).format("LLL");
         }
       } else return "結束:" + moment(dyeCard.endTime).format("LLL");

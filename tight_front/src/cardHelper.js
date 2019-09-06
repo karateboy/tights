@@ -6,7 +6,7 @@ export default {
     populateWorkCard(workCard) {
         workCard.order = {}
         axios.get("/Order/" + workCard.orderId).then((resp) => {
-            workCard.order = resp.data
+            workCard.order = Object.assign({}, resp.data)
         })
         axios.get("/WorkCard/ChangeTime/" + workCard._id).then((resp) => {
             workCard.changeTime = resp.data.changeTime

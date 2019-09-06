@@ -1,5 +1,23 @@
 <template>
   <div>
+    <table class="table table-bordered table-condensed">
+      <thead>
+        <tr class="info">
+          <th>訂單編號</th>
+          <th class="text-center">品項</th>
+          <th class="text-center">顏色</th>
+          <th class="text-center">尺寸</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{workCardOrderID}}</td>
+          <td>{{workCardName}}</td>
+          <td>{{wordCardColor}}</td>
+          <td>{{workCardSize}}</td>
+        </tr>
+      </tbody>
+    </table>
     <div class="alert alert-info" role="alert">工作卡總量: {{ displayDozenStr(quantity) }}</div>
     <div class="form-horizontal">
       <div class="form-group">
@@ -85,6 +103,7 @@
 <script>
 import axios from "axios";
 import { fromDozenStr, toDozenStr } from "../dozenExp";
+import cardHelper from "../cardHelper";
 
 export default {
   props: {
@@ -113,10 +132,11 @@ export default {
         (this.myCard.notEven = toDozenStr(newTidyCard.notEven)),
         (this.myCard.head = toDozenStr(newTidyCard.head)),
         (this.myCard.operator = newTidyCard.operator);
+      this.myCard.workCardID = newTidyCard.workCardID;
+      cardHelper.populateTidyCard(this.myCard);
     }
   },
   data() {
-    console.log(this.inventory);
     return {
       myCard: {
         good: toDozenStr(this.tidyCard.good),
@@ -128,10 +148,15 @@ export default {
         oil: toDozenStr(this.tidyCard.oil),
         notEven: toDozenStr(this.tidyCard.notEven),
         head: toDozenStr(this.tidyCard.head),
-        operator: this.tidyCard.operator
+        operator: this.tidyCard.operator,
+        workCardID: this.tidyCard.workCardID,
+        workCard: {}
       },
       inventoryStr: toDozenStr(this.inventory)
     };
+  },
+  mounted() {
+    cardHelper.populateTidyCard(this.myCard);
   },
   computed: {
     displayUpdateBtn() {
@@ -151,6 +176,41 @@ export default {
       )
         return false;
       else return true;
+    },
+    workCardOrderID() {
+      if (this.myCard.workCard.orderId) return this.myCard.workCard.orderId;
+      else return "查詢中";
+    },
+    workCardName() {
+      if (
+        this.myCard.workCard &&
+        this.myCard.workCard.order &&
+        this.myCard.workCard.order.name
+      ) {
+        return this.myCard.workCard.order.name;
+      } else return "查詢中";
+    },
+    wordCardColor() {
+      if (
+        this.myCard.workCard &&
+        this.myCard.workCard.order &&
+        this.myCard.workCard.order.details
+      ) {
+        return this.myCard.workCard.order.details[
+          this.myCard.workCard.detailIndex
+        ].color;
+      } else return "查詢中";
+    },
+    workCardSize() {
+      if (
+        this.myCard.workCard &&
+        this.myCard.workCard.order &&
+        this.myCard.workCard.order.details
+      ) {
+        return this.myCard.workCard.order.details[
+          this.myCard.workCard.detailIndex
+        ].size;
+      } else return "查詢中";
     }
   },
   methods: {
