@@ -20,7 +20,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(card, idx) in cardList" :class="{success: selectedIdx==idx}">
+          <tr v-for="(card, idx) in cardList" :key="card._id" :class="{success: selectedIdx==idx}">
             <td>
               <button class="btn btn-primary" @click="displayDyeCardDetail(card, idx)">
                 <i class="fa fa-eye" aria-hidden="true"></i>&nbsp;內容
@@ -265,21 +265,27 @@ export default {
           alert(err);
         });
     },
+    displayTime(t){
+      if(t)
+        return moment(t).format("LLL");
+      else
+        return "之前未紀錄(新卡都會有)"
+    },
     getDyeCardStatus(dyeCard) {
       if (dyeCard.active) {
         if (!dyeCard.dep) {
           //老單
           if (dyeCard.startTime)
-            return "漂染中:" + moment(dyeCard.startTime).format("LLL");
+            return "漂染中:" + this.displayTime(dyeCard.startTime);
           else return "已出單";
         } else if (dyeCard.dep === "WhiteTight") {
-          return "白襪準備中:" + moment(dyeCard.updateTime).format("LLL");
+          return "白襪準備中:" + this.displayTime(dyeCard.updateTime);
         } else if (dyeCard.dep === "DyeDep") {
           if (!dyeCard.startTime)
-            return "漂染準備中" + moment(dyeCard.updateTime).format("LLL");
-          else return "漂染中:" + moment(dyeCard.startTime).format("LLL");
+            return "漂染準備中" + this.displayTime(dyeCard.updateTime);
+          else return "漂染中:" + this.displayTime(dyeCard.startTime);
         }
-      } else return "結束:" + moment(dyeCard.endTime).format("LLL");
+      } else return "結束:" + this.displayTime(dyeCard.endTime);
     },
     getDyeCardStatusColor(dyeCard) {
       if (dyeCard.active) {

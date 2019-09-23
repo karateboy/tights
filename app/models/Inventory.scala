@@ -59,7 +59,7 @@ object Inventory {
   }
 
   def lend(factoryID: String, color: String, size: String, q: Int, workCardID: String) = {
-    Logger.debug("inventory lend")
+    Logger.debug(s"WorkCard:$workCardID inventory lend $factoryID $color $size $q")
     val filter = getFilter(factoryID, color, size)
     val update = Updates.combine(
       Updates.inc("loan", q),
