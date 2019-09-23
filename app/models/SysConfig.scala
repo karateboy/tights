@@ -128,4 +128,7 @@ object SysConfig {
     }
   }
 
+  val FixNullInventoryKey = "FixNullInventory"
+  def getFixNullInventory = get(FixNullInventoryKey, Document(FixNullInventoryKey -> false))
+  def setFixNullInventory(v: Boolean) = upsert(FixNullInventoryKey, Document(FixNullInventoryKey -> v))
 }

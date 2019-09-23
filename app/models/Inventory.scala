@@ -217,4 +217,11 @@ object Inventory {
     }
     f
   }
+  
+  def fixNullInventory() = {
+    val filter = Filters.not(Filters.exists("quantity"))
+    val f = collection.updateMany(filter, Updates.set("quantity", 0)).toFuture()
+    f.onFailure(errorHandler)
+    f
+  }
 }

@@ -35,6 +35,26 @@ object MongoDB {
           SysConfig.setTrimColorSeq(true)
         }
       }
+
+      for (v <- SysConfig.getFixNullInventory) {
+        Logger.info(s"FixNullInventory $v")
+        if (!v.asBoolean().getValue) {
+          val f = Inventory.fixNullInventory()
+          f.onComplete(ret => {
+            if (ret.isFailure) {
+              Logger.error("failed to fix null inventory")
+            } else {
+              val updateResultSeq = ret.get
+              if(!updateResultSeq.isEmpty){
+                val result = updateResultSeq.head
+                Logger.info(s"${result.getMatchedCount} match ${result.getModifiedCount} modified")
+              }
+              SysConfig.setFixNullInventory(true)
+            }
+          })
+
+        }
+      }
     }
     //Program need to wait before init complete
     import scala.concurrent.Await
