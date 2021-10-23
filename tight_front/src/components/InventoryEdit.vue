@@ -1,52 +1,94 @@
 <template>
-    <div>
-        <br>
-        <div class="form-horizontal">
-          <div class="form-group"><label class="col-lg-1 control-label">工廠代號:</label>
-            <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.factoryID"></div>
-          </div>
-          <div class="form-group"><label class="col-lg-1 control-label">客戶編號:</label>
-            <div class="col-lg-4"><input type="text" class="form-control" v-model="inventory.customerID"></div>
-          </div>
-          <div class="form-group"><label class="col-lg-1 control-label">顏色:</label>
-            <div class="col-lg-1"><input type="text" class="form-control" v-model="inventory.color"></div>
-            <div class="col-lg-10">
-              <div class="btn-group" data-toggle="buttons">
-                <label class="btn btn-outline btn-primary" v-for="color in colorList" @click="inventory.color=color">
-                <input type="radio">{{ color }} </label>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-lg-1 control-label">尺寸:</label>
-            <div class="col-lg-1"><input type="text" class="form-control" v-model="inventory.size"></div>
-            <div class="col-lg-10">
-              <div class="btn-group" data-toggle="buttons">
-                <label class="btn btn-outline btn-primary" v-for="sizeOpt in sizeList" @click="inventory.size=sizeOpt">
-                <input type="radio">{{ sizeOpt }} </label>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-lg-1 control-label">數量(打):</label>
-              <div class="col-lg-2"><input type="text" class="form-control" v-model="dozenNumber"></div>
-          </div>
-          <div class="form-group">
-            <div class="col-lg-offset-1 col-lg-1">
-              <button class="btn btn-primary"
-                @click.prevent="query">查詢庫存
-              </button>
-            </div>
-            <div class="col-lg-offset-1 col-lg-1">
-                <button class="btn btn-primary" :class="{disabled: !readyForUpsert}"
-                  @click.prevent="upsert" :disabled="!readyForUpsert">新增庫存
-                </button>
-            </div>
+  <div>
+    <br />
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-lg-1 control-label">工廠代號:</label>
+        <div class="col-lg-4">
+          <input
+            type="text"
+            class="form-control"
+            v-model="inventory.factoryID"
+          />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">客戶編號:</label>
+        <div class="col-lg-4">
+          <input
+            type="text"
+            class="form-control"
+            v-model="inventory.customerID"
+          />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">顏色:</label>
+        <div class="col-lg-1">
+          <input type="text" class="form-control" v-model="inventory.color" />
+        </div>
+        <div class="col-lg-10">
+          <div class="btn-group" data-toggle="buttons">
+            <label
+              class="btn btn-outline btn-primary"
+              v-for="color in colorList"
+              :key="color"
+              @click="inventory.color = color"
+            >
+              <input type="radio" />{{ color }}
+            </label>
           </div>
         </div>
-        <spinner v-if="loading"></spinner>
-        <inventory-list v-if="display" url="/QueryInventory" :param="queryParam"></inventory-list>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">尺寸:</label>
+        <div class="col-lg-1">
+          <input type="text" class="form-control" v-model="inventory.size" />
+        </div>
+        <div class="col-lg-10">
+          <div class="btn-group" data-toggle="buttons">
+            <label
+              class="btn btn-outline btn-primary"
+              v-for="sizeOpt in sizeList"
+              :key="sizeOpt"
+              @click="inventory.size = sizeOpt"
+            >
+              <input type="radio" />{{ sizeOpt }}
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">數量(打):</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="dozenNumber" />
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-lg-offset-1 col-lg-1">
+          <button class="btn btn-primary" @click.prevent="query">
+            查詢庫存
+          </button>
+        </div>
+        <div class="col-lg-offset-1 col-lg-1">
+          <button
+            class="btn btn-primary"
+            :class="{ disabled: !readyForUpsert }"
+            @click.prevent="upsert"
+            :disabled="!readyForUpsert"
+          >
+            新增庫存
+          </button>
+        </div>
+      </div>
     </div>
+    <spinner v-if="loading"></spinner>
+    <inventory-list
+      v-if="display"
+      url="/QueryInventory"
+      :param="queryParam"
+    ></inventory-list>
+  </div>
 </template>
 <style scoped>
 body {
@@ -54,10 +96,10 @@ body {
 }
 </style>
 <script>
-import axios from "axios";
-import * as dozenExp from "../dozenExp";
-import Spinner from "vue-simple-spinner";
-import InventoryList from "./InventoryList.vue";
+import axios from 'axios';
+import * as dozenExp from '../dozenExp';
+import Spinner from 'vue-simple-spinner';
+import InventoryList from './InventoryList.vue';
 
 export default {
   data() {
@@ -67,61 +109,61 @@ export default {
         customerID: undefined,
         color: undefined,
         size: undefined,
-        quantity: 0
+        quantity: 0,
       },
       loading: false,
       display: false,
       queryParam: {},
       colorList: [],
       sizeList: [
-        "XS/S",
-        "S/M",
-        "M/L",
-        "L/XL",
-        "2-6",
-        "8-12",
-        "XXS",
-        "XS",
-        "SS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "M/S",
-        "T",
-        "A/B",
-        "C/D",
-        "A",
-        "B",
-        "C",
-        "D",
-        "E",
-        "XSml",
-        "Sml",
-        "Med",
-        "Lge",
-        "Xlge",
-        "Sml/Med",
-        "Lge/Xlge",
-        "ChSml",
-        "ChLge",
-        "Adult",
-        "ChSml/ChMed",
-        "ChMed/ChLge",
-        "ChLge/ChXLge",
-        "0-6",
-        "6-12",
-        "12-24",
-        "2T3T",
-        "4T5T",
-        "6-8"
-      ]
+        'XS/S',
+        'S/M',
+        'M/L',
+        'L/XL',
+        '2-6',
+        '8-12',
+        'XXS',
+        'XS',
+        'SS',
+        'S',
+        'M',
+        'L',
+        'XL',
+        'XXL',
+        'M/S',
+        'T',
+        'A/B',
+        'C/D',
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'XSml',
+        'Sml',
+        'Med',
+        'Lge',
+        'Xlge',
+        'Sml/Med',
+        'Lge/Xlge',
+        'ChSml',
+        'ChLge',
+        'Adult',
+        'ChSml/ChMed',
+        'ChMed/ChLge',
+        'ChLge/ChXLge',
+        '0-6',
+        '6-12',
+        '12-24',
+        '2T3T',
+        '4T5T',
+        '6-8',
+      ],
     };
   },
   mounted() {
     axios
-      .get("/ColorSeq")
+      .get('/ColorSeq')
       .then(resp => {
         const ret = resp.data;
         if (resp.status == 200) {
@@ -142,7 +184,7 @@ export default {
       },
       set: function(v) {
         this.inventory.quantity = dozenExp.fromDozenStr(v);
-      }
+      },
     },
     readyForUpsert() {
       if (
@@ -152,7 +194,7 @@ export default {
       )
         return false;
       else return true;
-    }
+    },
   },
   methods: {
     query() {
@@ -177,17 +219,17 @@ export default {
         .then(resp => {
           const ret = resp.data;
           if (resp.status == 200) {
-            alert("成功新增!");
+            alert('成功新增!');
           }
         })
         .catch(err => {
           alert(err);
         });
-    }
+    },
   },
   components: {
     InventoryList,
-    Spinner
-  }
+    Spinner,
+  },
 };
 </script>

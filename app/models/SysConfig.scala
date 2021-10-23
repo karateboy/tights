@@ -16,19 +16,12 @@ object SysConfig {
       f.onFailure(errorHandler)
     }
 
-    val f = collection.count().toFuture()
-    f.onSuccess({
-      case count: Seq[Long] =>
-        if (count(0) == 0) {
-        }
-    })
-    f.onFailure(errorHandler)
   }
 
   import org.mongodb.scala.model._
   def upsert(_id: String, doc: Document) = {
-    val uo = new UpdateOptions()
-    val f = collection.replaceOne(Filters.equal("_id", _id), doc, uo.upsert(true)).toFuture()
+    val uo = new ReplaceOptions().upsert(true)
+    val f = collection.replaceOne(Filters.equal("_id", _id), doc, uo).toFuture()
     f.onFailure(errorHandler)
     f
   }

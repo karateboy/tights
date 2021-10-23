@@ -25,7 +25,7 @@ object CardManager extends Controller {
 
   def getDyeCardListCount = Security.Authenticated.async {
     import DyeCard._
-    val f = DyeCard.getActiveDyeCardCount
+    val f = DyeCard.getActiveDyeCardCount()
     for (count <- f)
       yield Ok(Json.toJson(count))
   }
@@ -341,7 +341,7 @@ object CardManager extends Controller {
         val f = WorkCard.updateStylingCard(workCardID, card)
         val f2 = DyeCard.markDyeCardFinished(workCardID)
         for (rets <- f) yield {
-          val ret = rets(0)
+          val ret = rets
           if (ret.getMatchedCount != 1)
             Ok(Json.obj("ok" -> false, "msg" -> "找不到工作卡!"))
           else if (ret.getModifiedCount != 1)
@@ -417,7 +417,7 @@ object CardManager extends Controller {
         val f = TidyCard.upsertCard(param.tidyCard, param.inventory, param.quantity, active)
 
         for (rets <- f) yield {
-          if (rets.isEmpty) {
+          if (rets.getMatchedCount() == 0) {
             Logger.warn("update is empty!")
             Ok(Json.obj("ok" -> false))
           } else {

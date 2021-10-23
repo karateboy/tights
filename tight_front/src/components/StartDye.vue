@@ -5,7 +5,7 @@
                 <label class="col-lg-3 control-label">染色人員:</label>
                 <div class="btn-group" data-toggle="buttons">
                     <label class="btn btn-outline btn-primary"
-                           v-for="person in operatorList"
+                           v-for="person in operatorList" :key="person"
                            @click="operator=person"
                            :class="{active: operator==person }">
                         <input type="radio">{{ person }} </label>

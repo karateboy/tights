@@ -2,13 +2,17 @@ package models
 
 import models._
 import models.ModelHelper._
-import org.mongodb.scala.bson.{ BsonArray, BsonDocument, Document }
+import org.mongodb.scala.bson.{BsonArray, BsonDocument, Document}
 import org.mongodb.scala.model.Indexes.ascending
 import play.api.Logger
-import play.api.libs.json.{ JsError, Json }
+import play.api.libs.json.{JsError, Json}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.nscala_time.time.Imports._
+import org.mongodb.scala.model.ReplaceOptions
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 /**
  * Created by user on 2017/1/1.
@@ -167,17 +171,15 @@ object Order {
     if (!colNames.contains(colName)) {
       val f = MongoDB.database.createCollection(colName).toFuture()
       f.onFailure(errorHandler)
-      f.onSuccess({
-        case _: Seq[t] =>
-
+      f onComplete {
+        case Success(_)=>
           val cf1 = collection.createIndex(ascending("date", "customerId", "active")).toFuture()
           val cf2 = collection.createIndex(ascending("salesId", "date", "active")).toFuture()
           val cf3 = collection.createIndex(ascending("active")).toFuture()
+        case Failure(exception)=>
+          Logger.error("failed", exception)
 
-          cf1.onFailure(errorHandler)
-          cf2.onFailure(errorHandler)
-          cf3.onFailure(errorHandler)
-      })
+      }
       Some(f.mapTo[Unit])
     } else
       None
@@ -265,7 +267,7 @@ object Order {
     val doc = order.toDocument
     val colorSeq = getOrderColor(order)
     SysConfig.addColorSeq(colorSeq)
-    val f = col.replaceOne(equal("_id", doc("_id")), doc, UpdateOptions().upsert(true)).toFuture()
+    val f = col.replaceOne(equal("_id", doc("_id")), doc, ReplaceOptions().upsert(true)).toFuture()
     f.onFailure({
       case ex: Exception => Logger.error(ex.getMessage, ex)
     })
@@ -327,15 +329,15 @@ object Order {
     }
   }
 
-  def myActiveOrderCount(salesId: String) = {
+  def myActiveOrderCount(salesId: String): Future[Long] = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
-    val f = collection.count(and(equal("active", true), equal("salesId", salesId))).toFuture()
+    val f = collection.countDocuments(and(equal("active", true), equal("salesId", salesId))).toFuture()
     f.onFailure {
       errorHandler
     }
-    for (countSeq <- f)
-      yield countSeq(0)
+    for (count <- f)
+      yield count
   }
 
   def getHistoryOrder(begin: Long, end: Long) = {
@@ -407,7 +409,7 @@ object Order {
       toOrder
     }
   }
-  def queryOrderCount(param: QueryOrderParam) = {
+  def queryOrderCount(param: QueryOrderParam): Future[Long] = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
 
@@ -426,12 +428,12 @@ object Order {
     else
       Filters.exists("_id")
 
-    val f = collection.count(filter).toFuture()
+    val f = collection.countDocuments(filter).toFuture()
     f.onFailure {
       errorHandler
     }
     for (countSeq <- f)
-      yield countSeq(0)
+      yield countSeq
   }
   def closeOrder(_id: String) = {
     import org.mongodb.scala.model.Updates._
@@ -475,7 +477,7 @@ object Order {
       }
     val upgradeF = upgradeFF.flatMap { x => x }
     for(upgradeSeq <- upgradeF) {
-      val upgradeCount = upgradeSeq.map { _.getModifiedCount }.sum
+      val upgradeCount = upgradeSeq.getMatchedCount
       Logger.info(s"$upgradeCount orders are trimmed.")
     }
   }

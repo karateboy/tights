@@ -30,10 +30,10 @@ object User {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
     }
-    val f = collection.count().toFuture()
+    val f = collection.countDocuments().toFuture()
     f.onSuccess({
-      case count: Seq[Long] =>
-        if (count(0) == 0) {
+      case count: Long =>
+        if (count == 0) {
           val defaultUser = User("sales@wecc.com.tw", "abc123", "Aragorn", "02-2219-2886", true)
           Logger.info("Create default user:" + defaultUser.toString())
           newUser(defaultUser)
@@ -54,9 +54,9 @@ object User {
   }
 
   def createDefaultUser = {
-    val f = collection.count().toFuture()
+    val f = collection.countDocuments().toFuture()
     val ret = waitReadyResult(f)
-    if (ret(0) == 0) {
+    if (ret == 0) {
       val defaultUser = User("sales@wecc.com.tw", "abc123", "Aragorn", "02-2219-2886", true)
       Logger.info("Create default user:" + defaultUser.toString())
       newUser(defaultUser)
@@ -77,23 +77,21 @@ object User {
   }
 
   def getUserByEmail(email: String) = {
-    val f = collection.find(equal("_id", email)).first().toFuture()
+    val f = collection.find(equal("_id", email)).toFuture()
     f.onFailure { errorHandler }
     val ret = waitReadyResult(f)
-    if (ret.length == 0)
+    if (ret.isEmpty)
       None
     else
       Some(toUser(ret(0)))
   }
 
-  def getUserByEmailFuture(email: String) = {
+  def getUserByEmailFuture(email: String): Future[Some[User]] = {
     val f = collection.find(equal("_id", email)).first().toFuture()
     f.onFailure { errorHandler }
     for (ret <- f)
-      yield if (ret.length == 0)
-      None
-    else
-      Some(toUser(ret(0)))
+      yield
+      Some(toUser(ret))
   }
 
   def getAllUsers() = {

@@ -318,7 +318,7 @@ object PdfUtility {
       strOpt.getOrElse("")
     }
 
-    val user = User.getUserByEmail(order.salesId)
+    val user: Option[User] = User.getUserByEmail(order.salesId)
     val p1 = new Paragraph(
       s"外銷內部工作單", new Font(bf, 18))
     p1.setAlignment(Element.ALIGN_CENTER)

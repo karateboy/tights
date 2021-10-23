@@ -6,12 +6,14 @@ import {store} from './store/store';
 import axios from 'axios'
 import baseUrl from './baseUrl'
 import moment from 'moment'
+import Pagination from 'vue-pagination-2';
 
 Vue.use(VueRouter);
 const router = new VueRouter({
     routes
 })
 
+Vue.component('pagination', Pagination);
 
 router.beforeEach((to, from, next)=>{
     if(to.name == 'Login' || store.getters.isAuthenticated)

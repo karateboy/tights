@@ -7,6 +7,7 @@ import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
+import scala.util.{Failure, Success}
 
 case class Inventory(factoryID: String, color: String, size: String, var quantity: Int,
                      var loan: Option[Int], var workCardList: Option[Seq[String]], customerID: Option[String])
@@ -28,12 +29,14 @@ object Inventory {
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
-      f.onSuccess({
-        case _: Seq[t] =>
+      f onComplete {
+        case Success(value)=>
           val opt = new IndexOptions().unique(true)
           val cf1 = collection.createIndex(Indexes.ascending("factoryID", "color", "size"), opt).toFuture()
           cf1.onFailure(errorHandler)
-      })
+        case Failure(exception)=>
+          Logger.error("failed", exception)
+      }
     }
   }
 
@@ -52,8 +55,8 @@ object Inventory {
   def upsert(inventory: Inventory) = {
     Logger.debug("upsert inventory=>" + inventory.toString())
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
-    val opt = UpdateOptions().upsert(true)
-    val f = collection.replaceOne(filter, toDocument(inventory), UpdateOptions().upsert(true)).toFuture()
+    val opt = ReplaceOptions().upsert(true)
+    val f = collection.replaceOne(filter, toDocument(inventory), opt).toFuture()
     f.onFailure(errorHandler)
     f
   }
@@ -79,7 +82,7 @@ object Inventory {
 
     for {
       updatedDocs <- f
-      inventory = toInventory(updatedDocs.head)
+      inventory = toInventory(updatedDocs)
       workCardList = inventory.workCardList.getOrElse(Seq.empty[String])
       (newLoan, newWorkCardList) <- calculateLoan(workCardList)
     } {
@@ -200,13 +203,13 @@ object Inventory {
   def count(param: QueryInventoryParam) = {
     val filter = getFilter(param)
 
-    val f = collection.count(filter).toFuture()
+    val f = collection.countDocuments(filter).toFuture()
     f.onFailure {
       errorHandler
     }
 
     for (countSeq <- f)
-      yield countSeq(0)
+      yield countSeq
   }
 
   def delete(param: QueryInventoryParam) = {

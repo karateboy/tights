@@ -11,15 +11,16 @@ libraryDependencies ++= Seq(
   ws,
   filters,
   specs2 % Test,
-  "com.github.nscala-time" %% "nscala-time" % "2.16.0",
-  "org.mongodb.scala" %% "mongo-scala-driver" % "1.2.1"
+  "com.github.nscala-time" %% "nscala-time" % "2.16.0"
 )
 
 mappings in Universal ++=
 (baseDirectory.value / "report_template" * "*" get) map
     (x => x -> ("report_template/" + x.getName))
 
-//libraryDependencies += "com.google.guava" % "guava" % "19.0"
+// https://mvnrepository.com/artifact/org.mongodb.scala/mongo-scala-driver
+libraryDependencies += "org.mongodb.scala" %% "mongo-scala-driver" % "4.3.3"
+
 
 resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
 

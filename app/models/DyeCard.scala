@@ -9,7 +9,9 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.language.implicitConversions
+import scala.util.{Failure, Success}
 
 case class RefineProcess(refinePotion: Option[String], refine: Option[Double],
                          milk: Option[Double], refineTime: Option[Int], refineTemp: Option[Double]) {
@@ -112,11 +114,11 @@ case class DyeCard(var _id: String, var workIdList: Seq[String], color: String,
       "active" -> active, "remark" -> remark, "dep" -> dep)
   }
 
-  def updateID: Unit = {
+  def updateID(): Unit = {
     //import java.util.concurrent.ThreadLocalRandom
     //val randomNum = ThreadLocalRandom.current().nextInt(1, 1000000)
-    val idF = Identity.getNewID("dyeCard")
-    val id = waitReadyResult(idF)
+    val idF: Future[Identity] = Identity.getNewID("dyeCard")
+    val id: Identity = waitReadyResult(idF)
     val newID = "%06d".format(id.seq)
     val f = DyeCard.getCard(newID)
     val ret = waitReadyResult(f)
@@ -176,10 +178,12 @@ object DyeCard {
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
-      f.onSuccess({
-        case _: Seq[t] =>
-          val cf2 = collection.createIndex(ascending("active")).toFuture()
-      })
+      f onComplete {
+        case Success(value) =>
+          collection.createIndex(ascending("active")).toFuture()
+        case Failure(exception)=>
+          Logger.error("failed", exception)
+      }
     }
   }
 
@@ -300,11 +304,11 @@ object DyeCard {
     collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
   }
 
-  def getCard(id: String) = {
-    val f = collection.find(equal("_id", id)).first().toFuture()
+  def getCard(id: String): Future[Option[DyeCard]] = {
+    val f = collection.find(equal("_id", id)).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield {
-      if (cards.length == 0)
+      if (cards.isEmpty)
         None
       else
         Some(toDyeCard(cards(0)))
@@ -321,11 +325,11 @@ object DyeCard {
     }
   }
 
-  def getActiveDyeCardCount() = {
+  def getActiveDyeCardCount(): Future[Long] = {
     import org.mongodb.scala.model._
-    val f = collection.count(equal("active", true)).toFuture()
+    val f = collection.countDocuments(equal("active", true)).toFuture()
     f.onFailure { errorHandler }
-    for (countSeq <- f) yield countSeq(0)
+    for (countSeq <- f) yield countSeq
   }
 
   case class QueryDyeCardParam(_id: Option[String], color: Option[String],
@@ -385,14 +389,14 @@ object DyeCard {
     }
   }
 
-  def count(param: QueryDyeCardParam) = {
+  def count(param: QueryDyeCardParam): Future[Long] = {
     import org.mongodb.scala.model.Filters._
     import org.mongodb.scala.model._
     val filterFuture = getFilter(param)
 
     val retF = filterFuture flatMap {
       filter =>
-        val f = collection.count(filter).toFuture()
+        val f = collection.countDocuments(filter).toFuture()
         f.onFailure {
           errorHandler
         }
@@ -400,7 +404,7 @@ object DyeCard {
     }
 
     for (countSeq <- retF)
-      yield countSeq(0)
+      yield countSeq
   }
 
   import org.mongodb.scala.model._

@@ -1,6 +1,8 @@
 package models
 import play.api._
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 object MongoDB {
   import org.mongodb.scala._
@@ -37,22 +39,20 @@ object MongoDB {
       }
 
       for (v <- SysConfig.getFixNullInventory) {
-        Logger.info(s"FixNullInventory $v")
         if (!v.asBoolean().getValue) {
           val f = Inventory.fixNullInventory()
           f.onComplete(ret => {
             if (ret.isFailure) {
               Logger.error("failed to fix null inventory")
             } else {
-              val updateResultSeq = ret.get
-              if(!updateResultSeq.isEmpty){
-                val result = updateResultSeq.head
-                Logger.info(s"${result.getMatchedCount} match ${result.getModifiedCount} modified")
+              ret match {
+                case Success(_)=>
+                  SysConfig.setFixNullInventory(true)
+                case Failure(ex)=>
+                  Logger.error("failed to fix null inventory", ex)
               }
-              SysConfig.setFixNullInventory(true)
             }
           })
-
         }
       }
     }

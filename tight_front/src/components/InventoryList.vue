@@ -1,88 +1,117 @@
 <template>
-    <div>
-        <div v-if="inventoryList.length != 0">
-            <table class="table table-bordered table-condensed">
-                <thead>
-                <tr class='info'>
-                    <th></th>
-                    <th class='text-center'>工廠代號</th>
-                    <th class='text-center'>客戶編號</th>
-                    <th class='text-center'>顏色</th>
-                    <th class='text-center'>尺寸</th>
-                    <th class='text-center'>在庫數量</th>
-                    <th class='text-center'>排定用量</th>
-                    <th class='text-center'>流動卡</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr v-for='(inventory, idx) in inventoryList' :class='{success:idx==detail}'>
-                    <td><button class='btn btn-info' @click="upsert(inventory)"><i class="fa fa-check"></i>&nbsp;儲存</button>
-                      <button class='btn btn-danger' @click="del(inventory)"><i class="fa fa-check"></i>&nbsp;刪除</button>
-                    </td>
-                    <td class='text-right'>{{inventory.factoryID}}</td>
-                    <td class='text-right'><input type="text" v-model="inventory.customerID"></td>
-                    <td class='text-right'>{{inventory.color}}</td>
-                    <td class='text-right'>{{inventory.size}}</td>
-                    <td class='text-right'>
-                      <input type="number" v-model="inventory.quantityStr"> 
-                    </td>
-                    <td class='text-right'>{{displayLoan(inventory.loan)}}
-                      <!--
+  <div>
+    <div v-if="inventoryList.length != 0">
+      <pagination
+        for="inventoryList"
+        :records="total"
+        :per-page="15"
+        :options="{
+          texts: {
+            count: '第{from}到第{to}筆/共{count}筆|{count} 筆|1筆',
+          },
+        }"
+        v-model="current"
+        @paginate="handlePageChange"
+      ></pagination>
+      <table class="table table-bordered table-condensed">
+        <thead>
+          <tr class="info">
+            <th></th>
+            <th class="text-center">工廠代號</th>
+            <th class="text-center">客戶編號</th>
+            <th class="text-center">顏色</th>
+            <th class="text-center">尺寸</th>
+            <th class="text-center">在庫數量</th>
+            <th class="text-center">排定用量</th>
+            <th class="text-center">流動卡</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(inventory, idx) in inventoryList"
+            :key="idx"
+            :class="{ success: idx == detail }"
+          >
+            <td>
+              <button class="btn btn-info" @click="upsert(inventory)">
+                <i class="fa fa-check"></i>&nbsp;儲存
+              </button>
+              <button class="btn btn-danger" @click="del(inventory)">
+                <i class="fa fa-check"></i>&nbsp;刪除
+              </button>
+            </td>
+            <td class="text-right">{{ inventory.factoryID }}</td>
+            <td class="text-right">
+              <input type="text" v-model="inventory.customerID" />
+            </td>
+            <td class="text-right">{{ inventory.color }}</td>
+            <td class="text-right">{{ inventory.size }}</td>
+            <td class="text-right">
+              <input type="number" v-model="inventory.quantityStr" />
+            </td>
+            <td class="text-right">
+              {{ displayLoan(inventory.loan) }}
+              <!--
                       <button class='btn btn-info' @click="refreshLoan(inventory)"><i class="fa fa-check"></i>&nbsp;重新整理</button>
-                       -->                      
-                    </td>
-                    <td>
-                      <div v-for='workCardID in inventory.workCardList'>{{workCardID}}</div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            <pagination for="inventoryList" :records="total" :per-page="5"
-                        count-text="第{from}到第{to}筆/共{count}筆|{count} 筆|1筆"></pagination>
-        </div>
-        <div v-else class="alert alert-info" role="alert">沒有符合的流動卡</div>
-        <hr>
+                       -->
+            </td>
+            <td>
+              <div
+                v-for="workCardID in inventory.workCardList"
+                :key="workCardID"
+              >
+                {{ workCardID }}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+    <div v-else class="alert alert-info" role="alert">沒有符合的流動卡</div>
+    <hr />
+  </div>
 </template>
-<style>
-
-</style>
+<style></style>
 <script>
-import moment from "moment";
-import axios from "axios";
-import { Pagination, PaginationEvent } from "vue-pagination-2";
-import * as dozenExpr from "../dozenExp";
+import axios from 'axios';
+// import { Pagination, PaginationEvent } from 'vue-pagination-2';
+import * as dozenExpr from '../dozenExp';
 
 export default {
   props: {
     url: {
       type: String,
-      required: true
+      required: true,
     },
     param: {
-      type: [Object]
-    }
+      type: [Object],
+    },
   },
   data() {
     return {
       inventoryList: [],
+      current: 1,
       skip: 0,
-      limit: 5,
+      limit: 15,
       total: 0,
-      detail: -1
+      detail: -1,
     };
   },
   mounted() {
     this.fetchCard(this.skip, this.limit);
-    PaginationEvent.$on("vue-pagination::inventoryList", this.handlePageChange);
+    //PaginationEvent.$on('vue-pagination::inventoryList', this.handlePageChange);
   },
   watch: {
     url: function() {
+      this.skip = 0;
+      this.current = 1;
       this.fetchCard(this.skip, this.limit);
     },
     param: function() {
+      this.skip = 0;
+      this.current = 1;
       this.fetchCard(this.skip, this.limit);
-    }
+    },
   },
 
   methods: {
@@ -131,7 +160,7 @@ export default {
         .then(resp => {
           const ret = resp.data;
           if (resp.status == 200) {
-            alert("成功更新!");
+            alert('成功更新!');
           }
         })
         .catch(err => {
@@ -147,7 +176,7 @@ export default {
         .then(resp => {
           const ret = resp.data;
           if (resp.status == 200) {
-            alert("成功刪除!");
+            alert('成功刪除!');
             this.fetchCard(this.skip, this.limit);
           }
         })
@@ -157,7 +186,7 @@ export default {
     },
     displayLoan(q) {
       if (!q) {
-        return "-";
+        return '-';
       } else {
         return dozenExpr.toDozenStr(q);
       }
@@ -169,16 +198,16 @@ export default {
         .then(resp => {
           const ret = resp.data;
           if (resp.status == 200) {
-            alert("成功更新!");
+            alert('成功更新!');
           }
         })
         .catch(err => {
           alert(err);
         });
-    }
+    },
   },
   components: {
-    Pagination
-  }
+//    Pagination,
+  },
 };
 </script>

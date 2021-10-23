@@ -54,8 +54,7 @@ object Application extends Controller {
         val f = User.deleteUser(email)
         val requestF =
           for (result <- f) yield {
-            val deleteResult = result.head
-            Ok(Json.obj("ok" -> (deleteResult.getDeletedCount == 1)))
+            Ok(Json.obj("ok" -> (result.getDeletedCount() == 1)))
           }
 
         requestF.recover({
@@ -80,8 +79,7 @@ object Application extends Controller {
         param => {
           val f = User.updateUser(param)
           for(rets <- f) yield{
-            val ret = rets.head
-            Ok(Json.obj("ok" -> (ret.getMatchedCount == 1)))  
+            Ok(Json.obj("ok" -> (rets.getMatchedCount() == 1)))
           }          
         })
   }
@@ -99,8 +97,8 @@ object Application extends Controller {
         Forbidden("No such user!")
       }
     else {
-      val userInfo = userInfoOpt.get
-      val user = User.getUserByEmail(userInfo.id).get
+      val userInfo: Security.UserInfo = userInfoOpt.get
+      val user: User = User.getUserByEmail(userInfo.id).get
       if (!user.isAdmin)
         Future {
           Forbidden("無權限!")

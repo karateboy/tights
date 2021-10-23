@@ -7,10 +7,14 @@ import org.mongodb.scala.bson.Document
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.implicitConversions
 import org.mongodb.scala.bson._
+import org.mongodb.scala.model.ReplaceOptions
+
+import scala.util.{Failure, Success}
 case class TidyID(workCardID: String, phase: String) {
   def toDocument = Document("workCardID" -> workCardID, "phase" -> phase)
 }
@@ -36,10 +40,12 @@ object TidyCard {
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
-      f.onSuccess({
-        case _: Seq[t] =>
-          val cf2 = collection.createIndex(ascending("workCardID", "phase"), IndexOptions().unique(true)).toFuture()
-      })
+      f onComplete {
+        case Success(value)=>
+          collection.createIndex(ascending("workCardID", "phase"), IndexOptions().unique(true)).toFuture()
+        case Failure(exception)=>
+          Logger.error("failed", exception)
+      }
     }
   }
 
@@ -106,7 +112,7 @@ object TidyCard {
         active && (card.good + inventory) != 0, card.phase == "整理包裝")
     workCardF.onFailure { errorHandler }
 
-    val f = collection.replaceOne(equal("_id", card._id.toDocument.toBsonDocument), card.toDocument, UpdateOptions().upsert(true)).toFuture()
+    val f = collection.replaceOne(equal("_id", card._id.toDocument.toBsonDocument), card.toDocument, ReplaceOptions().upsert(true)).toFuture()
     f.onFailure(errorHandler)
     f
   }
@@ -126,19 +132,18 @@ object TidyCard {
     }
   }
 
-  def getTidyCard(workCardID: String, phase: String) = {
+  def getTidyCard(workCardID: String, phase: String): Future[Seq[TidyCard]] = {
     import org.mongodb.scala.model.Filters._
-    val f = collection.find(and(equal("workCardID", workCardID), equal("phase", phase))).first().toFuture()
+    val f = collection.find(and(equal("workCardID", workCardID), equal("phase", phase))).toFuture()
     f.onFailure {
       errorHandler
     }
     for (records <- f)
-      yield records map {
-      doc =>
-        toTidyCard(doc)
-    }
-
+      yield {
+        records.map(toTidyCard(_))
+      }
   }
+
 
   def getTidyCardOfWorkCard(workCardID: String) = {
     import org.mongodb.scala.model.Filters._
