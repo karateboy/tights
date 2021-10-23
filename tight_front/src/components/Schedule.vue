@@ -16,6 +16,8 @@
                 </router-link>
                 <router-link to='/Schedule/ColorEdit' tag='li' role="presentation" active-class='active'><a>顏色管理</a>
                 </router-link>
+                <router-link to='/Schedule/InventoryReport' tag='li' role="presentation" active-class='active'><a>庫存報表</a>
+                </router-link>
             </ul>
             <router-view></router-view>
         </div>

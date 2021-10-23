@@ -1,135 +1,99 @@
 package models
-import play.api._
-import com.github.nscala_time.time.Imports._
+
 import models.ModelHelper._
-import models._
-import org.mongodb.scala.bson.Document
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
+import org.mongodb.scala.model.ReplaceOptions
+import play.api._
 import play.api.libs.json.Json
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.language.implicitConversions
-import org.mongodb.scala.bson._
-import org.mongodb.scala.model.ReplaceOptions
-
 import scala.util.{Failure, Success}
-case class TidyID(workCardID: String, phase: String) {
-  def toDocument = Document("workCardID" -> workCardID, "phase" -> phase)
-}
+
+case class TidyID(workCardID: String, phase: String)
+
 case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int,
                     sub: Option[Int], subNotPack: Option[Int], stain: Option[Int], longShort: Option[Int],
                     broken: Option[Int], notEven: Option[Int], oil: Option[Int], head: Option[Int],
-                    var date: Long) {
-  def toDocument = {
-    Document("_id" -> _id.toDocument, "workCardID" -> workCardID, "phase" -> phase, "operator" -> operator,
-      "good" -> good, "sub" -> sub, "subNotPack" -> subNotPack, "stain" -> stain, "longShort" -> longShort,
-      "broken" -> broken, "notEven" -> notEven, "oil" -> oil, "head" -> head,
-      "date" -> date)
-  }
-}
+                    var date: Long, stylingDate: Option[Long])
+
 
 object TidyCard {
+
+  import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
+  import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
+  import org.mongodb.scala.bson.codecs.Macros._
   import org.mongodb.scala.model.Indexes.ascending
 
   val ColName = "tidyCards"
-  val collection = MongoDB.database.getCollection(ColName)
+  val codecRegistry = fromRegistries(fromProviders(classOf[TidyCard], classOf[TidyID]), DEFAULT_CODEC_REGISTRY)
+  val collection = MongoDB.database.getCollection[TidyCard](ColName).withCodecRegistry(codecRegistry)
+
   def init(colNames: Seq[String]) {
     import org.mongodb.scala.model.IndexOptions
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
       f onComplete {
-        case Success(value)=>
+        case Success(value) =>
           collection.createIndex(ascending("workCardID", "phase"), IndexOptions().unique(true)).toFuture()
-        case Failure(exception)=>
+        case Failure(exception) =>
           Logger.error("failed", exception)
       }
     }
   }
 
-  def default(workCardID: String, phase: String) =
+  def default(workCardID: String, phase: String, stylingDate: Option[Long]) =
     TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None,
-      None, None, None, None, None, 0)
+      None, None, None, None, None, 0, stylingDate = stylingDate)
 
   implicit val idRead = Json.reads[TidyID]
   implicit val idWrite = Json.writes[TidyID]
   implicit val read = Json.reads[TidyCard]
   implicit val write = Json.writes[TidyCard]
 
-  implicit object TransformTidyRecord extends BsonTransformer[TidyCard] {
-    def apply(tr: TidyCard): BsonDocument = tr.toDocument.toBsonDocument
-  }
-
-  def toTidyID(doc: BsonDocument) = {
-    val workCardID = doc.getString("workCardID").getValue
-    val phase = doc.getString("phase").getValue
-    TidyID(workCardID, phase)
-  }
-
-  def toTidyCard(implicit doc: Document) = {
-    val _id = toTidyID(doc("_id").asDocument())
-    val workCardID = doc.getString("workCardID")
-    val phase = doc.getString("phase")
-    val operator = doc.getString("operator")
-    val good = doc.getInteger("good")
-    val sub = getOptionInt("sub")
-    val subNotPack = getOptionInt("subNotPack")
-    val stain = getOptionInt("stain")
-    val longShort = getOptionInt("longShort")
-    val broken = getOptionInt("broken")
-    val oil = getOptionInt("oil")
-    val notEven = getOptionInt("notEven")
-    val head = getOptionInt("head")
-    val date = doc.getLong("date")
-    TidyCard(
-      _id = _id,
-      workCardID = workCardID,
-      phase = phase,
-      operator = operator,
-      good = good,
-      sub = sub,
-      subNotPack = subNotPack,
-      stain = stain,
-      longShort = longShort,
-      broken = broken,
-      notEven = notEven,
-      oil = oil,
-      head = head,
-      date = date)
-  }
-
   def newCard(card: TidyCard) = {
-    collection.insertOne(card.toDocument).toFuture()
+    val f = collection.insertOne(card).toFuture()
+    f onFailure (errorHandler)
+    f
   }
 
   def upsertCard(card: TidyCard, inventory: Int, quantity: Int, active: Boolean) = {
-    import org.mongodb.scala.model.UpdateOptions
     import org.mongodb.scala.model.Filters._
     val workCardF =
       WorkCard.updateGoodAndActive(card.workCardID, card.good, inventory, quantity,
         active && (card.good + inventory) != 0, card.phase == "整理包裝")
-    workCardF.onFailure { errorHandler }
+    workCardF.onFailure {
+      errorHandler
+    }
 
-    val f = collection.replaceOne(equal("_id", card._id.toDocument.toBsonDocument), card.toDocument, ReplaceOptions().upsert(true)).toFuture()
+    val f = collection.replaceOne(equal("_id", card._id), card, ReplaceOptions().upsert(true)).toFuture()
     f.onFailure(errorHandler)
     f
   }
 
-  def queryCards(begin: Long, end: Long) = {
+  def queryCards(begin: Long, end: Long): Future[Seq[TidyCard]] = {
     import org.mongodb.scala.model.Filters._
 
     val f = collection.find(and(gte("date", begin), lt("date", end)))
-      .sort(org.mongodb.scala.model.Sorts.ascending("date")).toFuture()
+      .sort(org.mongodb.scala.model.Sorts.ascending("date")).limit(500).toFuture()
     f.onFailure {
       errorHandler
     }
     for (records <- f)
-      yield records map {
-      doc =>
-        toTidyCard(doc)
+      yield records
+  }
+
+  def queryCardsByStylingDate(begin: Long, end: Long): Future[Seq[TidyCard]] = {
+    import org.mongodb.scala.model.Filters._
+
+    val f = collection.find(and(gte("stylingDate", begin), lt("stylingDate", end)))
+      .sort(org.mongodb.scala.model.Sorts.ascending("stylingDate")).limit(500).toFuture()
+    f.onFailure {
+      errorHandler
     }
+    for (records <- f)
+      yield records
   }
 
   def getTidyCard(workCardID: String, phase: String): Future[Seq[TidyCard]] = {
@@ -139,9 +103,8 @@ object TidyCard {
       errorHandler
     }
     for (records <- f)
-      yield {
-        records.map(toTidyCard(_))
-      }
+      yield
+        records
   }
 
 
@@ -152,9 +115,13 @@ object TidyCard {
       errorHandler
     }
     for (records <- f)
-      yield records map {
-      doc =>
-        toTidyCard(doc)
-    }
+      yield records
+  }
+  import org.mongodb.scala.model._
+  def updateStylingDateByWorkCard(workCardID: String, stylingDate:Long) = {
+    val f = collection.updateMany(Filters.equal("workCardID", workCardID),
+      Updates.set("stylingDate", stylingDate)).toFuture()
+    f onFailure errorHandler
+    f
   }
 }

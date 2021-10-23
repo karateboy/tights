@@ -99,6 +99,30 @@ object Query extends Controller {
       })
   }
 
+  def getInventoryReport(json: String) = Security.Authenticated.async {
+    implicit request =>
+      implicit val reads = Json.reads[QueryInventoryParam]
+
+      val result = Json.parse(json).validate[QueryInventoryParam]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, param => {
+        val reportF = Inventory.query(param)(0, 10000)
+        for (reports <- reportF) yield {
+          val p1 = param.factoryID.getOrElse("")
+          val p2 = param.customerID.getOrElse("")
+          val title = s"${p1}${p2}庫存報表"
+          val excel = ExcelUtility.getInventoryReport(reports, title)
+          Ok.sendFile(excel, fileName = _ =>
+            play.utils.UriEncoding.encodePathSegment(title + ".xlsx", "UTF-8"))
+        }
+      })
+  }
+
   def upsertInventory = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val result = request.body.validate[Inventory]

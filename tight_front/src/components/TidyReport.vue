@@ -34,6 +34,9 @@
       <div class="form-group">
         <div class="col-lg-offset-1">
           <button class="btn btn-primary" @click="query">查詢</button>
+          <button class="btn btn-primary mr-2" @click="query2">
+            查詢(依定型日期)
+          </button>
         </div>
       </div>
     </div>
@@ -66,7 +69,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="card in cardList" :key="card._id">
+          <tr
+            v-for="card in cardList"
+            :key="card._id.workCardID + card._id.phase"
+          >
             <td></td>
             <td>{{ displayDate(card.date) }}</td>
             <td>{{ card._id.workCardID }}</td>
@@ -160,6 +166,27 @@ export default {
           alert(err);
         });
     },
+    query2() {
+      const url =
+        '/TidyReportByStylingDate/' +
+        this.queryParam.start +
+        '/' +
+        this.queryParam.end;
+      axios
+        .get(url)
+        .then(resp => {
+          const ret = resp.data;
+          this.cardList.splice(0, this.cardList.length);
+          for (let card of ret) {
+            cardHelper.populateTidyCard(card);
+            this.cardList.push(card);
+          }
+          this.showReport = true;
+        })
+        .catch(err => {
+          alert(err);
+        });
+    },
     displayCustomerID(tidyCard) {
       if (tidyCard.workCard.order) return tidyCard.workCard.order.customerId;
       else return '查詢中';
@@ -189,7 +216,7 @@ export default {
     downloadExcel() {
       const url =
         baseUrl() +
-        '/TidyReport/Excel/' +
+        '/TidyReportByStylingDate/' +
         this.queryParam.start +
         '/' +
         this.queryParam.end;

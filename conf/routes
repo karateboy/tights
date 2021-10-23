@@ -57,6 +57,8 @@ GET      /StylingCard/:workCardID                   controllers.CardManager.getS
 POST     /StylingCard/:workCardID                   controllers.CardManager.updateStylingCard(workCardID)
 GET      /StylingReport/:start/:end                 controllers.CardManager.stylingReport(start: Long, end: Long, output="html")
 GET      /StylingReport/Excel/:start/:end           controllers.CardManager.stylingReport(start: Long, end: Long, output="excel")
+GET      /StylingReportByStylingDate/:start/:end                 controllers.CardManager.stylingReport2(start: Long, end: Long, output="html")
+GET      /StylingReportByStylingDate/Excel/:start/:end           controllers.CardManager.stylingReport2(start: Long, end: Long, output="excel")
 
 GET      /TidyCardList/:workCardID                  controllers.CardManager.getTidyCardList(workCardID)
 POST     /GetTidyCard                               controllers.CardManager.getTidyCard
@@ -64,6 +66,8 @@ POST     /TidyCard                                  controllers.CardManager.upse
 POST     /FinalTidyCard                             controllers.CardManager.upsertTidyCard(active="false")
 GET      /TidyReport/:start/:end                    controllers.CardManager.tidyCardReport(start: Long, end: Long, output="html")
 GET      /TidyReport/Excel/:start/:end              controllers.CardManager.tidyCardReport(start: Long, end: Long, output="excel")
+GET      /TidyReportByStylingDate/:start/:end       controllers.CardManager.tidyCardReport2(start: Long, end: Long, output="html")
+GET      /TidyReportByStylingDate/Excel/:start/:end controllers.CardManager.tidyCardReport2(start: Long, end: Long, output="excel")
 
 GET      /WorkCard/:id                              controllers.CardManager.getWorkCard(id)
 GET      /WorkCard/ChangeTime/:id					controllers.CardManager.getWorkCardChangeTime(id)
@@ -80,6 +84,8 @@ GET      /ActiveWorkCard/count                      controllers.CardManager.getA
 GET      /ActiveWorkCard/:skip/:limit               controllers.CardManager.getActiveWorkCard(skip:Int, limit:Int)
 GET      /barcode/:fileName                         controllers.CardManager.getBarcode(fileName)
 
+
+GET      /QueryInventory/Excel/:param               controllers.Query.getInventoryReport(param)
 GET      /QueryInventory/:param/count               controllers.Query.queryInventoryCount(param)
 GET      /QueryInventory/:param/:skip/:limit        controllers.Query.queryInventory(param, skip:Int, limit:Int)
 POST     /Inventory                                 controllers.Query.upsertInventory

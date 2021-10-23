@@ -2,6 +2,8 @@ package models
 
 import com.github.nscala_time.time.Imports.DateTime
 import org.apache.poi.openxml4j.opc.OPCPackage
+import org.apache.poi.ss.usermodel.{BorderStyle, HorizontalAlignment, IndexedColors}
+import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import play.api.Play.current
 
@@ -10,47 +12,6 @@ import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 
 object ExcelUtility {
   val docRoot = "/report_template/"
-
-  private def prepareTemplate(templateFile: String) = {
-    val templatePath = Paths.get(current.path.getAbsolutePath + docRoot + templateFile)
-    val reportFilePath = Files.createTempFile("temp", ".xlsx");
-
-    Files.copy(templatePath, reportFilePath, StandardCopyOption.REPLACE_EXISTING)
-
-    //Open Excel
-    val pkg = OPCPackage.open(new FileInputStream(reportFilePath.toAbsolutePath().toString()))
-    val wb = new XSSFWorkbook(pkg);
-
-    (reportFilePath, pkg, wb)
-  }
-
-  def finishExcel(reportFilePath: Path, pkg: OPCPackage, wb: XSSFWorkbook) = {
-    val out = new FileOutputStream(reportFilePath.toAbsolutePath().toString());
-    wb.write(out);
-    out.close();
-    pkg.close();
-
-    new File(reportFilePath.toAbsolutePath().toString())
-  }
-
-  def toDozenStr(v: Option[Int]): String = {
-    if (v.isEmpty)
-      "-"
-    else
-      toDozenStr(v.get)
-  }
-
-  def toDozenStr(v: Int) = {
-    val dozen = v / 12
-    val fract = v % 12
-    val dozenStr = "%d".format(dozen)
-    if (fract == 0)
-      dozenStr
-    else {
-      val fractStr = "%02d".format(fract)
-      s"$dozenStr.$fractStr"
-    }
-  }
 
   def getTidyReport(cardList: Seq[TidyCard], workCardMap: Map[String, WorkCard], orderMap: Map[String, Order],
                     start: DateTime, end: DateTime) = {
@@ -65,10 +26,11 @@ object ExcelUtility {
     for {
       card_idx <- cardList.zipWithIndex
       card = card_idx._1
+      stylingDate <- card.stylingDate
       rowN = card_idx._2 + 3
     } {
       val row = sheet.createRow(rowN)
-      val date = new DateTime(card.date)
+      val date = new DateTime(stylingDate)
       val workCard = workCardMap(card.workCardID)
       val order = orderMap(workCard.orderId)
 
@@ -115,11 +77,12 @@ object ExcelUtility {
     for {
       card_idx <- cardList.zipWithIndex
       workCard = card_idx._1
-      card = workCard.stylingCard.get
+      card <- workCard.stylingCard
+      stylingDate <- workCard.stylingDate
       rowN = card_idx._2 + 3
     } {
       val row = sheet.createRow(rowN)
-      val date = new DateTime(card.date)
+      val date = new DateTime(stylingDate)
       val order = orderMap(workCard.orderId)
       row.createCell(0).setCellValue(date.toString("MM-dd"))
       row.createCell(1).setCellValue(workCard.orderId)
@@ -152,4 +115,133 @@ object ExcelUtility {
     finishExcel(reportFilePath, pkg, wb)
   }
 
+  private def prepareTemplate(templateFile: String) = {
+    val templatePath = Paths.get(current.path.getAbsolutePath + docRoot + templateFile)
+    val reportFilePath = Files.createTempFile("temp", ".xlsx");
+
+    Files.copy(templatePath, reportFilePath, StandardCopyOption.REPLACE_EXISTING)
+
+    //Open Excel
+    val pkg = OPCPackage.open(new FileInputStream(reportFilePath.toAbsolutePath().toString()))
+    val wb = new XSSFWorkbook(pkg);
+
+    (reportFilePath, pkg, wb)
+  }
+
+  def finishExcel(reportFilePath: Path, pkg: OPCPackage, wb: XSSFWorkbook) = {
+    val out = new FileOutputStream(reportFilePath.toAbsolutePath().toString());
+    wb.write(out);
+    out.close();
+    pkg.close();
+
+    new File(reportFilePath.toAbsolutePath().toString())
+  }
+
+  def toDozenStr(v: Option[Int]): String = {
+    if (v.isEmpty)
+      "-"
+    else
+      toDozenStr(v.get)
+  }
+
+  def toDozenStr(v: Int) = {
+    val dozen = v / 12
+    val fract = v % 12
+    val dozenStr = "%d".format(dozen)
+    if (fract == 0)
+      dozenStr
+    else {
+      val fractStr = "%02d".format(fract)
+      s"$dozenStr.$fractStr"
+    }
+  }
+
+  def getInventoryReport(inventories: Seq[Inventory], title: String) = {
+    val (reportFilePath, pkg, wb) = prepareTemplate("inventory.xlsx")
+    val sheet = wb.getSheetAt(0)
+    sheet.getRow(0).getCell(0).setCellValue(title)
+    sheet.getRow(1).getCell(0).setCellValue(DateTime.now().toString("YYYY/MM/dd"))
+    val cellStyle = createRightAlignStyle()(wb)
+
+    for ((inventory, idx) <- inventories.zipWithIndex) {
+      val rowN = idx / 3 + 3
+      val row = if (idx % 3 == 0)
+        sheet.createRow(rowN)
+      else
+        sheet.getRow(rowN)
+
+      def setInventory(col: Int, value: String): Unit = {
+        val cell = row.createCell(col)
+        cell.setCellStyle(cellStyle)
+        cell.setCellValue(value)
+      }
+
+      val colStart = (idx % 3) * 4
+      setInventory(colStart, inventory.factoryID)
+      setInventory(colStart + 1, inventory.color)
+      setInventory(colStart + 2, inventory.size)
+      setInventory(colStart + 3, toDozenStr(inventory.quantity))
+    }
+    val style = createSumStyle()(wb)
+    val finalRowN = inventories.size / 3 + 4
+    val finalRow = sheet.createRow(finalRowN)
+    val totalCell = finalRow.createCell(0)
+    finalRow.createCell(1).setCellStyle(style)
+    sheet.addMergedRegion(new CellRangeAddress(finalRowN, finalRowN,
+      0, 1))
+    totalCell.setCellValue("Total")
+    totalCell.setCellStyle(style)
+    val sum = inventories.map(_.quantity).sum
+    val sumCell = finalRow.createCell(2)
+    finalRow.createCell(3).setCellStyle(style)
+    sheet.addMergedRegion(new CellRangeAddress(finalRowN, finalRowN,
+      2, 3))
+    sumCell.setCellStyle(style)
+    sumCell.setCellValue(toDozenStr(sum))
+
+    finishExcel(reportFilePath, pkg, wb)
+  }
+
+  def createRightAlignStyle()(implicit wb: XSSFWorkbook) = {
+    val style = wb.createCellStyle();
+    val format = wb.createDataFormat();
+    // Create a new font and alter it.
+    val font = wb.createFont();
+    font.setFontHeightInPoints(16);
+    font.setFontName("標楷體");
+
+    style.setFont(font)
+    style.setAlignment(HorizontalAlignment.RIGHT)
+    style.setBorderBottom(BorderStyle.THIN);
+    style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBorderLeft(BorderStyle.THIN);
+    style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBorderRight(BorderStyle.THIN);
+    style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBorderTop(BorderStyle.THIN);
+    style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+    style
+  }
+
+  def createSumStyle()(implicit wb: XSSFWorkbook) = {
+    val style = wb.createCellStyle();
+    val format = wb.createDataFormat();
+    // Create a new font and alter it.
+    val font = wb.createFont();
+    font.setFontHeightInPoints(20);
+    font.setFontName("標楷體");
+    font.setBold(true)
+
+    style.setFont(font)
+    style.setAlignment(HorizontalAlignment.CENTER)
+    style.setBorderBottom(BorderStyle.THIN);
+    style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBorderLeft(BorderStyle.THIN);
+    style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBorderRight(BorderStyle.THIN);
+    style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBorderTop(BorderStyle.THIN);
+    style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+    style
+  }
 }

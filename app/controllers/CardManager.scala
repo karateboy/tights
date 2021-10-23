@@ -377,7 +377,8 @@ object CardManager extends Controller {
             val rets = waitReadyResult(f)
             val tidyResp =
               if (rets.isEmpty)
-                GetTidyResp(workCard.quantity, workCard.inventory.getOrElse(0), TidyCard.default(param.workCardID, param.phase))
+                GetTidyResp(workCard.quantity, workCard.inventory.getOrElse(0),
+                  TidyCard.default(param.workCardID, param.phase, workCard.stylingDate))
               else
                 GetTidyResp(workCard.quantity, workCard.inventory.getOrElse(0), rets(0))
 
@@ -573,12 +574,69 @@ object CardManager extends Controller {
     }
   }
 
+  def tidyCardReport2(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+    val outputType = OutputType.withName(output)
+    val (start, end) = (new DateTime(startL), new DateTime(endL))
+    val f = TidyCard.queryCardsByStylingDate(startL, endL)
+    for (cards <- f) yield {
+      if (outputType == OutputType.html)
+        Ok(Json.toJson(cards))
+      else {
+        val workCardIdList = cards.map { _.workCardID }
+        val workCardIdSet = Set(workCardIdList: _*)
+        val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
+        val workCards = waitReadyResult(workCardF)
+        val workCardPair = workCards map { card => card._id -> card }
+        val orderIdSet = Set(workCards.map { _.orderId }: _*)
+        val ordersF = Order.getOrders(orderIdSet.toSeq)
+        val orders = waitReadyResult(ordersF)
+        val orderPair = orders map { order => order._id -> order }
+
+        val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
+        Ok.sendFile(excel, fileName = _ =>
+          play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+      }
+    }
+  }
+
   case class StylingReport(cards: Seq[WorkCard], operatorList: Seq[String])
   def stylingReport(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
     val outputType = OutputType.withName(output)
     val (start, end) = (new DateTime(startL), new DateTime(endL))
 
     val f = WorkCard.queryStylingCard(startL, endL)
+    for (cards <- f) yield {
+      var operatorSet = Set.empty[String]
+      for {
+        card <- cards
+        stylingCard = card.stylingCard.get
+      } {
+        operatorSet ++= stylingCard.operator.flatMap { token => token.split("[,.]") }.toSet
+      }
+      val operatorList = operatorSet.toList.sorted
+
+      if (outputType == OutputType.html) {
+        val report = StylingReport(cards, operatorList)
+        implicit val write = Json.writes[StylingReport]
+        Ok(Json.toJson(report))
+      } else {
+        val orderIdSet = Set(cards.map { _.orderId }: _*)
+        val ordersF = Order.getOrders(orderIdSet.toSeq)
+        val orders = waitReadyResult(ordersF)
+        val orderPair = orders map { order => order._id -> order }
+
+        val excel = ExcelUtility.getStylingReport(cards, operatorList, orderPair.toMap, start, end)
+        Ok.sendFile(excel, fileName = _ =>
+          play.utils.UriEncoding.encodePathSegment("定型報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+      }
+    }
+  }
+
+  def stylingReport2(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+    val outputType = OutputType.withName(output)
+    val (start, end) = (new DateTime(startL), new DateTime(endL))
+
+    val f = WorkCard.queryStylingCardByStylingDate(startL, endL)
     for (cards <- f) yield {
       var operatorSet = Set.empty[String]
       for {

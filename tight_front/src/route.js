@@ -28,6 +28,7 @@ import TransferDyeCard from './components/TransferDyeCard.vue'
 import InventoryEdit from './components/InventoryEdit.vue'
 import InventoryDep from './components/InventoryDep.vue'
 import ColorEdit from './components/ColorEdit.vue'
+import InventoryReport from './components/InventoryReport.vue'
 
 export const routes = [{
         path: '/',
@@ -98,7 +99,11 @@ export const routes = [{
             {
                 path: 'ColorEdit',
                 component: ColorEdit
-            }
+            },
+            {
+                path: 'InventoryReport',
+                component: InventoryReport
+            },
         ]
     },
     {

@@ -2,7 +2,7 @@
   <div>
     <div class="form-horizontal">
       <div class="form-group">
-        <label class="col-lg-1 control-label">日期從:</label>
+        <label class="col-lg-2 control-label">日期從:</label>
         <div class="col-lg-5">
           <div class="input-daterange input-group">
             <span class="input-group-addon"
@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="col-lg-1 control-label">至(不含):</label>
+        <label class="col-lg-2 control-label">至(不含):</label>
         <div class="col-lg-5">
           <div class="input-daterange input-group">
             <span class="input-group-addon"
@@ -34,6 +34,7 @@
       <div class="form-group">
         <div class="col-lg-offset-1">
           <button class="btn btn-primary" @click="query">查詢</button>
+          <button class="btn btn-primary mr-2" @click="query2">查詢(依定型日期)</button>
         </div>
       </div>
     </div>
@@ -163,6 +164,28 @@ export default {
           alert(err);
         });
     },
+    query2() {
+      const url =
+        '/StylingReportByStylingDate/' + this.queryParam.start + '/' + this.queryParam.end;
+      axios
+        .get(url)
+        .then(resp => {
+          const ret = resp.data;
+          this.cardList.splice(0, this.cardList.length);
+          for (let card of ret.cards) {
+            cardHelper.populateWorkCard(card);
+            this.cardList.push(card);
+          }
+          this.operatorList.splice(0, this.operatorList.length);
+          for (let operator of ret.operatorList) {
+            this.operatorList.push(operator);
+          }
+          this.showReport = true;
+        })
+        .catch(err => {
+          alert(err);
+        });
+    },
     displayCustomerID(workCard) {
       if (workCard.order) return workCard.order.customerId;
       else return '查詢中';
@@ -191,7 +214,7 @@ export default {
     downloadExcel() {
       const url =
         baseUrl() +
-        '/StylingReport/Excel/' +
+        '/StylingReportByStylingDate/Excel/' +
         this.queryParam.start +
         '/' +
         this.queryParam.end;
