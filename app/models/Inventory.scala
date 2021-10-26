@@ -183,9 +183,6 @@ object Inventory {
   }
 
   def query(param: QueryInventoryParam)(skip: Int, limit: Int) = {
-    import org.mongodb.scala.model.Filters._
-    import org.mongodb.scala.model._
-
     val sort = Sorts.ascending("factoryID", "color", "size", "customerID")
     val filter = getFilter(param)
 

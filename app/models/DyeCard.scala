@@ -7,7 +7,7 @@ import org.mongodb.scala.bson._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json
-
+import org.mongodb.scala.model._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.implicitConversions
@@ -295,17 +295,16 @@ object DyeCard {
     collection.insertOne(card.toDocument).toFuture()
   }
 
-  import org.mongodb.scala.model.Filters._
   def deleteCard(id: String) = {
-    collection.deleteOne(equal("_id", id)).toFuture()
+    collection.deleteOne(Filters.equal("_id", id)).toFuture()
   }
 
   def updateCard(card: DyeCard) = {
-    collection.replaceOne(equal("_id", card._id), card.toDocument).toFuture()
+    collection.replaceOne(Filters.equal("_id", card._id), card.toDocument).toFuture()
   }
 
   def getCard(id: String): Future[Option[DyeCard]] = {
-    val f = collection.find(equal("_id", id)).toFuture()
+    val f = collection.find(Filters.equal("_id", id)).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield {
       if (cards.isEmpty)
@@ -316,8 +315,7 @@ object DyeCard {
   }
 
   def getActiveDyeCards(skip: Int, limit: Int) = {
-    import org.mongodb.scala.model._
-    val f = collection.find(equal("active", true)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
+    val f = collection.find(Filters.equal("active", true)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()
     f.onFailure { errorHandler }
     for (cards <- f) yield cards.map {
       doc =>
@@ -326,8 +324,7 @@ object DyeCard {
   }
 
   def getActiveDyeCardCount(): Future[Long] = {
-    import org.mongodb.scala.model._
-    val f = collection.countDocuments(equal("active", true)).toFuture()
+    val f = collection.countDocuments(Filters.equal("active", true)).toFuture()
     f.onFailure { errorHandler }
     for (countSeq <- f) yield countSeq
   }
@@ -369,9 +366,6 @@ object DyeCard {
   }
 
   def query(param: QueryDyeCardParam)(skip: Int, limit: Int) = {
-    import org.mongodb.scala.model.Filters._
-    import org.mongodb.scala.model._
-
     val filterFuture = getFilter(param)
 
     val docF = filterFuture flatMap {
@@ -390,8 +384,6 @@ object DyeCard {
   }
 
   def count(param: QueryDyeCardParam): Future[Long] = {
-    import org.mongodb.scala.model.Filters._
-    import org.mongodb.scala.model._
     val filterFuture = getFilter(param)
 
     val retF = filterFuture flatMap {
@@ -411,28 +403,24 @@ object DyeCard {
 
   def transferDep(_id: String, dep: String) = {
     val update = Updates.combine(Updates.set("dep", dep), Updates.set("updateTime", DateTime.now().getMillis))
-    collection.updateOne(equal("_id", _id), update).toFuture()
+    collection.updateOne(Filters.equal("_id", _id), update).toFuture()
   }
 
   def startDye(_id: String, operator: String) = {
-    import org.mongodb.scala.model._
     collection.updateOne(
-      equal("_id", _id),
-      and(Updates.set("operator", operator), Updates.set("startTime", DateTime.now.getMillis))).toFuture()
+      Filters.equal("_id", _id),
+      Updates.combine(Updates.set("operator", operator), Updates.set("startTime", DateTime.now.getMillis))).toFuture()
   }
 
   def endDye(_id: String) = {
-    import org.mongodb.scala.model._
     collection.updateOne(
-      equal("_id", _id),
-      and(Updates.set("endTime", DateTime.now.getMillis), Updates.set("active", false))).toFuture()
+      Filters.equal("_id", _id),
+      Updates.combine(Updates.set("endTime", DateTime.now.getMillis), Updates.set("active", false))).toFuture()
   }
 
   def moveWorkCard(workCardId: String, moveOutDyeCardId: String, moveInDyeCardId: String) = {
-    import org.mongodb.scala.model._
-
-    val f1 = collection.updateOne(equal("_id", moveOutDyeCardId), Updates.pull("workIdList", workCardId)).toFuture()
-    val f2 = collection.updateOne(equal("_id", moveInDyeCardId), Updates.addToSet("workIdList", workCardId)).toFuture()
+    val f1 = collection.updateOne(Filters.equal("_id", moveOutDyeCardId), Updates.pull("workIdList", workCardId)).toFuture()
+    val f2 = collection.updateOne(Filters.equal("_id", moveInDyeCardId), Updates.addToSet("workIdList", workCardId)).toFuture()
     import scala.concurrent._
     Future.sequence(List(f1, f2))
   }

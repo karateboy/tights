@@ -175,7 +175,6 @@ object WorkCard {
   }
 
   def updateStylingCard(workCardID: String, stylingCard: StylingCard) = {
-    import org.mongodb.scala.model.Updates
     val now = DateTime.now().getMillis
     val update1 = Updates.combine(
       Updates.set("stylingCard", stylingCard),
