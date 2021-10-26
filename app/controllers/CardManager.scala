@@ -418,12 +418,8 @@ object CardManager extends Controller {
         val f = TidyCard.upsertCard(param.tidyCard, param.inventory, param.quantity, active)
 
         for (rets <- f) yield {
-          if (rets.getMatchedCount() == 0) {
-            Logger.warn("update is empty!")
-            Ok(Json.obj("ok" -> false))
-          } else {
             Ok(Json.obj("ok" -> true))
-          }
+
         }
       })
   }

@@ -390,4 +390,12 @@ object OrderManager extends Controller {
         yield Ok(Json.obj("ok" -> true))
     })
   }
+
+  def getBrandList() = Security.Authenticated.async {
+    val brandListF = SysConfig.getBrandList()
+    for (brandList <- brandListF) yield {
+      val sortedSeq = brandList.sortWith(_.compareTo(_) < 0)
+      Ok(Json.toJson(sortedSeq))
+    }
+  }
 }

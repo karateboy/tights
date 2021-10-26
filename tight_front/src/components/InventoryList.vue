@@ -21,6 +21,7 @@
             <th class="text-center">客戶編號</th>
             <th class="text-center">顏色</th>
             <th class="text-center">尺寸</th>
+            <th class="text-center">品牌</th>
             <th class="text-center">在庫數量</th>
             <th class="text-center">排定用量</th>
             <th class="text-center">流動卡</th>
@@ -46,6 +47,9 @@
             </td>
             <td class="text-right">{{ inventory.color }}</td>
             <td class="text-right">{{ inventory.size }}</td>
+            <td class="text-right">
+              <input type="text" v-model="inventory.brand" />
+            </td>
             <td class="text-right">
               <input type="number" v-model="inventory.quantityStr" />
             </td>

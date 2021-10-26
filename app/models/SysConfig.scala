@@ -96,6 +96,25 @@ object SysConfig {
     allColorSeqF
   }
 
+  val BrandList = "BrandList"
+  def getBrandList() = {
+    val configF = collection.find(Filters.equal("_id", BrandList)).toFuture()
+    configF.onFailure(errorHandler)
+    for (config <- configF) yield {
+      if (config.isEmpty) {
+        Seq.empty[String]
+      } else {
+        implicit val doc = config.head
+        val brandListOpt = getOptionArray(BrandList, _.asString().getValue)
+        brandListOpt.getOrElse(Seq.empty[String])
+      }
+    }
+  }
+  def addBrandList(brands: Seq[String]) =
+    collection.updateOne(
+      Filters.equal("_id", BrandList),
+      Updates.addEachToSet(BrandList, brands: _*), UpdateOptions().upsert(true)).toFuture()
+
   val TrimOrderKey = "TrimOrder"
   def getTrimOrderConfig = get(TrimOrderKey, Document(TrimOrderKey -> false))
   def setTrimOrderConfig(v: Boolean) = upsert(TrimOrderKey, Document(TrimOrderKey -> v))

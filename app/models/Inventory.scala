@@ -10,8 +10,10 @@ import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
 case class Inventory(factoryID: String, color: String, size: String, var quantity: Int,
-                     var loan: Option[Int], var workCardList: Option[Seq[String]], customerID: Option[String])
-case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String], customerID: Option[String])
+                     var loan: Option[Int], var workCardList: Option[Seq[String]], customerID: Option[String],
+                     brand: Option[String])
+case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String],
+                               customerID: Option[String], brand: Option[String])
 
 object Inventory {
   import scala.concurrent._
@@ -54,6 +56,9 @@ object Inventory {
   import org.mongodb.scala.model._
   def upsert(inventory: Inventory) = {
     Logger.debug("upsert inventory=>" + inventory.toString())
+    for(brand<-inventory.brand)
+      SysConfig.addBrandList(Seq(brand.trim))
+
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = ReplaceOptions().upsert(true)
     val f = collection.replaceOne(filter, toDocument(inventory), opt).toFuture()
@@ -172,8 +177,11 @@ object Inventory {
     val customerIdFilter = param.customerID map { customerID =>
       regex("customerID", Pattern.quote(customerID))
     }
+    val brandFilter = param.brand map { brand =>
+      regex("brand", Pattern.quote(brand))
+    }
 
-    val filterList = List(factoryIdFilter, colorFilter, sizeFilter, customerIdFilter).flatMap { f => f }
+    val filterList = List(factoryIdFilter, colorFilter, sizeFilter, customerIdFilter, brandFilter).flatMap { f => f }
     val filter = if (!filterList.isEmpty)
       and(filterList: _*)
     else

@@ -115,7 +115,8 @@ object Query extends Controller {
         for (reports <- reportF) yield {
           val p1 = param.factoryID.getOrElse("")
           val p2 = param.customerID.getOrElse("")
-          val title = s"${p1}${p2}庫存報表"
+          val p3 = param.brand.getOrElse("")
+          val title = s"${p1}${p2}${p3}庫存報表"
           val excel = ExcelUtility.getInventoryReport(reports, title)
           Ok.sendFile(excel, fileName = _ =>
             play.utils.UriEncoding.encodePathSegment(title + ".xlsx", "UTF-8"))

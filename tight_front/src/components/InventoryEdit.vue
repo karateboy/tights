@@ -59,6 +59,24 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="col-lg-1 control-label">品牌:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="inventory.brand" />
+        </div>
+        <div class="col-lg-9">
+          <div class="btn-group" data-toggle="buttons">
+            <label
+              class="btn btn-outline btn-primary"
+              v-for="brand in brandList"
+              :key="brand"
+              @click="inventory.brand = brand"
+            >
+              <input type="radio" />{{ brand }}
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="col-lg-1 control-label">數量(打):</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="dozenNumber" />
@@ -109,12 +127,14 @@ export default {
         customerID: undefined,
         color: undefined,
         size: undefined,
+        brand: undefined,
         quantity: 0,
       },
       loading: false,
       display: false,
       queryParam: {},
       colorList: [],
+      brandList:[],
       sizeList: [
         'XS/S',
         'S/M',
@@ -176,6 +196,7 @@ export default {
       .catch(err => {
         alert(err);
       });
+    this.getBrandList();  
   },
   computed: {
     dozenNumber: {
@@ -197,6 +218,22 @@ export default {
     },
   },
   methods: {
+    getBrandList(){
+      axios
+      .get('/BrandList')
+      .then(resp => {
+        const ret = resp.data;
+        if (resp.status == 200) {
+          this.brandList.splice(0, this.brandList.length);
+          for (let brand of ret) {
+            this.brandList.push(brand);
+          }
+        }
+      })
+      .catch(err => {
+        alert(err);
+      });
+    },
     query() {
       let param = {};
       if (this.inventory.factoryID) param.factoryID = this.inventory.factoryID;
@@ -208,12 +245,14 @@ export default {
       if (this.inventory.customerID)
         param.customerID = this.inventory.customerID;
 
+      if(this.inventory.brand)  
+        param.brand = this.inventory.brand;
+
       if (!this.display) this.display = true;
       this.queryParam = JSON.parse(JSON.stringify(param));
     },
     upsert() {
       let url = `/Inventory`;
-
       axios
         .post(url, this.inventory)
         .then(resp => {
