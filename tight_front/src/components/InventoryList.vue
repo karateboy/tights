@@ -5,16 +5,15 @@
         for="inventoryList"
         :records="total"
         :per-page="15"
-        :options="{
-          texts: {
-            count: '第{from}到第{to}筆/共{count}筆|{count} 筆|1筆',
-          },
-        }"
+        :options="paginationOption"
         v-model="current"
         @paginate="handlePageChange"
       ></pagination>
       <table class="table table-bordered table-condensed">
         <thead>
+          <tr><td colspan="9"><button class="btn btn-info ml-3" @click="upsertAll">
+                <i class="fa fa-check"></i>&nbsp;全部儲存
+              </button></td></tr>
           <tr class="info">
             <th></th>
             <th class="text-center">工廠代號</th>
@@ -34,9 +33,6 @@
             :class="{ success: idx == detail }"
           >
             <td>
-              <button class="btn btn-info" @click="upsert(inventory)">
-                <i class="fa fa-check"></i>&nbsp;儲存
-              </button>
               <button class="btn btn-danger" @click="del(inventory)">
                 <i class="fa fa-check"></i>&nbsp;刪除
               </button>
@@ -80,6 +76,7 @@
 import axios from 'axios';
 // import { Pagination, PaginationEvent } from 'vue-pagination-2';
 import * as dozenExpr from '../dozenExp';
+import MyPagination from './MyPagination.vue'
 
 export default {
   props: {
@@ -99,6 +96,12 @@ export default {
       limit: 15,
       total: 0,
       detail: -1,
+      paginationOption: {
+        template: MyPagination,
+          texts: {
+            count: '第{from}到第{to}筆/共{count}筆|{count} 筆|1筆',
+          },
+      }
     };
   },
   mounted() {
@@ -170,6 +173,16 @@ export default {
         .catch(err => {
           alert(err);
         });
+    },
+    upsertAll(){
+      let allP = [];
+      for(let inventory of this.inventoryList){
+        inventory.quantity = dozenExpr.fromDozenStr(inventory.quantityStr);
+        allP.push(axios.post(`/Inventory`, inventory))
+      }
+      Promise.all(allP).then(() => {
+        alert('成功更新!');
+      });
     },
     del(inventory) {
       let paramJson = encodeURIComponent(JSON.stringify(inventory));
