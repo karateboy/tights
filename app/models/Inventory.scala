@@ -178,7 +178,7 @@ object Inventory {
       regex("customerID", Pattern.quote(customerID))
     }
     val brandFilter = param.brand map { brand =>
-      regex("brand", Pattern.quote(brand))
+      equal("brand", brand)
     }
 
     val filterList = List(factoryIdFilter, colorFilter, sizeFilter, customerIdFilter, brandFilter).flatMap { f => f }

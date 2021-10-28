@@ -309,7 +309,7 @@ object WorkCard {
 
   def getOrderWorkCardShipment(orderId: String, detailIndex: Int): Future[Seq[Int]] = {
     import org.mongodb.scala.model._
-    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).projection(Projections.include("good", "inventory")).toFuture()
+    val f = collection.find(and(equal("orderId", orderId), equal("detailIndex", detailIndex))).toFuture()
     f.onFailure {
       errorHandler
     }
