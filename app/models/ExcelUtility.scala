@@ -176,26 +176,34 @@ object ExcelUtility {
         cell.setCellValue(value)
       }
 
-      val colStart = (idx % 3) * 4
+      val colStart = (idx % 3) * 5
       setInventory(colStart, inventory.factoryID)
-      setInventory(colStart + 1, inventory.color)
-      setInventory(colStart + 2, inventory.size)
-      setInventory(colStart + 3, toDozenStr(inventory.quantity))
+      for(customerID <-inventory.customerID)
+        setInventory(colStart + 1, customerID)
+
+      setInventory(colStart + 2, inventory.color)
+      setInventory(colStart + 3, inventory.size)
+      setInventory(colStart + 4, toDozenStr(inventory.quantity))
     }
     val style = createSumStyle()(wb)
-    val finalRowN = inventories.size / 3 + 4
+    val finalRowN = if(inventories.size % 3 == 0)
+      inventories.size / 3 + 3
+    else
+      inventories.size / 3 + 4
     val finalRow = sheet.createRow(finalRowN)
-    val totalCell = finalRow.createCell(0)
-    finalRow.createCell(1).setCellStyle(style)
+    for(i <- 0 to 14){
+      finalRow.createCell(i).setCellStyle(style)
+    }
+
     sheet.addMergedRegion(new CellRangeAddress(finalRowN, finalRowN,
-      0, 1))
+      0, 7))
+    val totalCell = finalRow.getCell(0)
     totalCell.setCellValue("Total")
     totalCell.setCellStyle(style)
     val sum = inventories.map(_.quantity).sum
-    val sumCell = finalRow.createCell(2)
-    finalRow.createCell(3).setCellStyle(style)
     sheet.addMergedRegion(new CellRangeAddress(finalRowN, finalRowN,
-      2, 3))
+      8, 14))
+    val sumCell = finalRow.getCell(8)
     sumCell.setCellStyle(style)
     sumCell.setCellValue(toDozenStr(sum))
 
@@ -234,13 +242,13 @@ object ExcelUtility {
 
     style.setFont(font)
     style.setAlignment(HorizontalAlignment.CENTER)
-    style.setBorderBottom(BorderStyle.THIN);
+    style.setBorderBottom(BorderStyle.DOUBLE);
     style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
-    style.setBorderLeft(BorderStyle.THIN);
+    style.setBorderLeft(BorderStyle.DOUBLE);
     style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
-    style.setBorderRight(BorderStyle.THIN);
+    style.setBorderRight(BorderStyle.DOUBLE);
     style.setRightBorderColor(IndexedColors.BLACK.getIndex());
-    style.setBorderTop(BorderStyle.THIN);
+    style.setBorderTop(BorderStyle.DOUBLE);
     style.setTopBorderColor(IndexedColors.BLACK.getIndex());
     style
   }
