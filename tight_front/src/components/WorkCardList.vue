@@ -21,7 +21,7 @@
               <div class="form-group">
                 <label class="col-lg-3 control-label">原漂染卡號:</label>
                 <div class="col-lg-9">
-                  <p>{{workCard.dyeCardID}}</p>
+                  <p>{{ workCard.dyeCardID }}</p>
                 </div>
               </div>
               <div class="form-group">
@@ -32,7 +32,7 @@
                       class="btn btn-outline btn-primary dim"
                       v-for="dyeCard in targetDyeCardList"
                       :key="dyeCard._id"
-                      @click="targetDyeCard=dyeCard"
+                      @click="targetDyeCard = dyeCard"
                     >
                       <input type="radio" />
                       {{ dyeCard._id }}
@@ -43,13 +43,17 @@
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-white" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-white" data-dismiss="modal">
+              取消
+            </button>
             <button
               type="button"
               class="btn btn-primary"
               data-dismiss="modal"
               @click="applyChangeDyeCard"
-            >確認</button>
+            >
+              確認
+            </button>
           </div>
         </div>
       </div>
@@ -74,29 +78,49 @@
             <form>
               <div class="form-group">
                 <label class="col-lg-3 control-label">數量:</label>
-                <input type="text" class="form-control" v-model="workCard.newQuantity" />
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model="workCard.newQuantity"
+                />
               </div>
               <div class="form-group">
                 <label class="col-lg-3 control-label">從庫存:</label>
-                <input type="text" class="form-control" v-model="workCard.newInventory" />
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model="workCard.newInventory"
+                />
               </div>
             </form>
             <br />
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-white" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-white" data-dismiss="modal">
+              取消
+            </button>
             <button
               type="button"
               class="btn btn-primary"
               data-dismiss="modal"
               @click="updateWorkCard"
-            >確認</button>
+            >
+              確認
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <div v-if="workCardList.length != 0">
+      <pagination
+        for="workCardList"
+        :records="total"
+        :per-page="5"
+        :options="paginationOption"
+        v-model="current"
+        @paginate="handlePageChange"
+      ></pagination>
       <table class="table table-bordered table-condensed">
         <thead>
           <tr class="info">
@@ -120,7 +144,7 @@
           <tr
             v-for="(workCard, idx) in workCardList"
             :key="workCard._id"
-            :class="{success:idx==detail}"
+            :class="{ success: idx == detail }"
           >
             <td>
               <button class="btn btn-info" @click="showDetail(idx)">
@@ -143,55 +167,63 @@
                 <i class="fa fa-exchange"></i>&nbsp;轉換漂染卡
               </button>
             </td>
-            <td class="text-right">{{workCard._id}}</td>
-            <td class="text-right">{{workCard.orderId}}</td>
-            <td class="text-right">{{displayGoodQuantity(workCard)}}</td>
-            <td class="text-right">{{displayQuantity(workCard.inventory)}}</td>
-            <td class="text-right">{{displayName(workCard)}}</td>
-            <td class="text-right">{{displayColor(workCard)}}</td>
-            <td class="text-right">{{displaySize(workCard)}}</td>
-            <td class="text-right">{{workCard.dyeCardID}}</td>
-            <td class="text-right">{{displayTime(workCard.startTime)}}</td>
+            <td class="text-right">{{ workCard._id }}</td>
+            <td class="text-right">{{ workCard.orderId }}</td>
+            <td class="text-right">{{ displayGoodQuantity(workCard) }}</td>
+            <td class="text-right">
+              {{ displayQuantity(workCard.inventory) }}
+            </td>
+            <td class="text-right">{{ displayName(workCard) }}</td>
+            <td class="text-right">{{ displayColor(workCard) }}</td>
+            <td class="text-right">{{ displaySize(workCard) }}</td>
+            <td class="text-right">{{ workCard.dyeCardID }}</td>
+            <td class="text-right">{{ displayTime(workCard.startTime) }}</td>
             <td>
               <i
                 class="fa fa-hourglass-half"
                 style="color:red"
                 aria-hidden="true"
                 v-if="workCard.active"
-              >處理中</i>
-              <i class="fa fa-check" style="color:green" aria-hidden="true" v-else>結束</i>
+                >處理中</i
+              >
+              <i
+                class="fa fa-check"
+                style="color:green"
+                aria-hidden="true"
+                v-else
+                >結束</i
+              >
             </td>
           </tr>
         </tbody>
       </table>
-      <pagination for="workCardList" :records="total" :per-page="5" :options="paginationOption"></pagination>
     </div>
     <div v-else class="alert alert-info" role="alert">沒有符合的流動卡</div>
     <hr />
-    <div v-if="detail>=0">
+    <div v-if="detail >= 0">
       <work-card-detail :workCard="workCard"></work-card-detail>
     </div>
   </div>
 </template>
-<style>
-</style>
+<style></style>
 <script>
-import moment from "moment";
-import axios from "axios";
-import { Pagination, PaginationEvent } from "vue-pagination-2";
-import cardHelper from "../cardHelper";
-import WorkCardDetail from "./WorkCardDetail.vue";
-import * as dozenExpr from "../dozenExp";
+import moment from 'moment';
+import axios from 'axios';
+import cardHelper from '../cardHelper';
+import WorkCardDetail from './WorkCardDetail.vue';
+import * as dozenExpr from '../dozenExp';
+import MyPagination from './MyPagination.vue'
+
 
 export default {
   props: {
     url: {
       type: String,
-      required: true
+      required: true,
     },
     param: {
-      type: [Object, Array]
-    }
+      type: [Object, Array],
+    },
   },
   data() {
     return {
@@ -199,20 +231,21 @@ export default {
       skip: 0,
       limit: 5,
       total: 0,
+      current: 1,
       detail: -1,
       workCard: {},
       targetDyeCardList: [],
       targetDyeCard: {},
       paginationOption: {
+        template: MyPagination,
         texts: {
-          count: "第{from}到第{to}筆/共{count}筆|{count} 筆|1筆"
-        }
-      }
+          count: '第{from}到第{to}筆/共{count}筆|{count} 筆|1筆',
+        },
+      },
     };
   },
   mounted: function() {
     this.fetchCard(this.skip, this.limit);
-    PaginationEvent.$on("vue-pagination::workCardList", this.handlePageChange);
   },
   watch: {
     url: function() {
@@ -220,7 +253,7 @@ export default {
     },
     param: function() {
       this.fetchCard(this.skip, this.limit);
-    }
+    },
   },
 
   methods: {
@@ -230,7 +263,7 @@ export default {
         .color;
 
       axios
-        .post("/QueryDyeCard/0/100", { color: targetColor, active: true })
+        .post('/QueryDyeCard/0/100', { color: targetColor, active: true })
         .then(resp => {
           const ret = resp.data;
           this.targetDyeCardList.splice(0, this.targetDyeCardList.length);
@@ -247,8 +280,8 @@ export default {
       let newQuantity = this.displayQuantity(this.workCardList[idx].quantity);
       let newInventory = this.displayQuantity(this.workCardList[idx].inventory);
       this.workCard = this.workCardList[idx];
-      this.$set(this.workCard, "newQuantity", newQuantity);
-      this.$set(this.workCard, "newInventory", newInventory);
+      this.$set(this.workCard, 'newQuantity', newQuantity);
+      this.$set(this.workCard, 'newInventory', newInventory);
     },
     updateWorkCard() {
       this.workCard.quantity = dozenExpr.fromDozenStr(
@@ -259,12 +292,12 @@ export default {
       );
       this.workCard.good = this.workCard.quantity - this.workCard.inventory;
       axios
-        .post("/WorkCard", this.workCard)
+        .post('/WorkCard', this.workCard)
         .then(resp => {
           const ret = resp.data;
           if (ret.ok) {
-            alert("成功");
-          } else alert("失敗:" + ret.msg);
+            alert('成功');
+          } else alert('失敗:' + ret.msg);
         })
         .catch(err => {
           alert(err);
@@ -278,8 +311,8 @@ export default {
           const ret = resp.data;
           if (ret.Ok) {
             this.workCard.dyeCardID = this.targetDyeCard._id;
-            alert("成功");
-          } else alert("失敗");
+            alert('成功');
+          } else alert('失敗');
         })
         .catch(err => {
           alert(err);
@@ -341,7 +374,7 @@ export default {
     },
 
     displayTime(millis) {
-      return moment(millis).format("LLL");
+      return moment(millis).format('LLL');
     },
     showDetail(idx) {
       this.workCard = this.workCardList[idx];
@@ -350,33 +383,32 @@ export default {
     displayName(workCard) {
       if (workCard.order.details != null) {
         return workCard.order.name;
-      } else return "查詢中";
+      } else return '查詢中';
     },
     displayColor(workCard) {
       if (workCard.order.details != null) {
         return workCard.order.details[workCard.detailIndex].color;
-      } else return "查詢中";
+      } else return '查詢中';
     },
     displaySize(workCard) {
       if (workCard.order && workCard.order.details) {
         return workCard.order.details[workCard.detailIndex].size;
-      } else return "查詢中";
+      } else return '查詢中';
     },
     displayGoodQuantity(workCard) {
       //workCard.good + "/" +workCard.quantity
       return (
         dozenExpr.toDozenStr(workCard.good) +
-        "/" +
+        '/' +
         dozenExpr.toDozenStr(workCard.quantity)
       );
     },
     displayQuantity(v) {
       return dozenExpr.toDozenStr(v);
-    }
+    },
   },
   components: {
     WorkCardDetail,
-    Pagination
-  }
+  },
 };
 </script>
