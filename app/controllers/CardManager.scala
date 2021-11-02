@@ -565,7 +565,7 @@ object CardManager extends Controller {
 
         val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
-          play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+          play.utils.UriEncoding.encodePathSegment("整理報表(輸入日期)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }
     }
   }
@@ -590,7 +590,7 @@ object CardManager extends Controller {
 
         val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
-          play.utils.UriEncoding.encodePathSegment("整理報表" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+          play.utils.UriEncoding.encodePathSegment("整理報表(定型日期)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }
     }
   }

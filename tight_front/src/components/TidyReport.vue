@@ -47,13 +47,22 @@
         data-placement="bottom"
         title="Excel"
         ><a @click.prevent="downloadExcel"
-          ><i class="fa fa-file-excel-o fa-2x"></i></a
+          ><i class="fa fa-file-excel-o fa-2x"></i>輸入日期</a
+      ></label>
+      <label
+        class="btn btn-outline"
+        data-toggle="tooltip"
+        data-placement="bottom"
+        title="Excel"
+        ><a @click.prevent="downloadExcelByStylingDate"
+          ><i class="fa fa-file-excel-o fa-2x"></i>定型日期</a
       ></label>
       <table class="table  table-bordered table-condensed">
         <thead>
           <tr class="info">
             <th>定型日期</th>
             <th>輸入日期</th>
+            <th>結束日期</th>
             <th>流動卡編號</th>
             <th>客戶編碼</th>
             <th>工廠代碼</th>
@@ -73,8 +82,9 @@
             v-for="card in cardList"
             :key="card._id.workCardID + card._id.phase"
           >
-            <td></td>
+            <td>{{ displayDate(card.stylingDate) }}</td>
             <td>{{ displayDate(card.date) }}</td>
+            <td>{{ displayDate(card.finishDate) }}</td>
             <td>{{ card._id.workCardID }}</td>
             <td>{{ displayCustomerID(card) }}</td>
             <td>{{ displayFactoryID(card) }}</td>
@@ -208,7 +218,8 @@ export default {
       } else return '查詢中';
     },
     displayDate(mm) {
-      return moment(mm).format('YYYY-MM-DD');
+      if (mm) return moment(mm).format('YYYY-MM-DD');
+      else return '';
     },
     displayQuantity(v) {
       return dozenExp.toDozenStr(v);
@@ -216,7 +227,16 @@ export default {
     downloadExcel() {
       const url =
         baseUrl() +
-        '/TidyReportByStylingDate/' +
+        '/TidyReport/Excel/' +
+        this.queryParam.start +
+        '/' +
+        this.queryParam.end;
+      window.open(url);
+    },
+    downloadExcelByStylingDate() {
+      const url =
+        baseUrl() +
+        '/TidyReportByStylingDate/Excel/' +
         this.queryParam.start +
         '/' +
         this.queryParam.end;

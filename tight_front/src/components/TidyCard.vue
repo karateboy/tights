@@ -11,28 +11,26 @@
       </thead>
       <tbody>
         <tr>
-          <td>{{workCardOrderID}}</td>
-          <td>{{workCardName}}</td>
-          <td>{{wordCardColor}}</td>
-          <td>{{workCardSize}}</td>
+          <td>{{ workCardOrderID }}</td>
+          <td>{{ workCardName }}</td>
+          <td>{{ wordCardColor }}</td>
+          <td>{{ workCardSize }}</td>
         </tr>
       </tbody>
     </table>
-    <div class="alert alert-info" role="alert">工作卡總量: {{ displayDozenStr(quantity) }}</div>
+    <div class="alert alert-info" role="alert">
+      工作卡總量: {{ displayDozenStr(quantity) }}
+    </div>
     <div class="form-horizontal">
       <div class="form-group">
         <label class="col-lg-1 control-label">優:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.good" />
         </div>
-      </div>
-      <div class="form-group">
         <label class="col-lg-1 control-label">副:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.sub" />
         </div>
-      </div>
-      <div class="form-group">
         <label class="col-lg-1 control-label">副未包:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.subNotPack" />
@@ -43,11 +41,13 @@
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.stain" />
         </div>
-      </div>
-      <div class="form-group">
         <label class="col-lg-1 control-label">長短:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.longShort" />
+        </div>
+        <label class="col-lg-1 control-label">破:</label>
+        <div class="col-lg-2">
+          <input type="text" class="form-control" v-model="myCard.broken" />
         </div>
       </div>
       <div class="form-group">
@@ -55,14 +55,10 @@
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.broken" />
         </div>
-      </div>
-      <div class="form-group">
         <label class="col-lg-1 control-label">不均:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.notEven" />
         </div>
-      </div>
-      <div class="form-group">
         <label class="col-lg-1 control-label">油:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.oil" />
@@ -73,13 +69,28 @@
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.head" />
         </div>
-      </div>
-      <div class="form-group">
+        <label class="col-lg-1 control-label">完成日期:</label>
+        <div class="col-lg-2">
+          <div class="input-daterange input-group">
+            <span class="input-group-addon"
+              ><i class="fa fa-calendar"></i
+            ></span>
+            <datepicker
+              v-model="finishDate"
+              language="zh"
+              format="yyyy-MM-dd"
+            ></datepicker>
+          </div>
+        </div>
         <label class="col-lg-1 control-label">工號:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.operator" />
-        </div>
+        </div>        
       </div>
+      <div class="form-group">
+        
+      </div>
+
       <div class="alert alert-info" role="alert">更新實際使用的庫存</div>
       <div class="form-group">
         <label class="col-lg-1 control-label">庫存:</label>
@@ -92,33 +103,35 @@
           <button class="btn btn-primary" @click="update">更新</button>
         </div>
         <div v-show="displayFinishBtn" class="col-lg-1">
-          <button class="btn btn-primary" @click="close">更新並結束工作卡</button>
+          <button class="btn btn-primary" @click="close">
+            更新並結束工作卡
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
-<style>
-</style>
+<style></style>
 <script>
-import axios from "axios";
-import { fromDozenStr, toDozenStr } from "../dozenExp";
-import cardHelper from "../cardHelper";
+import axios from 'axios';
+import { fromDozenStr, toDozenStr } from '../dozenExp';
+import cardHelper from '../cardHelper';
+import Datepicker from 'vuejs-datepicker';
 
 export default {
   props: {
     tidyCard: {
       type: Object,
-      required: true
+      required: true,
     },
     quantity: {
       type: Number,
-      required: true
+      required: true,
     },
     inventory: {
       type: Number,
-      required: true
-    }
+      required: true,
+    },
   },
   watch: {
     tidyCard(newTidyCard) {
@@ -134,7 +147,7 @@ export default {
         (this.myCard.operator = newTidyCard.operator);
       this.myCard.workCardID = newTidyCard.workCardID;
       cardHelper.populateTidyCard(this.myCard);
-    }
+    },
   },
   data() {
     return {
@@ -150,36 +163,51 @@ export default {
         head: toDozenStr(this.tidyCard.head),
         operator: this.tidyCard.operator,
         workCardID: this.tidyCard.workCardID,
-        workCard: {}
+        workCard: {},
       },
-      inventoryStr: toDozenStr(this.inventory)
+      inventoryStr: toDozenStr(this.inventory),
     };
   },
   mounted() {
     cardHelper.populateTidyCard(this.myCard);
   },
   computed: {
+    finishDate: {
+      get: function() {
+        if (this.tidyCard.finishDate)
+          return moment(this.tidyCard.finishDate).toDate();
+        else {
+          const start = moment('0', 'hh').subtract(1, 'days').toDate();
+          this.tidyCard.finishDate = start.getTime();
+          return start;
+        }
+      },
+      // setter
+      set: function(newValue) {
+        this.tidyCard.finishDate = newValue.getTime();
+      },
+    },
     displayUpdateBtn() {
       if (
-        this.tidyCard._id.phase === "檢襪" ||
-        this.tidyCard._id.phase === "車洗標" ||
-        this.tidyCard._id.phase === "剪線頭"
+        this.tidyCard._id.phase === '檢襪' ||
+        this.tidyCard._id.phase === '車洗標' ||
+        this.tidyCard._id.phase === '剪線頭'
       )
         return true;
       else return false;
     },
     displayFinishBtn() {
       if (
-        this.tidyCard._id.phase === "檢襪" ||
-        this.tidyCard._id.phase === "車洗標" ||
-        this.tidyCard._id.phase === "剪線頭"
+        this.tidyCard._id.phase === '檢襪' ||
+        this.tidyCard._id.phase === '車洗標' ||
+        this.tidyCard._id.phase === '剪線頭'
       )
         return false;
       else return true;
     },
     workCardOrderID() {
       if (this.myCard.workCard.orderId) return this.myCard.workCard.orderId;
-      else return "查詢中";
+      else return '查詢中';
     },
     workCardName() {
       if (
@@ -188,7 +216,7 @@ export default {
         this.myCard.workCard.order.name
       ) {
         return this.myCard.workCard.order.name;
-      } else return "查詢中";
+      } else return '查詢中';
     },
     wordCardColor() {
       if (
@@ -199,7 +227,7 @@ export default {
         return this.myCard.workCard.order.details[
           this.myCard.workCard.detailIndex
         ].color;
-      } else return "查詢中";
+      } else return '查詢中';
     },
     workCardSize() {
       if (
@@ -210,14 +238,14 @@ export default {
         return this.myCard.workCard.order.details[
           this.myCard.workCard.detailIndex
         ].size;
-      } else return "查詢中";
-    }
+      } else return '查詢中';
+    },
   },
   methods: {
     prepareTidyCard() {
       this.tidyCard.good = fromDozenStr(this.myCard.good);
       if (this.tidyCard.good == null) {
-        alert("優不能是空白");
+        alert('優不能是空白');
         return false;
       }
 
@@ -231,8 +259,8 @@ export default {
       this.tidyCard.head = fromDozenStr(this.myCard.head);
       this.tidyCard.operator = this.myCard.operator;
 
-      if (this.tidyCard.operator == null || this.tidyCard.operator == "") {
-        alert("工號不可是空白");
+      if (this.tidyCard.operator == null || this.tidyCard.operator == '') {
+        alert('工號不可是空白');
         return false;
       }
 
@@ -254,17 +282,17 @@ export default {
         inventory;
 
       axios
-        .post("/TidyCard", {
+        .post('/TidyCard', {
           tidyCard: this.tidyCard,
           inventory,
-          quantity: total
+          quantity: total,
         })
         .then(resp => {
           const ret = resp.data;
           if (ret.ok) {
-            alert("成功");
-            this.$emit("updated");
-          } else alert("失敗:" + ret.msg);
+            alert('成功');
+            this.$emit('updated');
+          } else alert('失敗:' + ret.msg);
         })
         .catch(err => {
           alert(err);
@@ -283,23 +311,25 @@ export default {
         inventory;
 
       axios
-        .post("/FinalTidyCard", {
+        .post('/FinalTidyCard', {
           tidyCard: this.tidyCard,
           inventory,
-          quantity: total
+          quantity: total,
         })
         .then(resp => {
           const ret = resp.data;
           if (ret.ok) {
-            alert("成功");
-            this.$emit("updated");
-          } else alert("失敗:" + ret.msg);
+            alert('成功');
+            this.$emit('updated');
+          } else alert('失敗:' + ret.msg);
         })
         .catch(err => {
           alert(err);
         });
-    }
+    },
   },
-  components: {}
+  components: {
+    Datepicker,
+  },
 };
 </script>

@@ -15,7 +15,7 @@ case class TidyID(workCardID: String, phase: String)
 case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int,
                     sub: Option[Int], subNotPack: Option[Int], stain: Option[Int], longShort: Option[Int],
                     broken: Option[Int], notEven: Option[Int], oil: Option[Int], head: Option[Int],
-                    var date: Long, stylingDate: Option[Long])
+                    var date: Long, stylingDate: Option[Long], finishDate: Option[Long])
 
 
 object TidyCard {
@@ -45,7 +45,7 @@ object TidyCard {
 
   def default(workCardID: String, phase: String, stylingDate: Option[Long]) =
     TidyCard(TidyID(workCardID, phase), workCardID, phase, "", 0, None, None, None,
-      None, None, None, None, None, 0, stylingDate = stylingDate)
+      None, None, None, None, None, 0, stylingDate = stylingDate, finishDate = None)
 
   implicit val idRead = Json.reads[TidyID]
   implicit val idWrite = Json.writes[TidyID]

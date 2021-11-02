@@ -26,29 +26,40 @@ object ExcelUtility {
     for {
       card_idx <- cardList.zipWithIndex
       card = card_idx._1
-      stylingDate <- card.stylingDate
       rowN = card_idx._2 + 3
     } {
       val row = sheet.createRow(rowN)
-      val date = new DateTime(stylingDate)
+
       val workCard = workCardMap(card.workCardID)
       val order = orderMap(workCard.orderId)
 
-      row.createCell(0).setCellValue(date.toString("MM-dd"))
-      row.createCell(1).setCellValue(workCard.orderId)
-      row.createCell(2).setCellValue(order.customerId)
-      row.createCell(3).setCellValue(order.factoryId)
-      row.createCell(4).setCellValue(order.details(workCard.detailIndex).color)
-      row.createCell(5).setCellValue(order.details(workCard.detailIndex).size)
-      row.createCell(6).setCellValue(order.name)
-      row.createCell(7).setCellValue(card.workCardID)
-      row.createCell(8).setCellValue(card.phase)
-      row.createCell(9).setCellValue(toDozenStr(card.good))
-      row.createCell(10).setCellValue(toDozenStr(card.sub))
-      row.createCell(11).setCellValue(toDozenStr(card.stain))
-      row.createCell(12).setCellValue(toDozenStr(card.broken))
-      row.createCell(13).setCellValue(toDozenStr(card.subNotPack))
-      row.createCell(14).setCellValue(card.operator)
+      for(stylingDate <- card.stylingDate){
+        val date = new DateTime(stylingDate)
+        row.createCell(0).setCellValue(date.toString("MM-dd"))
+      }
+      {
+        val date = new DateTime(card.date)
+        row.createCell(1).setCellValue(date.toString("MM-dd"))
+      }
+      for(finishDate <- card.finishDate){
+        val date = new DateTime(finishDate)
+        row.createCell(2).setCellValue(date.toString("MM-dd"))
+      }
+
+      row.createCell(3).setCellValue(workCard.orderId)
+      row.createCell(4).setCellValue(order.customerId)
+      row.createCell(5).setCellValue(order.factoryId)
+      row.createCell(6).setCellValue(order.details(workCard.detailIndex).color)
+      row.createCell(7).setCellValue(order.details(workCard.detailIndex).size)
+      row.createCell(8).setCellValue(order.name)
+      row.createCell(9).setCellValue(card.workCardID)
+      row.createCell(10).setCellValue(card.phase)
+      row.createCell(11).setCellValue(toDozenStr(card.good))
+      row.createCell(12).setCellValue(toDozenStr(card.sub))
+      row.createCell(13).setCellValue(toDozenStr(card.stain))
+      row.createCell(14).setCellValue(toDozenStr(card.broken))
+      row.createCell(15).setCellValue(toDozenStr(card.subNotPack))
+      row.createCell(16).setCellValue(card.operator)
     }
 
     finishExcel(reportFilePath, pkg, wb)
