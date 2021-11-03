@@ -9,11 +9,16 @@
         v-model="current"
         @paginate="handlePageChange"
       ></pagination>
+      <h3>數量總計:{{ quantityTotal }}</h3>
       <table class="table table-bordered table-condensed">
         <thead>
-          <tr><td colspan="9"><button class="btn btn-info ml-3" @click="upsertAll">
+          <tr>
+            <td colspan="9">
+              <button class="btn btn-info ml-3" @click="upsertAll">
                 <i class="fa fa-check"></i>&nbsp;全部儲存
-              </button></td></tr>
+              </button>
+            </td>
+          </tr>
           <tr class="info">
             <th></th>
             <th class="text-center">工廠代號</th>
@@ -76,7 +81,7 @@
 import axios from 'axios';
 // import { Pagination, PaginationEvent } from 'vue-pagination-2';
 import * as dozenExpr from '../dozenExp';
-import MyPagination from './MyPagination.vue'
+import MyPagination from './MyPagination.vue';
 
 export default {
   props: {
@@ -89,6 +94,7 @@ export default {
     },
   },
   data() {
+    let quantityTotal = '';
     return {
       inventoryList: [],
       current: 1,
@@ -98,10 +104,11 @@ export default {
       detail: -1,
       paginationOption: {
         template: MyPagination,
-          texts: {
-            count: '第{from}到第{to}筆/共{count}筆|{count} 筆|1筆',
-          },
-      }
+        texts: {
+          count: '第{from}到第{to}筆/共{count}筆|{count} 筆|1筆',
+        },
+      },
+      quantityTotal,
     };
   },
   mounted() {
@@ -154,6 +161,19 @@ export default {
         .catch(err => {
           alert(err);
         });
+      this.getQuantityTotal();
+    },
+    getQuantityTotal() {
+      let paramJson = encodeURIComponent(JSON.stringify(this.param));
+      let request_url = `${this.url}/${paramJson}/total`;
+      axios
+        .get(request_url, this.param)
+        .then(resp => {
+          this.quantityTotal =  dozenExpr.toDozenStr(resp.data);
+        })
+        .catch(err => {
+          alert(err);
+        });
     },
     handlePageChange(page) {
       this.skip = (page - 1) * this.limit;
@@ -174,11 +194,11 @@ export default {
           alert(err);
         });
     },
-    upsertAll(){
+    upsertAll() {
       let allP = [];
-      for(let inventory of this.inventoryList){
+      for (let inventory of this.inventoryList) {
         inventory.quantity = dozenExpr.fromDozenStr(inventory.quantityStr);
-        allP.push(axios.post(`/Inventory`, inventory))
+        allP.push(axios.post(`/Inventory`, inventory));
       }
       Promise.all(allP).then(() => {
         alert('成功更新!');
@@ -224,7 +244,7 @@ export default {
     },
   },
   components: {
-//    Pagination,
+    //    Pagination,
   },
 };
 </script>

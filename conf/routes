@@ -87,6 +87,7 @@ GET      /barcode/:fileName                         controllers.CardManager.getB
 
 GET      /QueryInventory/Excel/:param               controllers.Query.getInventoryReport(param)
 GET      /QueryInventory/:param/count               controllers.Query.queryInventoryCount(param)
+GET      /QueryInventory/:param/total               controllers.Query.queryInventoryTotal(param)
 GET      /QueryInventory/:param/:skip/:limit        controllers.Query.queryInventory(param, skip:Int, limit:Int)
 POST     /Inventory                                 controllers.Query.upsertInventory
 DELETE   /Inventory/:param                          controllers.Query.deleteInventory(param)

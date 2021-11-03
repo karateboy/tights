@@ -18,9 +18,15 @@ case class QueryInventoryParam(factoryID: Option[String], color: Option[String],
 object Inventory {
   import scala.concurrent._
   import scala.concurrent.duration._
+  import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
+  import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
+  import org.mongodb.scala.bson.codecs.Macros._
+  import org.mongodb.scala.model.Indexes.ascending
 
   val ColName = "inventory"
-  val collection = MongoDB.database.getCollection(ColName)
+  val codecRegistry = fromRegistries(fromProviders(classOf[Inventory]), DEFAULT_CODEC_REGISTRY)
+  val collection = MongoDB.database.getCollection[Inventory](ColName).withCodecRegistry(codecRegistry)
+
   implicit val reads = Json.reads[Inventory]
   implicit val write = Json.writes[Inventory]
   implicit val readQ = Json.reads[QueryInventoryParam]
@@ -61,7 +67,7 @@ object Inventory {
 
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = ReplaceOptions().upsert(true)
-    val f = collection.replaceOne(filter, toDocument(inventory), opt).toFuture()
+    val f = collection.replaceOne(filter, inventory, opt).toFuture()
     f.onFailure(errorHandler)
     f
   }
@@ -86,14 +92,13 @@ object Inventory {
       Updates.pull("workCardList", workCardID), FindOneAndUpdateOptions().returnDocument(AFTER)).toFuture()
 
     for {
-      updatedDocs <- f
-      inventory = toInventory(updatedDocs)
+      inventory <- f
       workCardList = inventory.workCardList.getOrElse(Seq.empty[String])
       (newLoan, newWorkCardList) <- calculateLoan(workCardList)
     } {
       inventory.loan = Some(newLoan)
       inventory.workCardList = Some(newWorkCardList)
-      collection.replaceOne(getFilter(inventory), toDocument(inventory)).toFuture()
+      collection.replaceOne(getFilter(inventory), inventory).toFuture()
     }
   }
 
@@ -117,7 +122,7 @@ object Inventory {
     for {
       docSeq <- collection.find(filter).toFuture()
       doc <- docSeq
-      inventory = toInventory(doc)
+      inventory = doc
       workCardList <- inventory.workCardList
       (newLoan, newWorkCardList) <- calculateLoan(workCardList)
     } {
@@ -129,7 +134,7 @@ object Inventory {
         
         inventory.loan = Some(newLoan)
         inventory.workCardList = Some(newWorkCardList)
-        collection.replaceOne(filter, toDocument(inventory)).toFuture()
+        collection.replaceOne(filter, inventory).toFuture()
       }
     }
   }
@@ -152,7 +157,7 @@ object Inventory {
       if (docs.isEmpty)
         0
       else {
-        val inventory = toInventory(docs.head)
+        val inventory = docs.head
         inventory.quantity - inventory.loan.getOrElse(0)
       }
     }
@@ -201,7 +206,7 @@ object Inventory {
 
     for (records <- f)
       yield records map {
-      doc => toInventory(doc)
+      doc => doc
     }
   }
 
@@ -215,6 +220,19 @@ object Inventory {
 
     for (countSeq <- f)
       yield countSeq
+  }
+
+  def total(param: QueryInventoryParam) = {
+    val filter = getFilter(param)
+
+    val f = collection.find(filter).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+
+    for (docs <- f) yield
+      docs.map(_.quantity).sum
+
   }
 
   def delete(param: QueryInventoryParam) = {

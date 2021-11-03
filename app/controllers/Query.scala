@@ -99,6 +99,25 @@ object Query extends Controller {
       })
   }
 
+  def queryInventoryTotal(json: String) = Security.Authenticated.async {
+    implicit request =>
+      implicit val reads = Json.reads[QueryInventoryParam]
+
+      val result = Json.parse(json).validate[QueryInventoryParam]
+
+      result.fold(err => {
+        Future {
+          Logger.error(JsError.toJson(err).toString())
+          BadRequest(JsError.toJson(err).toString())
+        }
+      }, param => {
+        val fCount = Inventory.total(param)
+        for (count <- fCount) yield {
+          Ok(Json.toJson(count))
+        }
+      })
+  }
+
   def getInventoryReport(json: String) = Security.Authenticated.async {
     implicit request =>
       implicit val reads = Json.reads[QueryInventoryParam]
