@@ -7,6 +7,8 @@
           <th class="text-center">品項</th>
           <th class="text-center">顏色</th>
           <th class="text-center">尺寸</th>
+          <th class="text-center">工廠代號</th>
+          <th class="text-center">客戶編號</th>
         </tr>
       </thead>
       <tbody>
@@ -15,6 +17,8 @@
           <td>{{ workCardName }}</td>
           <td>{{ wordCardColor }}</td>
           <td>{{ workCardSize }}</td>
+          <td>{{ factoryId }}</td>
+          <td>{{ customerId }}</td>
         </tr>
       </tbody>
     </table>
@@ -85,11 +89,9 @@
         <label class="col-lg-1 control-label">工號:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.operator" />
-        </div>        
+        </div>
       </div>
-      <div class="form-group">
-        
-      </div>
+      <div class="form-group"></div>
 
       <div class="alert alert-info" role="alert">更新實際使用的庫存</div>
       <div class="form-group">
@@ -177,7 +179,9 @@ export default {
         if (this.tidyCard.finishDate)
           return moment(this.tidyCard.finishDate).toDate();
         else {
-          const start = moment('0', 'hh').subtract(1, 'days').toDate();
+          const start = moment('0', 'hh')
+            .subtract(1, 'days')
+            .toDate();
           this.tidyCard.finishDate = start.getTime();
           return start;
         }
@@ -238,6 +242,24 @@ export default {
         return this.myCard.workCard.order.details[
           this.myCard.workCard.detailIndex
         ].size;
+      } else return '查詢中';
+    },
+    factoryId() {
+      if (
+        this.myCard.workCard &&
+        this.myCard.workCard.order &&
+        this.myCard.workCard.order.factoryId
+      ) {
+        return this.myCard.workCard.order.factoryId;
+      } else return '查詢中';
+    },
+    customerId() {
+      if (
+        this.myCard.workCard &&
+        this.myCard.workCard.order &&
+        this.myCard.workCard.order.customerId
+      ) {
+        return this.myCard.workCard.order.customerId;
       } else return '查詢中';
     },
   },

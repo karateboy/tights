@@ -5,8 +5,8 @@
     </div>
     <div class="form-horizontal">
       <div class="form-group">
-        <label class="col-lg-2 control-label">定型日期:</label>
-        <div class="col-lg-5">
+        <label class="col-lg-1 control-label">定型日期:</label>
+        <div class="col-lg-6">
           <datepicker
             v-model="myCard.stylingDate"
             language="zh"
@@ -16,55 +16,43 @@
       </div>
 
       <div class="form-group">
-        <label class="col-lg-2 control-label">優:</label>
+        <label class="col-lg-1 control-label">優:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.good" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="col-lg-2 control-label">副:</label>
+        <label class="col-lg-1 control-label">副:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.sub" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="col-lg-2 control-label">副未包:</label>
+        <label class="col-lg-1 control-label">副未包:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.subNotPack" />
         </div>
       </div>
       <div class="form-group">
-        <label class="col-lg-2 control-label">汙:</label>
+        <label class="col-lg-1 control-label">汙:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.stain" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="col-lg-2 control-label">長短:</label>
+        <label class="col-lg-1 control-label">長短:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.longShort" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="col-lg-2 control-label">破:</label>
+        <label class="col-lg-1 control-label">破:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.broken" />
         </div>
       </div>
       <div class="form-group">
-        <label class="col-lg-2 control-label">不均:</label>
+        <label class="col-lg-1 control-label">不均:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.notEven" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="col-lg-2 control-label">油:</label>
+        <label class="col-lg-1 control-label">油:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.oil" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="col-lg-2 control-label">襪頭:</label>
+        <label class="col-lg-1 control-label">襪頭:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.head" />
         </div>
