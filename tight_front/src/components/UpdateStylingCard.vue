@@ -43,7 +43,7 @@
         :stylingCard="stylingCard"
         :workCardID="workCardID"
         :quantity="quantity"
-        v-on:updated="cleanup"
+        @updated="cleanup"
       ></styling-card>
     </div>
   </div>
@@ -67,9 +67,7 @@ export default {
       workCard: {
         order: {},
       },
-      stylingCard: {
-        date: 0,
-      },
+      stylingCard: undefined,
       quantity: 0,
     };
   },
@@ -121,7 +119,7 @@ export default {
           if (resp.status == 200) {
             let workCard = ret;
             this.workCard = Object.assign(workCard, this.workCard);
-            if (workCard.stylingCard == null)
+            if (workCard.stylingCard === null)
               this.stylingCard = {
                 operator: [],
                 date: 0,

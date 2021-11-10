@@ -117,6 +117,7 @@
 <script>
 import axios from 'axios';
 import { fromDozenStr, toDozenStr } from '../dozenExp';
+import { mapState, mapMutations } from 'vuex';
 import cardHelper from '../cardHelper';
 import Datepicker from 'vuejs-datepicker';
 
@@ -133,22 +134,6 @@ export default {
     inventory: {
       type: Number,
       required: true,
-    },
-  },
-  watch: {
-    tidyCard(newTidyCard) {
-      (this.myCard.good = toDozenStr(newTidyCard.good)),
-        (this.myCard.sub = toDozenStr(newTidyCard.sub)),
-        (this.myCard.subNotPack = toDozenStr(newTidyCard.subNotPack)),
-        (this.myCard.stain = toDozenStr(newTidyCard.stain)),
-        (this.myCard.longShort = toDozenStr(newTidyCard.longShort)),
-        (this.myCard.broken = toDozenStr(newTidyCard.broken)),
-        (this.myCard.oil = toDozenStr(newTidyCard.oil)),
-        (this.myCard.notEven = toDozenStr(newTidyCard.notEven)),
-        (this.myCard.head = toDozenStr(newTidyCard.head)),
-        (this.myCard.operator = newTidyCard.operator);
-      this.myCard.workCardID = newTidyCard.workCardID;
-      cardHelper.populateTidyCard(this.myCard);
     },
   },
   data() {
@@ -174,21 +159,21 @@ export default {
     cardHelper.populateTidyCard(this.myCard);
   },
   computed: {
+    ...mapState(['defaultFinishDate']),
     finishDate: {
       get: function() {
         if (this.tidyCard.finishDate)
           return moment(this.tidyCard.finishDate).toDate();
         else {
-          const start = moment('0', 'hh')
-            .subtract(1, 'days')
-            .toDate();
-          this.tidyCard.finishDate = start.getTime();
-          return start;
+          this.tidyCard.finishDate = this.defaultFinishDate;
+          return this.defaultFinishDate;
         }
       },
       // setter
       set: function(newValue) {
-        this.tidyCard.finishDate = newValue.getTime();
+        const value = newValue.getTime();
+        this.tidyCard.finishDate = value;
+        this.setDefaultFinishDate(value);
       },
     },
     displayUpdateBtn() {
@@ -263,7 +248,24 @@ export default {
       } else return '查詢中';
     },
   },
+  watch: {
+    tidyCard(newTidyCard) {
+      this.myCard.good = toDozenStr(newTidyCard.good);
+      this.myCard.sub = toDozenStr(newTidyCard.sub);
+      this.myCard.subNotPack = toDozenStr(newTidyCard.subNotPack);
+      this.myCard.stain = toDozenStr(newTidyCard.stain);
+      this.myCard.longShort = toDozenStr(newTidyCard.longShort);
+      this.myCard.broken = toDozenStr(newTidyCard.broken);
+      this.myCard.oil = toDozenStr(newTidyCard.oil);
+      this.myCard.notEven = toDozenStr(newTidyCard.notEven);
+      this.myCard.head = toDozenStr(newTidyCard.head);
+      this.myCard.operator = newTidyCard.operator;
+      this.myCard.workCardID = newTidyCard.workCardID;
+      cardHelper.populateTidyCard(this.myCard);
+    },
+  },
   methods: {
+    ...mapMutations(['setDefaultFinishDate']),
     prepareTidyCard() {
       this.tidyCard.good = fromDozenStr(this.myCard.good);
       if (this.tidyCard.good == null) {

@@ -79,6 +79,7 @@
 import axios from 'axios';
 import { fromDozenStr, toDozenStr } from '../dozenExp';
 import Datepicker from 'vuejs-datepicker';
+import { mapState, mapMutations } from 'vuex';
 
 export default {
   props: {
@@ -95,21 +96,12 @@ export default {
       required: true,
     },
   },
-  watch: {
-    stylingCard(newCard) {
-      (this.myCard.good = toDozenStr(newCard.good)),
-        (this.myCard.sub = toDozenStr(newCard.sub)),
-        (this.myCard.subNotPack = toDozenStr(newCard.subNotPack)),
-        (this.myCard.stain = toDozenStr(newCard.stain)),
-        (this.myCard.longShort = toDozenStr(newCard.longShort)),
-        (this.myCard.broken = toDozenStr(newCard.broken)),
-        (this.myCard.oil = toDozenStr(newCard.oil)),
-        (this.myCard.notEven = toDozenStr(newCard.notEven)),
-        (this.myCard.head = toDozenStr(newCard.head)),
-        (this.myCard.operator = newCard.operator.join());
-    },
-  },
   data() {
+    let stylingDate;
+    if (this.stylingCard.stylingDate)
+      stylingDate = moment(this.stylingCard.stylingDate).toDate();
+    else stylingDate = moment(this.defaultFinishDate).toDate();
+
     return {
       myCard: {
         good: toDozenStr(this.stylingCard.good),
@@ -122,11 +114,29 @@ export default {
         notEven: toDozenStr(this.stylingCard.notEven),
         head: toDozenStr(this.stylingCard.head),
         operator: this.stylingCard.operator.join(),
-        stylingDate: moment(this.stylingCard.stylingDate).toDate(),
+        stylingDate,
       },
     };
   },
+  computed: {
+    ...mapState(['defaultFinishDate']),
+  },
+  watch: {
+    stylingCard(newCard) {
+      this.myCard.good = toDozenStr(newCard.good);
+      this.myCard.sub = toDozenStr(newCard.sub);
+      this.myCard.subNotPack = toDozenStr(newCard.subNotPack);
+      this.myCard.stain = toDozenStr(newCard.stain);
+      this.myCard.longShort = toDozenStr(newCard.longShort);
+      this.myCard.broken = toDozenStr(newCard.broken);
+      this.myCard.oil = toDozenStr(newCard.oil);
+      this.myCard.notEven = toDozenStr(newCard.notEven);
+      this.myCard.head = toDozenStr(newCard.head);
+      this.myCard.operator = newCard.operator.join();
+    },
+  },
   methods: {
+    ...mapMutations(['setDefaultFinishDate']),
     prepareStylingCard() {
       this.stylingCard.good = fromDozenStr(this.myCard.good);
       if (this.stylingCard.good == null) {
@@ -144,8 +154,10 @@ export default {
       this.stylingCard.head = fromDozenStr(this.myCard.head);
       this.stylingCard.operator = this.myCard.operator.trim().split('[,.]');
 
-      if (this.myCard.stylingDate)
+      if (this.myCard.stylingDate) {
         this.stylingCard.stylingDate = this.myCard.stylingDate.getTime();
+        this.setDefaultFinishDate(this.stylingCard.stylingDate);
+      }
 
       if (
         this.stylingCard.operator == null ||
