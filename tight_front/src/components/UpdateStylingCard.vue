@@ -40,6 +40,7 @@
       </table>
       <work-card-detail v-if="workCard" :workCard="workCard" />
       <styling-card
+        v-if="stylingCard"
         :stylingCard="stylingCard"
         :workCardID="workCardID"
         :quantity="quantity"
@@ -118,13 +119,15 @@ export default {
           const ret = resp.data;
           if (resp.status == 200) {
             let workCard = ret;
-            this.workCard = Object.assign(workCard, this.workCard);
-            if (workCard.stylingCard === null)
+            //this.workCard = Object.assign(workCard, this.workCard);
+            this.workCard = ret;
+            if (!workCard.stylingCard)
               this.stylingCard = {
                 operator: [],
                 date: 0,
               };
             else this.stylingCard = workCard.stylingCard;
+            console.log(this.stylingCard);
             this.displayCard = true;
             this.quantity = workCard.quantity;
             cardHelper.populateWorkCard(this.workCard);
