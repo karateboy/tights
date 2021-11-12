@@ -33,7 +33,7 @@ object ExcelUtility {
       val workCard = workCardMap(card.workCardID)
       val order = orderMap(workCard.orderId)
 
-      for(stylingDate <- card.stylingDate){
+      for (stylingDate <- card.stylingDate) {
         val date = new DateTime(stylingDate)
         row.createCell(0).setCellValue(date.toString("MM-dd"))
       }
@@ -41,7 +41,7 @@ object ExcelUtility {
         val date = new DateTime(card.date)
         row.createCell(1).setCellValue(date.toString("MM-dd"))
       }
-      for(finishDate <- card.finishDate){
+      for (finishDate <- card.finishDate) {
         val date = new DateTime(finishDate)
         row.createCell(2).setCellValue(date.toString("MM-dd"))
       }
@@ -174,9 +174,14 @@ object ExcelUtility {
     sheet.getRow(1).getCell(0).setCellValue(DateTime.now().toString("YYYY/MM/dd"))
     val cellStyle = createRightAlignStyle()(wb)
 
+    val totalRow = inventories.size / 2 + (inventories.size % 2)
     for ((inventory, idx) <- inventories.zipWithIndex) {
-      val rowN = idx / 3 + 3
-      val row = if (idx % 3 == 0)
+      val rowN = if (idx < totalRow)
+        idx + 3
+      else
+        idx - totalRow + 3
+
+      val row = if (idx < totalRow)
         sheet.createRow(rowN)
       else
         sheet.getRow(rowN)
@@ -187,9 +192,9 @@ object ExcelUtility {
         cell.setCellValue(value)
       }
 
-      val colStart = (idx % 3) * 5
+      val colStart = (idx / totalRow) * 5
       setInventory(colStart, inventory.factoryID)
-      for(customerID <-inventory.customerID)
+      for (customerID <- inventory.customerID)
         setInventory(colStart + 1, customerID)
 
       setInventory(colStart + 2, inventory.color)
@@ -197,24 +202,22 @@ object ExcelUtility {
       setInventory(colStart + 4, toDozenStr(inventory.quantity))
     }
     val style = createSumStyle()(wb)
-    val finalRowN = if(inventories.size % 3 == 0)
-      inventories.size / 3 + 3
-    else
-      inventories.size / 3 + 4
+
+    val finalRowN = totalRow + 3
     val finalRow = sheet.createRow(finalRowN)
-    for(i <- 0 to 14){
+    for (i <- 0 to 9) {
       finalRow.createCell(i).setCellStyle(style)
     }
 
     sheet.addMergedRegion(new CellRangeAddress(finalRowN, finalRowN,
-      0, 7))
+      0, 4))
     val totalCell = finalRow.getCell(0)
     totalCell.setCellValue("Total")
     totalCell.setCellStyle(style)
     val sum = inventories.map(_.quantity).sum
     sheet.addMergedRegion(new CellRangeAddress(finalRowN, finalRowN,
-      8, 14))
-    val sumCell = finalRow.getCell(8)
+      5, 9))
+    val sumCell = finalRow.getCell(5)
     sumCell.setCellStyle(style)
     sumCell.setCellValue(toDozenStr(sum))
 
