@@ -31,7 +31,6 @@ object Inventory {
   implicit val write = Json.writes[Inventory]
   implicit val readQ = Json.reads[QueryInventoryParam]
 
-  def toDocument(inv: Inventory) = Document(Json.toJson(inv).toString())
 
   def init(colNames: Seq[String]) {
     if (!colNames.contains(ColName)) {
@@ -46,17 +45,6 @@ object Inventory {
           Logger.error("failed", exception)
       }
     }
-  }
-
-  def toInventory(doc: Document) = {
-    val ret = Json.parse(doc.toJson()).validate[Inventory]
-
-    ret.fold(
-      error => {
-      Logger.error(JsError.toJson(error).toString())
-      throw new Exception(JsError.toJson(error).toString)
-    },
-      id => id)
   }
 
   import org.mongodb.scala.model._
@@ -74,14 +62,25 @@ object Inventory {
 
   def lend(factoryID: String, color: String, size: String, q: Int, workCardID: String) = {
     Logger.debug(s"WorkCard:$workCardID inventory lend $factoryID $color $size $q")
-    val filter = getFilter(factoryID, color, size)
-    val update = Updates.combine(
+    val inventoryFilter = getFilter(factoryID, color, size)
+    val nonLoanFilter = Filters.or(Filters.equal("loan", null), Filters.exists("loan", false))
+    val loanExistFilter = Filters.exists("loan", true)
+    val filter1 = Filters.and(inventoryFilter, nonLoanFilter)
+    val filter2 = Filters.and(inventoryFilter, loanExistFilter)
+
+    val setUpdate = Updates.combine(
+      Updates.set("loan", q),
+      Updates.addToSet("workCardList", workCardID))
+
+    val incUpdate = Updates.combine(
       Updates.inc("loan", q),
       Updates.addToSet("workCardList", workCardID))
 
-    val f = collection.updateOne(filter, update).toFuture()
-    f.onFailure(errorHandler)
-    f
+    val fNonLoan = collection.updateOne(filter1, setUpdate).toFuture()
+    fNonLoan onFailure errorHandler
+    val fLoan = collection.updateOne(filter2, incUpdate).toFuture()
+    fLoan onFailure errorHandler
+    Future.sequence(Seq(fNonLoan, fLoan))
   }
 
   def freeWorkCardLoan(workCardID: String) = {
@@ -196,7 +195,7 @@ object Inventory {
   }
 
   def query(param: QueryInventoryParam)(skip: Int, limit: Int) = {
-    val sort = Sorts.ascending("factoryID", "color", "size", "customerID")
+    val sort = Sorts.ascending("customerID", "color", "size")
     val filter = getFilter(param)
 
     val f = collection.find(filter).skip(skip).limit(limit).sort(sort).toFuture()
