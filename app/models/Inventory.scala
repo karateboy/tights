@@ -32,6 +32,11 @@ object Inventory {
   implicit val readQ = Json.reads[QueryInventoryParam]
 
 
+  def upgrade = {
+    val filter = Filters.equal("workCardList", null)
+    collection.updateMany(filter, Updates.set("workCardList", Seq.empty[String])).toFuture()
+  }
+
   def init(colNames: Seq[String]) {
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
@@ -45,6 +50,7 @@ object Inventory {
           Logger.error("failed", exception)
       }
     }
+    upgrade
   }
 
   import org.mongodb.scala.model._
@@ -52,6 +58,9 @@ object Inventory {
     Logger.debug("upsert inventory=>" + inventory.toString())
     for(brand<-inventory.brand)
       SysConfig.addBrandList(Seq(brand.trim))
+
+    if(inventory.workCardList.isEmpty)
+      inventory.workCardList = Some(Seq.empty[String])
 
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = ReplaceOptions().upsert(true)
@@ -104,6 +113,7 @@ object Inventory {
   def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String) = {
     val filter = getFilter(factoryID, color, size)
     val update = Updates.combine(Updates.inc("quantity", -q1), Updates.pull("workCardList", workCardID))
+
 
     val f = collection.findOneAndUpdate(filter, update).toFuture()
     f.onFailure(errorHandler)
