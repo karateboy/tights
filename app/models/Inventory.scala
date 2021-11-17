@@ -1,6 +1,7 @@
 package models
 import play.api._
 import models.ModelHelper._
+import org.bson.BsonType
 import org.mongodb.scala.bson.Document
 import org.mongodb.scala.model._
 import play.api.libs.json._
@@ -10,7 +11,7 @@ import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
 case class Inventory(factoryID: String, color: String, size: String, var quantity: Int,
-                     var loan: Option[Int], var workCardList: Option[Seq[String]], customerID: Option[String],
+                     var loan: Int, var workCardList: Seq[String], customerID: Option[String],
                      brand: Option[String])
 case class QueryInventoryParam(factoryID: Option[String], color: Option[String], size: Option[String],
                                customerID: Option[String], brand: Option[String])
@@ -31,12 +32,6 @@ object Inventory {
   implicit val write = Json.writes[Inventory]
   implicit val readQ = Json.reads[QueryInventoryParam]
 
-
-  def upgrade = {
-    val filter = Filters.equal("workCardList", null)
-    collection.updateMany(filter, Updates.set("workCardList", Seq.empty[String])).toFuture()
-  }
-
   def init(colNames: Seq[String]) {
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
@@ -50,7 +45,6 @@ object Inventory {
           Logger.error("failed", exception)
       }
     }
-    upgrade
   }
 
   import org.mongodb.scala.model._
@@ -58,9 +52,6 @@ object Inventory {
     Logger.debug("upsert inventory=>" + inventory.toString())
     for(brand<-inventory.brand)
       SysConfig.addBrandList(Seq(brand.trim))
-
-    if(inventory.workCardList.isEmpty)
-      inventory.workCardList = Some(Seq.empty[String])
 
     val filter = getFilter(inventory.factoryID, inventory.color, inventory.size)
     val opt = ReplaceOptions().upsert(true)
@@ -101,11 +92,10 @@ object Inventory {
 
     for {
       inventory <- f
-      workCardList = inventory.workCardList.getOrElse(Seq.empty[String])
-      (newLoan, newWorkCardList) <- calculateLoan(workCardList)
+      (newLoan, newWorkCardList) <- calculateLoan(inventory.workCardList)
     } {
-      inventory.loan = Some(newLoan)
-      inventory.workCardList = Some(newWorkCardList)
+      inventory.loan = newLoan
+      inventory.workCardList = newWorkCardList
       collection.replaceOne(getFilter(inventory), inventory).toFuture()
     }
   }
@@ -132,8 +122,7 @@ object Inventory {
       docSeq <- collection.find(filter).toFuture()
       doc <- docSeq
       inventory = doc
-      workCardList <- inventory.workCardList
-      (newLoan, newWorkCardList) <- calculateLoan(workCardList)
+      (newLoan, newWorkCardList) <- calculateLoan(inventory.workCardList)
     } {
       if (inventory.loan != Some(newLoan)) {
         if (inventory.quantity < 0){
@@ -141,8 +130,8 @@ object Inventory {
           inventory.quantity = 0
         }
         
-        inventory.loan = Some(newLoan)
-        inventory.workCardList = Some(newWorkCardList)
+        inventory.loan = newLoan
+        inventory.workCardList = newWorkCardList
         collection.replaceOne(filter, inventory).toFuture()
       }
     }
@@ -167,7 +156,7 @@ object Inventory {
         0
       else {
         val inventory = docs.head
-        inventory.quantity - inventory.loan.getOrElse(0)
+        inventory.quantity - inventory.loan
       }
     }
   }
