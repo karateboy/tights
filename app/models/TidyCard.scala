@@ -52,12 +52,6 @@ object TidyCard {
   implicit val read = Json.reads[TidyCard]
   implicit val write = Json.writes[TidyCard]
 
-  def newCard(card: TidyCard) = {
-    val f = collection.insertOne(card).toFuture()
-    f onFailure (errorHandler)
-    f
-  }
-
   def upsertCard(card: TidyCard, inventory: Int, quantity: Int, active: Boolean) = {
     import org.mongodb.scala.model.Filters._
     val workCardF =

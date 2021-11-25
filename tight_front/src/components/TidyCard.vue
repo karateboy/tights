@@ -55,10 +55,6 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="col-lg-1 control-label">破:</label>
-        <div class="col-lg-2">
-          <input type="text" class="form-control" v-model="myCard.broken" />
-        </div>
         <label class="col-lg-1 control-label">不均:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.notEven" />
@@ -67,12 +63,12 @@
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.oil" />
         </div>
-      </div>
-      <div class="form-group">
         <label class="col-lg-1 control-label">襪頭:</label>
         <div class="col-lg-2">
           <input type="text" class="form-control" v-model="myCard.head" />
         </div>
+      </div>
+      <div class="form-group">
         <label class="col-lg-1 control-label">完成日期:</label>
         <div class="col-lg-2">
           <div class="input-daterange input-group">
