@@ -129,12 +129,14 @@ export default {
         size: undefined,
         brand: undefined,
         quantity: 0,
+        loan: 0,
+        workCardList: [],
       },
       loading: false,
       display: false,
       queryParam: {},
       colorList: [],
-      brandList:[],
+      brandList: [],
       sizeList: [
         'XS/S',
         'S/M',
@@ -196,7 +198,7 @@ export default {
       .catch(err => {
         alert(err);
       });
-    this.getBrandList();  
+    this.getBrandList();
   },
   computed: {
     dozenNumber: {
@@ -218,21 +220,21 @@ export default {
     },
   },
   methods: {
-    getBrandList(){
+    getBrandList() {
       axios
-      .get('/BrandList')
-      .then(resp => {
-        const ret = resp.data;
-        if (resp.status == 200) {
-          this.brandList.splice(0, this.brandList.length);
-          for (let brand of ret) {
-            this.brandList.push(brand);
+        .get('/BrandList')
+        .then(resp => {
+          const ret = resp.data;
+          if (resp.status == 200) {
+            this.brandList.splice(0, this.brandList.length);
+            for (let brand of ret) {
+              this.brandList.push(brand);
+            }
           }
-        }
-      })
-      .catch(err => {
-        alert(err);
-      });
+        })
+        .catch(err => {
+          alert(err);
+        });
     },
     query() {
       let param = {};
@@ -245,14 +247,14 @@ export default {
       if (this.inventory.customerID)
         param.customerID = this.inventory.customerID;
 
-      if(this.inventory.brand)  
-        param.brand = this.inventory.brand;
+      if (this.inventory.brand) param.brand = this.inventory.brand;
 
       if (!this.display) this.display = true;
       this.queryParam = JSON.parse(JSON.stringify(param));
     },
     upsert() {
       let url = `/Inventory`;
+      console.log(this.inventory);
       axios
         .post(url, this.inventory)
         .then(resp => {

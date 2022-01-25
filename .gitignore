@@ -26,3 +26,5 @@ server.pid
 .idea
 /public/dist
 /tight_front/*.log
+/.metals/*.log
+/.vscode/settings.json
