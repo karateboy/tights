@@ -1,19 +1,14 @@
 package controllers
 
-import play.api.mvc.Controller
-import play.api._
-import play.api.mvc._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.data._
-import play.api.data.Forms._
-import scala.concurrent.Future
-import play.api.libs.json._
 import com.github.nscala_time.time.Imports._
-import models._
 import models.ModelHelper._
+import models._
+import play.api._
+import play.api.libs.json._
+import play.api.mvc._
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.collection.JavaConversions._
+import scala.concurrent.Future
 
 object CardManager extends Controller {
   def getDyeCardList(skip: Int, limit: Int) = Security.Authenticated.async {
@@ -24,7 +19,6 @@ object CardManager extends Controller {
   }
 
   def getDyeCardListCount = Security.Authenticated.async {
-    import DyeCard._
     val f = DyeCard.getActiveDyeCardCount()
     for (count <- f)
       yield Ok(Json.toJson(count))
@@ -44,7 +38,6 @@ object CardManager extends Controller {
   }
 
   def deleteDyeCard(id: String) = Security.Authenticated.async {
-    import DyeCard._
     val f = DyeCard.getCard(id)
 
     for (dyeCardOpt <- f) yield {
@@ -279,6 +272,7 @@ object CardManager extends Controller {
 
   def getBarcode(fileName: String) = Action {
     import play.api.Play.current
+
     import java.io.File
     import java.nio.file.Files
 
@@ -312,7 +306,6 @@ object CardManager extends Controller {
   }
 
   def getStylingCard(workCardID: String) = Security.Authenticated.async {
-    import WorkCard._
     val f = WorkCard.getCard(workCardID)
     for (workCardOpt <- f) yield {
       if (workCardOpt.isEmpty) {
@@ -563,14 +556,14 @@ object CardManager extends Controller {
         val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
 
-        val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
+        val excel = ExcelUtility.getTidyReport("整理報表(輸入日期)", cards, workCardPair.toMap, orderPair.toMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
           play.utils.UriEncoding.encodePathSegment("整理報表(輸入日期)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }
     }
   }
 
-  def tidyCardReport2(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+  def tidyCardReportByStyling(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
     val outputType = OutputType.withName(output)
     val (start, end) = (new DateTime(startL), new DateTime(endL))
     val f = TidyCard.queryCardsByStylingDate(startL, endL)
@@ -588,9 +581,34 @@ object CardManager extends Controller {
         val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
 
-        val excel = ExcelUtility.getTidyReport(cards, workCardPair.toMap, orderPair.toMap, start, end)
+        val excel = ExcelUtility.getTidyReport("整理報表(定型日期)", cards, workCardPair.toMap, orderPair.toMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
           play.utils.UriEncoding.encodePathSegment("整理報表(定型日期)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
+      }
+    }
+  }
+
+  def tidyCardReportByPhase(phase:String, startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+    val outputType = OutputType.withName(output)
+    val (start, end) = (new DateTime(startL), new DateTime(endL))
+    val f = TidyCard.queryCardsByPhaseDate(phase, startL, endL)
+    for (cards <- f) yield {
+      if (outputType == OutputType.html)
+        Ok(Json.toJson(cards))
+      else {
+        val workCardIdList = cards.map { _.workCardID }
+        val workCardIdSet = Set(workCardIdList: _*)
+        val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
+        val workCards = waitReadyResult(workCardF)
+        val workCardPair = workCards map { card => card._id -> card }
+        val orderIdSet = Set(workCards.map { _.orderId }: _*)
+        val ordersF = Order.getOrders(orderIdSet.toSeq)
+        val orders = waitReadyResult(ordersF)
+        val orderPair = orders map { order => order._id -> order }
+
+        val excel = ExcelUtility.getTidyReport(s"整理報表($phase)", cards, workCardPair.toMap, orderPair.toMap, start, end)
+        Ok.sendFile(excel, fileName = _ =>
+          play.utils.UriEncoding.encodePathSegment(s"整理報表($phase)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }
     }
   }

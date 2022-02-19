@@ -90,6 +90,19 @@ object TidyCard {
       yield records
   }
 
+  def queryCardsByPhaseDate(phase:String, begin: Long, end: Long): Future[Seq[TidyCard]] = {
+    import org.mongodb.scala.model.Filters._
+
+    val f = collection.find(and(equal("phase", phase),
+      gte("finishDate", begin), lt("finishDate", end)))
+      .sort(org.mongodb.scala.model.Sorts.ascending("finishDate")).limit(500).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (records <- f)
+      yield records
+  }
+
   def getTidyCard(workCardID: String, phase: String): Future[Seq[TidyCard]] = {
     import org.mongodb.scala.model.Filters._
     val f = collection.find(and(equal("workCardID", workCardID), equal("phase", phase))).toFuture()

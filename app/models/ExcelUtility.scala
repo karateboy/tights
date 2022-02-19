@@ -2,7 +2,7 @@ package models
 
 import com.github.nscala_time.time.Imports.DateTime
 import org.apache.poi.openxml4j.opc.OPCPackage
-import org.apache.poi.ss.usermodel.{BorderStyle, HorizontalAlignment, IndexedColors}
+import org.apache.poi.ss.usermodel.{BorderStyle, Cell, HorizontalAlignment, IndexedColors}
 import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import play.api.Play.current
@@ -13,13 +13,15 @@ import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 object ExcelUtility {
   val docRoot = "/report_template/"
 
-  def getTidyReport(cardList: Seq[TidyCard], workCardMap: Map[String, WorkCard], orderMap: Map[String, Order],
+  def getTidyReport(title: String, cardList: Seq[TidyCard], workCardMap: Map[String, WorkCard], orderMap: Map[String, Order],
                     start: DateTime, end: DateTime) = {
     val (reportFilePath, pkg, wb) = prepareTemplate("tidyReport.xlsx")
     val evaluator = wb.getCreationHelper().createFormulaEvaluator()
     val format = wb.createDataFormat();
 
     val sheet = wb.getSheetAt(0)
+    val titleRow = sheet.getRow(0)
+    titleRow.getCell(0).setCellValue(title)
     val timeRow = sheet.getRow(1)
     timeRow.createCell(1).setCellValue(start.toString("YY-MM-dd"))
     timeRow.createCell(3).setCellValue(end.toString("YY-MM-dd"))
@@ -61,6 +63,21 @@ object ExcelUtility {
       row.createCell(15).setCellValue(toDozenStr(card.subNotPack))
       row.createCell(16).setCellValue(card.operator)
     }
+
+    val sumStyle = createSumStyle()(wb)
+    val summaryRow = sheet.createRow(cardList.size + 4)
+    def createSummaryCell(col:Int, content:String)={
+      val cell = summaryRow.createCell(col)
+      cell.setCellValue(content)
+      cell.setCellStyle(sumStyle)
+    }
+
+    createSummaryCell(0, "加總")
+    createSummaryCell(11, toDozenStr(cardList.map(_.good).sum))
+    createSummaryCell(12, toDozenStr(cardList.map(_.sub.getOrElse(0)).sum))
+    createSummaryCell(13, toDozenStr(cardList.map(_.stain.getOrElse(0)).sum))
+    createSummaryCell(14, toDozenStr(cardList.map(_.broken.getOrElse(0)).sum))
+    createSummaryCell(15, toDozenStr(cardList.map(_.subNotPack.getOrElse(0)).sum))
 
     finishExcel(reportFilePath, pkg, wb)
   }
@@ -126,45 +143,11 @@ object ExcelUtility {
     finishExcel(reportFilePath, pkg, wb)
   }
 
-  private def prepareTemplate(templateFile: String) = {
-    val templatePath = Paths.get(current.path.getAbsolutePath + docRoot + templateFile)
-    val reportFilePath = Files.createTempFile("temp", ".xlsx");
-
-    Files.copy(templatePath, reportFilePath, StandardCopyOption.REPLACE_EXISTING)
-
-    //Open Excel
-    val pkg = OPCPackage.open(new FileInputStream(reportFilePath.toAbsolutePath().toString()))
-    val wb = new XSSFWorkbook(pkg);
-
-    (reportFilePath, pkg, wb)
-  }
-
-  def finishExcel(reportFilePath: Path, pkg: OPCPackage, wb: XSSFWorkbook) = {
-    val out = new FileOutputStream(reportFilePath.toAbsolutePath().toString());
-    wb.write(out);
-    out.close();
-    pkg.close();
-
-    new File(reportFilePath.toAbsolutePath().toString())
-  }
-
   def toDozenStr(v: Option[Int]): String = {
     if (v.isEmpty)
       "-"
     else
       toDozenStr(v.get)
-  }
-
-  def toDozenStr(v: Int) = {
-    val dozen = v / 12
-    val fract = v % 12
-    val dozenStr = "%d".format(dozen)
-    if (fract == 0)
-      dozenStr
-    else {
-      val fractStr = "%02d".format(fract)
-      s"$dozenStr.$fractStr"
-    }
   }
 
   def getInventoryReport(inventories: Seq[Inventory], title: String) = {
@@ -222,6 +205,40 @@ object ExcelUtility {
     sumCell.setCellValue(toDozenStr(sum))
 
     finishExcel(reportFilePath, pkg, wb)
+  }
+
+  private def prepareTemplate(templateFile: String) = {
+    val templatePath = Paths.get(current.path.getAbsolutePath + docRoot + templateFile)
+    val reportFilePath = Files.createTempFile("temp", ".xlsx");
+
+    Files.copy(templatePath, reportFilePath, StandardCopyOption.REPLACE_EXISTING)
+
+    //Open Excel
+    val pkg = OPCPackage.open(new FileInputStream(reportFilePath.toAbsolutePath().toString()))
+    val wb = new XSSFWorkbook(pkg);
+
+    (reportFilePath, pkg, wb)
+  }
+
+  def finishExcel(reportFilePath: Path, pkg: OPCPackage, wb: XSSFWorkbook) = {
+    val out = new FileOutputStream(reportFilePath.toAbsolutePath().toString());
+    wb.write(out);
+    out.close();
+    pkg.close();
+
+    new File(reportFilePath.toAbsolutePath().toString())
+  }
+
+  def toDozenStr(v: Int) = {
+    val dozen = v / 12
+    val fract = v % 12
+    val dozenStr = "%d".format(dozen)
+    if (fract == 0)
+      dozenStr
+    else {
+      val fractStr = "%02d".format(fract)
+      s"$dozenStr.$fractStr"
+    }
   }
 
   def createRightAlignStyle()(implicit wb: XSSFWorkbook) = {

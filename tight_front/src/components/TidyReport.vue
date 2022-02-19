@@ -32,10 +32,10 @@
         </div>
       </div>
       <div class="form-group">
-        <div class="col-lg-offset-1">
-          <button class="btn btn-primary" @click="query">查詢</button>
-          <button class="btn btn-primary mr-2" @click="query2">
-            查詢(依定型日期)
+        <div class="col-lg-1" />
+        <div class="col-lg-2" v-for="phase in phaseList" :key="phase">
+          <button class="btn btn-primary" @click="queryByPhase(phase)">
+            查詢({{ phase }})
           </button>
         </div>
       </div>
@@ -47,22 +47,17 @@
         data-placement="bottom"
         title="Excel"
         ><a @click.prevent="downloadExcel"
-          ><i class="fa fa-file-excel-o fa-2x"></i>輸入日期</a
-      ></label>
-      <label
-        class="btn btn-outline"
-        data-toggle="tooltip"
-        data-placement="bottom"
-        title="Excel"
-        ><a @click.prevent="downloadExcelByStylingDate"
-          ><i class="fa fa-file-excel-o fa-2x"></i>定型日期</a
-      ></label>
+          ><i class="fa fa-file-excel-o fa-2x"></i>下載Excel</a
+        ></label
+      >
+      <h1>{{ reportTitle }}</h1>
       <table class="table  table-bordered table-condensed">
         <thead>
           <tr class="info">
             <th>定型日期</th>
             <th>輸入日期</th>
             <th>結束日期</th>
+            <th>訂單編號</th>
             <th>流動卡編號</th>
             <th>客戶編碼</th>
             <th>工廠代碼</th>
@@ -85,6 +80,7 @@
             <td>{{ displayDate(card.stylingDate) }}</td>
             <td>{{ displayDate(card.date) }}</td>
             <td>{{ displayDate(card.finishDate) }}</td>
+            <td>{{ displayOrderID(card) }}</td>
             <td>{{ card._id.workCardID }}</td>
             <td>{{ displayCustomerID(card) }}</td>
             <td>{{ displayFactoryID(card) }}</td>
@@ -122,6 +118,9 @@ export default {
       queryParam: {},
       showReport: false,
       cardList: [],
+      phaseList: ['檢襪', '車洗標', '剪線頭', '整理包裝'],
+      reportTitle: '',
+      downloadUrl: '',
     };
   },
   computed: {
@@ -176,12 +175,13 @@ export default {
           alert(err);
         });
     },
-    query2() {
-      const url =
-        '/TidyReportByStylingDate/' +
-        this.queryParam.start +
-        '/' +
-        this.queryParam.end;
+    queryByPhase(phase) {
+      this.reportTitle = `${phase}報表`;
+      this.downloadUrl =
+        baseUrl() +
+        `/TidyReportByPhase/Excel/${phase}/${this.queryParam.start}/${this.queryParam.end}`;
+
+      const url = `/TidyReportByPhase/${phase}/${this.queryParam.start}/${this.queryParam.end}`;
       axios
         .get(url)
         .then(resp => {
@@ -196,6 +196,10 @@ export default {
         .catch(err => {
           alert(err);
         });
+    },
+    displayOrderID(tidyCard) {
+      if (tidyCard.workCard.order) return tidyCard.workCard.order._id;
+      else return '查詢中';
     },
     displayCustomerID(tidyCard) {
       if (tidyCard.workCard.order) return tidyCard.workCard.order.customerId;
@@ -225,22 +229,7 @@ export default {
       return dozenExp.toDozenStr(v);
     },
     downloadExcel() {
-      const url =
-        baseUrl() +
-        '/TidyReport/Excel/' +
-        this.queryParam.start +
-        '/' +
-        this.queryParam.end;
-      window.open(url);
-    },
-    downloadExcelByStylingDate() {
-      const url =
-        baseUrl() +
-        '/TidyReportByStylingDate/Excel/' +
-        this.queryParam.start +
-        '/' +
-        this.queryParam.end;
-      window.open(url);
+      window.open(this.downloadUrl);
     },
   },
   components: {
