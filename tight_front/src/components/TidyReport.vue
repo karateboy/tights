@@ -2,6 +2,28 @@
   <div>
     <div class="form-horizontal">
       <div class="form-group">
+        <label class="col-lg-1 control-label">訂單編號:</label>
+        <div class="col-lg-4">
+          <input
+            type="text"
+            placeholder="訂單編號"
+            class="form-control"
+            v-model="queryParam.orderID"
+          />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-lg-1 control-label">顏色:</label>
+        <div class="col-lg-4">
+          <input
+            type="text"
+            placeholder="顏色"
+            class="form-control"
+            v-model="queryParam.color"
+          />
+        </div>
+      </div>
+      <div class="form-group">
         <label class="col-lg-1 control-label">日期從:</label>
         <div class="col-lg-5">
           <div class="input-daterange input-group">
@@ -111,11 +133,15 @@ import Datepicker from 'vuejs-datepicker';
 import * as dozenExp from '../dozenExp';
 import baseUrl from '../baseUrl';
 import cardHelper from '../cardHelper';
+const FileDownload = require('js-file-download');
 
 export default {
   data() {
     return {
-      queryParam: {},
+      queryParam: {
+        orderID: '',
+        color:''
+      },
       showReport: false,
       cardList: [],
       phaseList: ['檢襪', '車洗標', '剪線頭', '整理包裝'],
@@ -181,14 +207,16 @@ export default {
         baseUrl() +
         `/TidyReportByPhase/Excel/${phase}/${this.queryParam.start}/${this.queryParam.end}`;
 
-      const url = `/TidyReportByPhase/${phase}/${this.queryParam.start}/${this.queryParam.end}`;
+      this.queryParam.phase = phase;
+      console.info(this.queryParam);
+      const url = `/TidyReportByPhase`;
       axios
-        .get(url)
+        .get(url, { params: this.queryParam })
         .then(resp => {
           const ret = resp.data;
-          this.cardList.splice(0, this.cardList.length);
+          this.cardList = []
           for (let card of ret) {
-            cardHelper.populateTidyCard(card);
+            //cardHelper.populateTidyCard(card);
             this.cardList.push(card);
           }
           this.showReport = true;
@@ -229,7 +257,15 @@ export default {
       return dozenExp.toDozenStr(v);
     },
     downloadExcel() {
-      window.open(this.downloadUrl);
+      axios
+        .get("/TidyReportByPhase/Excel", { params: this.queryParam, responseType: 'blob' })
+        .then(resp => {
+          const phase = this.queryParam.phase;
+          FileDownload(resp.data, `整理報表(${phase}).xlsx`);
+        })
+        .catch(err => {
+          alert(err);
+        });
     },
   },
   components: {

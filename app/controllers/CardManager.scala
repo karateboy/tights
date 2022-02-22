@@ -1,12 +1,14 @@
 package controllers
 
 import com.github.nscala_time.time.Imports._
+import models.DyeCard.QueryDyeCardParam
 import models.ModelHelper._
+import models.WorkCard.QueryWorkCardParam
 import models._
 import play.api._
 import play.api.libs.json._
 import play.api.mvc._
-
+import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -93,7 +95,9 @@ object CardManager extends Controller {
                 dyeCard.date.getOrElse(0l)
               }
 
-              val tidyTime = tidyCards map { _.date }
+              val tidyTime = tidyCards map {
+                _.date
+              }
               tidyTime.+:(dyeTime).max
             }
           val changeTime = waitReadyResult(changeTimeF)
@@ -282,7 +286,9 @@ object CardManager extends Controller {
     PdfUtility.createBarcode(barcodeFile, msgArray(0))
     Ok.sendFile(barcodeFile, fileName = _ =>
       play.utils.UriEncoding.encodePathSegment(fileName, "UTF-8"),
-      onClose = () => { Files.deleteIfExists(barcodeFile.toPath()) })
+      onClose = () => {
+        Files.deleteIfExists(barcodeFile.toPath())
+      })
   }
 
   def updateDyeCard = Security.Authenticated.async(BodyParsers.parse.json) {
@@ -345,8 +351,6 @@ object CardManager extends Controller {
       })
   }
 
-  case class GetTidyParam(workCardID: String, phase: String)
-  case class GetTidyResp(quantity: Int, inventory: Int, card: TidyCard)
   def getTidyCard = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val read = Json.reads[GetTidyParam]
@@ -391,7 +395,6 @@ object CardManager extends Controller {
 
   }
 
-  case class UpsertTidyParam(tidyCard: TidyCard, inventory: Int, quantity: Int)
   def upsertTidyCard(activeStr: String) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       val active = activeStr.toBoolean
@@ -411,13 +414,12 @@ object CardManager extends Controller {
         val f = TidyCard.upsertCard(param.tidyCard, param.inventory, param.quantity, active)
 
         for (rets <- f) yield {
-            Ok(Json.obj("ok" -> true))
+          Ok(Json.obj("ok" -> true))
 
         }
       })
   }
 
-  case class OrderProductionSummary(dyed: Int, produced: Int, inProduction: Int, overhead: Int, quantity: Int)
   def getOrderDetailProductionSummary(orderId: String, detailIndex: Int) = Security.Authenticated.async {
     val f = WorkCard.getOrderWorkCards(orderId, detailIndex)
     val param = DyeCard.QueryDyeCardParam(
@@ -432,12 +434,26 @@ object CardManager extends Controller {
       dyeCardMap = dyeCardPairs.toMap
     } yield {
       val dyedWorkCards = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }
-      val dyed = dyedWorkCards.map { _.good }.sum
-      val producedDyeCardID = Set(cards flatMap { _.dyeCardID }: _*)
-      val produced = dyedWorkCards.filter { !_.active }.map { _.good }.sum
-      val inProduction = dyedWorkCards.filter { _.active }.map { _.good }.sum
+      val dyed = dyedWorkCards.map {
+        _.good
+      }.sum
+      val producedDyeCardID = Set(cards flatMap {
+        _.dyeCardID
+      }: _*)
+      val produced = dyedWorkCards.filter {
+        !_.active
+      }.map {
+        _.good
+      }.sum
+      val inProduction = dyedWorkCards.filter {
+        _.active
+      }.map {
+        _.good
+      }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
-      val quantity = cards.map { _.quantity }.sum
+      val quantity = cards.map {
+        _.quantity
+      }.sum
 
       implicit val writer = Json.writes[OrderProductionSummary]
 
@@ -458,11 +474,23 @@ object CardManager extends Controller {
       dyeCardPairs = dyeCards map { card => card._id -> card }
       dyeCardMap = dyeCardPairs.toMap
     } yield {
-      val dyed = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }.map { _.good }.sum
-      val produced = cards.filter { !_.active }.map { _.good }.sum
-      val inProduction = cards.filter { _.active }.map { _.good }.sum
+      val dyed = cards.filter { card => !dyeCardMap(card.dyeCardID.get).active }.map {
+        _.good
+      }.sum
+      val produced = cards.filter {
+        !_.active
+      }.map {
+        _.good
+      }.sum
+      val inProduction = cards.filter {
+        _.active
+      }.map {
+        _.good
+      }.sum
       val overhead = cards.map { x => x.quantity - x.good }.sum
-      val quantity = cards.map { _.quantity }.sum
+      val quantity = cards.map {
+        _.quantity
+      }.sum
 
       implicit val writer = Json.writes[OrderProductionSummary]
 
@@ -470,7 +498,6 @@ object CardManager extends Controller {
     }
   }
 
-  import DyeCard._
   def queryDyeCard(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryDyeCardParam]
@@ -487,6 +514,7 @@ object CardManager extends Controller {
             yield Ok(Json.toJson(cardList))
         })
   }
+
   def queryDyeCardCount() = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryDyeCardParam]
@@ -504,7 +532,6 @@ object CardManager extends Controller {
         })
   }
 
-  import WorkCard._
   def queryWorkCard(skip: Int, limit: Int) = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryWorkCardParam]
@@ -521,6 +548,7 @@ object CardManager extends Controller {
             yield Ok(Json.toJson(cardList))
         })
   }
+
   def queryWorkCardCount = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val paramRead = Json.reads[QueryWorkCardParam]
@@ -546,12 +574,16 @@ object CardManager extends Controller {
       if (outputType == OutputType.html)
         Ok(Json.toJson(cards))
       else {
-        val workCardIdList = cards.map { _.workCardID }
+        val workCardIdList = cards.map {
+          _.workCardID
+        }
         val workCardIdSet = Set(workCardIdList: _*)
         val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
         val workCards = waitReadyResult(workCardF)
         val workCardPair = workCards map { card => card._id -> card }
-        val orderIdSet = Set(workCards.map { _.orderId }: _*)
+        val orderIdSet = Set(workCards.map {
+          _.orderId
+        }: _*)
         val ordersF = Order.getOrders(orderIdSet.toSeq)
         val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
@@ -571,12 +603,16 @@ object CardManager extends Controller {
       if (outputType == OutputType.html)
         Ok(Json.toJson(cards))
       else {
-        val workCardIdList = cards.map { _.workCardID }
+        val workCardIdList = cards.map {
+          _.workCardID
+        }
         val workCardIdSet = Set(workCardIdList: _*)
         val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
         val workCards = waitReadyResult(workCardF)
         val workCardPair = workCards map { card => card._id -> card }
-        val orderIdSet = Set(workCards.map { _.orderId }: _*)
+        val orderIdSet = Set(workCards.map {
+          _.orderId
+        }: _*)
         val ordersF = Order.getOrders(orderIdSet.toSeq)
         val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
@@ -588,32 +624,53 @@ object CardManager extends Controller {
     }
   }
 
-  def tidyCardReportByPhase(phase:String, startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+  def tidyCardReportByPhase(phase: String, orderID: String, color: String, startL: Long, endL: Long, output: String) = Security.Authenticated.async {
     val outputType = OutputType.withName(output)
     val (start, end) = (new DateTime(startL), new DateTime(endL))
     val f = TidyCard.queryCardsByPhaseDate(phase, startL, endL)
     for (cards <- f) yield {
-      if (outputType == OutputType.html)
-        Ok(Json.toJson(cards))
-      else {
-        val workCardIdList = cards.map { _.workCardID }
-        val workCardIdSet = Set(workCardIdList: _*)
-        val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
-        val workCards = waitReadyResult(workCardF)
-        val workCardPair = workCards map { card => card._id -> card }
-        val orderIdSet = Set(workCards.map { _.orderId }: _*)
-        val ordersF = Order.getOrders(orderIdSet.toSeq)
-        val orders = waitReadyResult(ordersF)
-        val orderPair = orders map { order => order._id -> order }
-
-        val excel = ExcelUtility.getTidyReport(s"整理報表($phase)", cards, workCardPair.toMap, orderPair.toMap, start, end)
+      val workCardIdList = cards.map {
+        _.workCardID
+      }
+      val workCardIdSet = Set(workCardIdList: _*)
+      val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
+      val workCards = waitReadyResult(workCardF)
+      val workCardMap: Map[String, WorkCard] = workCards map { card => card._id -> card } toMap
+      val orderIdSet = Set(workCards.map {
+        _.orderId
+      }: _*)
+      val ordersF = Order.getOrders(orderIdSet.toSeq)
+      val orders = waitReadyResult(ordersF)
+      val orderMap = orders map { order => order._id -> order } toMap
+      val filteredCards = if (color.isEmpty && orderID.isEmpty)
+        cards
+      else
+        cards.filter(card => {
+          val workCard = workCardMap(card.workCardID)
+          val order = orderMap(workCard.orderId)
+          val wordCardColor = order.details(workCard.detailIndex).color
+          if (orderID.nonEmpty && orderID != workCard.orderId)
+            false
+          else if (color.nonEmpty && !wordCardColor.contains(color))
+            false
+          else
+            true
+        })
+      filteredCards.foreach(card=>{
+        val wordCard = workCardMap(card.workCardID)
+        wordCard.order = Some(orderMap(wordCard.orderId))
+        card.workCard = Some(wordCard)
+      })
+      if (outputType == OutputType.html) {
+        Ok(Json.toJson(filteredCards))
+      } else {
+        val excel = ExcelUtility.getTidyReport(s"整理報表($phase)", cards, workCardMap, orderMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"整理報表($phase)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }
     }
   }
 
-  case class StylingReport(cards: Seq[WorkCard], operatorList: Seq[String])
   def stylingReport(startL: Long, endL: Long, output: String) = Security.Authenticated.async {
     val outputType = OutputType.withName(output)
     val (start, end) = (new DateTime(startL), new DateTime(endL))
@@ -634,7 +691,9 @@ object CardManager extends Controller {
         implicit val write = Json.writes[StylingReport]
         Ok(Json.toJson(report))
       } else {
-        val orderIdSet = Set(cards.map { _.orderId }: _*)
+        val orderIdSet = Set(cards.map {
+          _.orderId
+        }: _*)
         val ordersF = Order.getOrders(orderIdSet.toSeq)
         val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
@@ -666,7 +725,9 @@ object CardManager extends Controller {
         implicit val write = Json.writes[StylingReport]
         Ok(Json.toJson(report))
       } else {
-        val orderIdSet = Set(cards.map { _.orderId }: _*)
+        val orderIdSet = Set(cards.map {
+          _.orderId
+        }: _*)
         val ordersF = Order.getOrders(orderIdSet.toSeq)
         val orders = waitReadyResult(ordersF)
         val orderPair = orders map { order => order._id -> order }
@@ -677,7 +738,7 @@ object CardManager extends Controller {
       }
     }
   }
-  case class TransferDyeCardParam(_id: String, dep: String)
+
   def transferDyeCard = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val reads = Json.reads[TransferDyeCardParam]
@@ -702,7 +763,6 @@ object CardManager extends Controller {
       })
   }
 
-  case class StartDyeParam(_id: String, operator: String)
   def startDye = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
       implicit val read = Json.reads[StartDyeParam]
@@ -717,8 +777,23 @@ object CardManager extends Controller {
         for (ret <- f) yield Ok(Json.obj("ok" -> true))
       })
   }
+
   def endDye(id: String) = Security.Authenticated.async {
     val f = DyeCard.endDye(id)
     for (ret <- f) yield Ok(Json.obj("ok" -> true))
   }
+
+  case class GetTidyParam(workCardID: String, phase: String)
+
+  case class GetTidyResp(quantity: Int, inventory: Int, card: TidyCard)
+
+  case class UpsertTidyParam(tidyCard: TidyCard, inventory: Int, quantity: Int)
+
+  case class OrderProductionSummary(dyed: Int, produced: Int, inProduction: Int, overhead: Int, quantity: Int)
+
+  case class StylingReport(cards: Seq[WorkCard], operatorList: Seq[String])
+
+  case class TransferDyeCardParam(_id: String, dep: String)
+
+  case class StartDyeParam(_id: String, operator: String)
 }

@@ -15,7 +15,8 @@ case class TidyID(workCardID: String, phase: String)
 case class TidyCard(_id: TidyID, workCardID: String, phase: String, operator: String, good: Int,
                     sub: Option[Int], subNotPack: Option[Int], stain: Option[Int], longShort: Option[Int],
                     broken: Option[Int], notEven: Option[Int], oil: Option[Int], head: Option[Int],
-                    var date: Long, stylingDate: Option[Long], finishDate: Option[Long])
+                    var date: Long, stylingDate: Option[Long], finishDate: Option[Long],
+                    var workCard: Option[WorkCard]=None)
 
 
 object TidyCard {

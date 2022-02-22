@@ -29,7 +29,8 @@ case class WorkCard(var _id: String, orderId: String, detailIndex: Int, quantity
                     startTime: Option[Long], endTime: Option[Long],
                     var dyeCardID: Option[String], stylingCard: Option[StylingCard],
                     var remark: Option[String], inventory: Option[Int],
-                    stylingDate: Option[Long]) {
+                    stylingDate: Option[Long],
+                    var order:Option[Order]=None) {
 
   def updateID(): Unit = {
     //import java.util.concurrent.ThreadLocalRandom
