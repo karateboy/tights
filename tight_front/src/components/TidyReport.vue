@@ -242,7 +242,6 @@ export default {
         `/TidyReportByPhase/Excel/${phase}/${this.queryParam.start}/${this.queryParam.end}`;
 
       this.queryParam.phase = phase;
-      console.log(this.queryParam)
       const url = `/TidyReportByPhase`;
       axios
         .get(url, { params: this.queryParam })
