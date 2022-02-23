@@ -68,8 +68,8 @@ GET      /TidyReport/:start/:end                    controllers.CardManager.tidy
 GET      /TidyReport/Excel/:start/:end              controllers.CardManager.tidyCardReport(start: Long, end: Long, output="excel")
 GET      /TidyReportByStylingDate/:start/:end       controllers.CardManager.tidyCardReportByStyling(start: Long, end: Long, output="html")
 GET      /TidyReportByStylingDate/Excel/:start/:end controllers.CardManager.tidyCardReportByStyling(start: Long, end: Long, output="excel")
-GET      /TidyReportByPhase                         controllers.CardManager.tidyCardReportByPhase(phase, orderID, color, start: Long, end: Long, output="html")
-GET      /TidyReportByPhase/Excel                   controllers.CardManager.tidyCardReportByPhase(phase, orderID, color, start: Long, end: Long, output="excel")
+GET      /TidyReportByPhase                         controllers.CardManager.tidyCardReportByPhase(phase, orderID, color, size, start: Long, end: Long, output="html")
+GET      /TidyReportByPhase/Excel                   controllers.CardManager.tidyCardReportByPhase(phase, orderID, color, size, start: Long, end: Long, output="excel")
 
 GET      /WorkCard/:id                              controllers.CardManager.getWorkCard(id)
 GET      /WorkCard/ChangeTime/:id					controllers.CardManager.getWorkCardChangeTime(id)

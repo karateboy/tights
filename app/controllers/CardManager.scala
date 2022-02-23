@@ -8,9 +8,10 @@ import models._
 import play.api._
 import play.api.libs.json._
 import play.api.mvc._
-import scala.language.postfixOps
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.language.postfixOps
 
 object CardManager extends Controller {
   def getDyeCardList(skip: Int, limit: Int) = Security.Authenticated.async {
@@ -624,7 +625,7 @@ object CardManager extends Controller {
     }
   }
 
-  def tidyCardReportByPhase(phase: String, orderID: String, color: String, startL: Long, endL: Long, output: String) = Security.Authenticated.async {
+  def tidyCardReportByPhase(phase: String, orderID: String, color: String, size: String, startL: Long, endL: Long, output: String) = Security.Authenticated.async {
     val outputType = OutputType.withName(output)
     val (start, end) = (new DateTime(startL), new DateTime(endL))
     val f = TidyCard.queryCardsByPhaseDate(phase, startL, endL)
@@ -642,21 +643,24 @@ object CardManager extends Controller {
       val ordersF = Order.getOrders(orderIdSet.toSeq)
       val orders = waitReadyResult(ordersF)
       val orderMap = orders map { order => order._id -> order } toMap
-      val filteredCards = if (color.isEmpty && orderID.isEmpty)
+      val filteredCards = if (color.isEmpty && orderID.isEmpty && size.isEmpty)
         cards
       else
         cards.filter(card => {
           val workCard = workCardMap(card.workCardID)
           val order = orderMap(workCard.orderId)
           val wordCardColor = order.details(workCard.detailIndex).color
+          val wordCardSize = order.details(workCard.detailIndex).size
           if (orderID.nonEmpty && orderID != workCard.orderId)
             false
           else if (color.nonEmpty && !wordCardColor.contains(color))
             false
+          else if (size.nonEmpty && !wordCardSize.contains(size))
+            false
           else
             true
         })
-      filteredCards.foreach(card=>{
+      filteredCards.foreach(card => {
         val wordCard = workCardMap(card.workCardID)
         wordCard.order = Some(orderMap(wordCard.orderId))
         card.workCard = Some(wordCard)
@@ -664,7 +668,7 @@ object CardManager extends Controller {
       if (outputType == OutputType.html) {
         Ok(Json.toJson(filteredCards))
       } else {
-        val excel = ExcelUtility.getTidyReport(s"整理報表($phase)", cards, workCardMap, orderMap, start, end)
+        val excel = ExcelUtility.getTidyReport(s"整理報表($phase)", filteredCards, workCardMap, orderMap, start, end)
         Ok.sendFile(excel, fileName = _ =>
           play.utils.UriEncoding.encodePathSegment(s"整理報表($phase)" + start.toString("MMdd") + "_" + end.toString("MMdd") + ".xlsx", "UTF-8"))
       }

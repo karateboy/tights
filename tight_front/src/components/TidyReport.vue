@@ -24,6 +24,17 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="col-lg-1 control-label">尺寸:</label>
+        <div class="col-lg-4">
+          <input
+            type="text"
+            placeholder="尺寸"
+            class="form-control"
+            v-model="queryParam.size"
+          />
+        </div>
+      </div>
+      <div class="form-group">
         <label class="col-lg-1 control-label">日期從:</label>
         <div class="col-lg-5">
           <div class="input-daterange input-group">
@@ -76,7 +87,6 @@
       <table class="table  table-bordered table-condensed">
         <thead>
           <tr class="info">
-            <th>定型日期</th>
             <th>輸入日期</th>
             <th>結束日期</th>
             <th>訂單編號</th>
@@ -99,7 +109,6 @@
             v-for="card in cardList"
             :key="card._id.workCardID + card._id.phase"
           >
-            <td>{{ displayDate(card.stylingDate) }}</td>
             <td>{{ displayDate(card.date) }}</td>
             <td>{{ displayDate(card.finishDate) }}</td>
             <td>{{ displayOrderID(card) }}</td>
@@ -117,6 +126,25 @@
             <td>{{ card.operator }}</td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr>
+            <th>小計</th>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <th>{{ displayQuantity(good) }}</th>
+            <th>{{ displayQuantity(sub) }}</th>
+            <th>{{ displayQuantity(stain) }}</th>
+            <th>{{ displayQuantity(broken) }}</th>
+            <th>{{ displayQuantity(subNotPack) }}</th>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
@@ -140,10 +168,16 @@ export default {
     return {
       queryParam: {
         orderID: '',
-        color:''
+        color: '',
+        size: '',
       },
       showReport: false,
       cardList: [],
+      good: 0,
+      sub: 0,
+      stain: 0,
+      broken: 0,
+      subNotPack: 0,
       phaseList: ['檢襪', '車洗標', '剪線頭', '整理包裝'],
       reportTitle: '',
       downloadUrl: '',
@@ -208,16 +242,25 @@ export default {
         `/TidyReportByPhase/Excel/${phase}/${this.queryParam.start}/${this.queryParam.end}`;
 
       this.queryParam.phase = phase;
-      console.info(this.queryParam);
+      console.log(this.queryParam)
       const url = `/TidyReportByPhase`;
       axios
         .get(url, { params: this.queryParam })
         .then(resp => {
           const ret = resp.data;
-          this.cardList = []
+          this.cardList = [];
+          this.good = 0;
+          this.sub = 0;
+          this.stain = 0;
+          this.broken = 0;
+          this.subNotPack = 0;
           for (let card of ret) {
-            //cardHelper.populateTidyCard(card);
             this.cardList.push(card);
+            this.good += card.good;
+            this.sub += card.sub;
+            this.stain += card.stain;
+            this.broken += card.broken;
+            this.subNotPack += card.subNotPack;
           }
           this.showReport = true;
         })
@@ -258,7 +301,10 @@ export default {
     },
     downloadExcel() {
       axios
-        .get("/TidyReportByPhase/Excel", { params: this.queryParam, responseType: 'blob' })
+        .get('/TidyReportByPhase/Excel', {
+          params: this.queryParam,
+          responseType: 'blob',
+        })
         .then(resp => {
           const phase = this.queryParam.phase;
           FileDownload(resp.data, `整理報表(${phase}).xlsx`);
