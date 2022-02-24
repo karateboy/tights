@@ -634,7 +634,7 @@ object CardManager extends Controller {
         _.workCardID
       }
       val workCardIdSet = Set(workCardIdList: _*)
-      val workCardF = WorkCard.getCards(workCardIdSet.toSeq)(0, 1000)
+      val workCardF = WorkCard.getCardNoLimit(workCardIdSet.toSeq)
       val workCards = waitReadyResult(workCardF)
       val workCardMap: Map[String, WorkCard] = workCards map { card => card._id -> card } toMap
       val orderIdSet = Set(workCards.map {
@@ -651,6 +651,7 @@ object CardManager extends Controller {
           val order = orderMap(workCard.orderId)
           val wordCardColor = order.details(workCard.detailIndex).color
           val wordCardSize = order.details(workCard.detailIndex).size
+
           if (orderID.nonEmpty && orderID != workCard.orderId)
             false
           else if (color.nonEmpty && !wordCardColor.contains(color))
@@ -665,6 +666,7 @@ object CardManager extends Controller {
         wordCard.order = Some(orderMap(wordCard.orderId))
         card.workCard = Some(wordCard)
       })
+
       if (outputType == OutputType.html) {
         Ok(Json.toJson(filteredCards))
       } else {

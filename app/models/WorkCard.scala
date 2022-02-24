@@ -138,6 +138,15 @@ object WorkCard {
       cards
   }
 
+  def getCardNoLimit(ids: Seq[String]): Future[Seq[WorkCard]] = {
+    val f = collection.find(in("_id", ids: _*)).sort(Sorts.descending("_id")).toFuture()
+    f.onFailure {
+      errorHandler
+    }
+    for (cards <- f) yield
+      cards
+  }
+
   def getActiveWorkCard(skip: Int, limit: Int): Future[Seq[WorkCard]] = {
     import org.mongodb.scala.model._
     val f = collection.find(equal("active", true)).sort(Sorts.descending("_id")).skip(skip).limit(limit).toFuture()

@@ -96,7 +96,7 @@ object TidyCard {
 
     val f = collection.find(and(equal("phase", phase),
       gte("finishDate", begin), lt("finishDate", end)))
-      .sort(org.mongodb.scala.model.Sorts.ascending("finishDate")).limit(500).toFuture()
+      .sort(org.mongodb.scala.model.Sorts.ascending("finishDate")).toFuture()
     f.onFailure {
       errorHandler
     }
