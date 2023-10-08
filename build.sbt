@@ -4,7 +4,7 @@ version := "1.1.17"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala, LauncherJarPlugin)
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.11"
 
 libraryDependencies ++= Seq(
   cache,
@@ -31,10 +31,9 @@ libraryDependencies += "com.itextpdf" % "itextpdf" % "5.5.13.2"
 // https://mvnrepository.com/artifact/com.itextpdf.tool/xmlworker
 libraryDependencies += "com.itextpdf.tool" % "xmlworker" % "5.5.13.2"
 
-resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
-
 //routesGenerator := InjectedRoutesGenerator
 
-scalacOptions ++= Seq("-feature")
-
-fork in run := false
+scalacOptions ++= Seq(
+  "-feature",
+  "-deprecation"
+)
