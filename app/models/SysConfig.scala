@@ -2,7 +2,10 @@ package models
 import play.api._
 import play.api.libs.json._
 import models.ModelHelper._
+import org.mongodb.scala.result.UpdateResult
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 object SysConfig {
@@ -97,7 +100,7 @@ object SysConfig {
   }
 
   val BrandList = "BrandList"
-  def getBrandList() = {
+  def getBrandList(): Future[Seq[String]] = {
     val configF = collection.find(Filters.equal("_id", BrandList)).toFuture()
     configF.onFailure(errorHandler)
     for (config <- configF) yield {
@@ -110,7 +113,7 @@ object SysConfig {
       }
     }
   }
-  def addBrandList(brands: Seq[String]) =
+  def addBrandList(brands: Seq[String]): Future[UpdateResult] =
     collection.updateOne(
       Filters.equal("_id", BrandList),
       Updates.addEachToSet(BrandList, brands: _*), UpdateOptions().upsert(true)).toFuture()

@@ -1,9 +1,11 @@
 package models
-import play.api._
 import models.ModelHelper._
-import org.bson.BsonType
-import org.mongodb.scala.bson.Document
+import org.bson.codecs.configuration.CodecRegistry
+import org.mongodb.scala.MongoCollection
+import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
+import org.mongodb.scala.result.{DeleteResult, UpdateResult}
+import play.api._
 import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,22 +19,21 @@ case class QueryInventoryParam(factoryID: Option[String], color: Option[String],
                                customerID: Option[String], brand: Option[String])
 
 object Inventory {
-  import scala.concurrent._
-  import scala.concurrent.duration._
   import org.bson.codecs.configuration.CodecRegistries.{fromProviders, fromRegistries}
   import org.mongodb.scala.MongoClient.DEFAULT_CODEC_REGISTRY
   import org.mongodb.scala.bson.codecs.Macros._
-  import org.mongodb.scala.model.Indexes.ascending
+
+  import scala.concurrent._
 
   val ColName = "inventory"
-  val codecRegistry = fromRegistries(fromProviders(classOf[Inventory]), DEFAULT_CODEC_REGISTRY)
-  val collection = MongoDB.database.getCollection[Inventory](ColName).withCodecRegistry(codecRegistry)
+  val codecRegistry: CodecRegistry = fromRegistries(fromProviders(classOf[Inventory]), DEFAULT_CODEC_REGISTRY)
+  val collection: MongoCollection[Inventory] = MongoDB.database.getCollection[Inventory](ColName).withCodecRegistry(codecRegistry)
 
-  implicit val reads = Json.reads[Inventory]
-  implicit val write = Json.writes[Inventory]
-  implicit val readQ = Json.reads[QueryInventoryParam]
+  implicit val reads: Reads[Inventory] = Json.reads[Inventory]
+  implicit val write: Writes[Inventory] = Json.writes[Inventory]
+  implicit val readQ: Reads[QueryInventoryParam] = Json.reads[QueryInventoryParam]
 
-  def init(colNames: Seq[String]) {
+  def init(colNames: Seq[String]): Unit = {
     if (!colNames.contains(ColName)) {
       val f = MongoDB.database.createCollection(ColName).toFuture()
       f.onFailure(errorHandler)
@@ -48,8 +49,8 @@ object Inventory {
   }
 
   import org.mongodb.scala.model._
-  def upsert(inventory: Inventory) = {
-    Logger.debug("upsert inventory=>" + inventory.toString())
+  def upsert(inventory: Inventory): Future[UpdateResult] = {
+    Logger.debug("upsert inventory=>" + inventory.toString)
     for(brand<-inventory.brand)
       SysConfig.addBrandList(Seq(brand.trim))
 
@@ -60,11 +61,11 @@ object Inventory {
     f
   }
 
-  def lend(factoryID: String, color: String, size: String, q: Int, workCardID: String) = {
+  def lend(factoryID: String, color: String, size: String, q: Int, workCardID: String): Future[Seq[UpdateResult]] = {
     Logger.debug(s"WorkCard:$workCardID inventory lend $factoryID $color $size $q")
     val inventoryFilter = getFilter(factoryID, color, size)
-    val nonLoanFilter = Filters.or(Filters.equal("loan", null), Filters.exists("loan", false))
-    val loanExistFilter = Filters.exists("loan", true)
+    val nonLoanFilter = Filters.or(Filters.equal("loan", null), Filters.exists("loan", exists = false))
+    val loanExistFilter = Filters.exists("loan", exists = true)
     val filter1 = Filters.and(inventoryFilter, nonLoanFilter)
     val filter2 = Filters.and(inventoryFilter, loanExistFilter)
 
@@ -83,7 +84,7 @@ object Inventory {
     Future.sequence(Seq(fNonLoan, fLoan))
   }
 
-  def freeWorkCardLoan(workCardID: String) = {
+  def freeWorkCardLoan(workCardID: String): Unit = {
     import com.mongodb.client.model.ReturnDocument.AFTER
 
     val f = collection.findOneAndUpdate(
@@ -100,7 +101,7 @@ object Inventory {
     }
   }
 
-  def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String) = {
+  def closePosition(factoryID: String, color: String, size: String, q1: Int, workCardID: String): Future[Inventory] = {
     val filter = getFilter(factoryID, color, size)
     val update = Updates.combine(Updates.inc("quantity", -q1), Updates.pull("workCardList", workCardID))
 
@@ -115,7 +116,7 @@ object Inventory {
     f
   }
 
-  def refreshLoan(factoryID: String, color: String, size: String) = {
+  def refreshLoan(factoryID: String, color: String, size: String): Unit = {
     val filter = getFilter(factoryID, color, size)
 
     for {
@@ -124,9 +125,9 @@ object Inventory {
       inventory = doc
       (newLoan, newWorkCardList) <- calculateLoan(inventory.workCardList)
     } {
-      if (inventory.loan != Some(newLoan)) {
+      if (inventory.loan != newLoan) {
         if (inventory.quantity < 0){
-          Logger.warn(s"Inventory ${inventory.toString()} quantity is negative!")
+          Logger.warn(s"Inventory ${inventory.toString} quantity is negative!")
           inventory.quantity = 0
         }
         
@@ -137,7 +138,7 @@ object Inventory {
     }
   }
 
-  def calculateLoan(workCardIdList: Seq[String]) = {
+  private def calculateLoan(workCardIdList: Seq[String]): Future[(Int, Seq[String])] = {
     val workCardListF = WorkCard.getCards(workCardIdList)(0, 100)
     for (workCardList <- workCardListF) yield {
       val workCardIDs = workCardList map { _._id }
@@ -146,7 +147,7 @@ object Inventory {
     }
   }
 
-  def canLend(factoryID: String, color: String, size: String) = {
+  def canLend(factoryID: String, color: String, size: String): Future[Int] = {
     val filter = getFilter(factoryID, color, size)
 
     val f = collection.find(filter).toFuture()
@@ -161,7 +162,7 @@ object Inventory {
     }
   }
 
-  def getFilter(factoryID: String, color: String, size: String) = {
+  def getFilter(factoryID: String, color: String, size: String): Bson = {
     val filter1 = Filters.equal("factoryID", factoryID)
     val filter2 = Filters.equal("color", color)
     val filter3 = Filters.equal("size", size)
@@ -171,8 +172,9 @@ object Inventory {
   import org.mongodb.scala.bson.conversions._
   def getFilter(inv: Inventory): Bson = getFilter(inv.factoryID, inv.color, inv.size)
 
-  def getFilter(param: QueryInventoryParam) = {
+  def getFilter(param: QueryInventoryParam): Bson = {
     import org.mongodb.scala.model.Filters._
+
     import java.util.regex.Pattern
     val factoryIdFilter = param.factoryID map { factorID => regex("factoryID", Pattern.quote(factorID)) }
     val colorFilter = param.color map { color => regex("color", Pattern.quote(color)) }
@@ -185,7 +187,7 @@ object Inventory {
     }
 
     val filterList = List(factoryIdFilter, colorFilter, sizeFilter, customerIdFilter, brandFilter).flatMap { f => f }
-    val filter = if (!filterList.isEmpty)
+    val filter = if (filterList.nonEmpty)
       and(filterList: _*)
     else
       exists("_id")
@@ -193,7 +195,7 @@ object Inventory {
     filter
   }
 
-  def query(param: QueryInventoryParam)(skip: Int, limit: Int) = {
+  def query(param: QueryInventoryParam)(skip: Int, limit: Int): Future[Seq[Inventory]] = {
     val sort = Sorts.ascending("customerID", "color", "size")
     val filter = getFilter(param)
 
@@ -208,7 +210,7 @@ object Inventory {
     }
   }
 
-  def count(param: QueryInventoryParam) = {
+  def count(param: QueryInventoryParam): Future[Long] = {
     val filter = getFilter(param)
 
     val f = collection.countDocuments(filter).toFuture()
@@ -220,7 +222,7 @@ object Inventory {
       yield countSeq
   }
 
-  def total(param: QueryInventoryParam) = {
+  def total(param: QueryInventoryParam): Future[Int] = {
     val filter = getFilter(param)
 
     val f = collection.find(filter).toFuture()
@@ -233,7 +235,7 @@ object Inventory {
 
   }
 
-  def delete(param: QueryInventoryParam) = {
+  def delete(param: QueryInventoryParam): Future[DeleteResult] = {
     val filter = getFilter(param)
     val f = collection.deleteOne(filter).toFuture()
     f.onFailure {
@@ -242,7 +244,7 @@ object Inventory {
     f
   }
   
-  def fixNullInventory() = {
+  def fixNullInventory(): Future[UpdateResult] = {
     val filter = Filters.not(Filters.exists("quantity"))
     val f = collection.updateMany(filter, Updates.set("quantity", 0)).toFuture()
     f.onFailure(errorHandler)
