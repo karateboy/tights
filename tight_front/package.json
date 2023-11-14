@@ -13,7 +13,7 @@
     "get-env": "^0.5.10",
     "js-cookie": "^3.0.1",
     "js-file-download": "^0.4.12",
-    "moment": "2.29.1",
+    "moment": "2.29.4",
     "vue": "2.6.14",
     "vue-pagination-2": "^3.0.91",
     "vue-router": "3.5.3",
