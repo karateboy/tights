@@ -18,6 +18,8 @@
                 </router-link>
                 <router-link to='/Schedule/InventoryReport' tag='li' role="presentation" active-class='active'><a>庫存報表</a>
                 </router-link>
+                <router-link to='/Schedule/BrandEdit' tag='li' role="presentation" active-class='active'><a>品牌刪除</a>
+                </router-link>
             </ul>
             <router-view></router-view>
         </div>

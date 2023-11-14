@@ -29,6 +29,7 @@ import InventoryEdit from './components/InventoryEdit.vue'
 import InventoryDep from './components/InventoryDep.vue'
 import ColorEdit from './components/ColorEdit.vue'
 import InventoryReport from './components/InventoryReport.vue'
+import BrandEdit from './components/BrandEdit.vue'
 
 export const routes = [{
         path: '/',
@@ -104,6 +105,10 @@ export const routes = [{
                 path: 'InventoryReport',
                 component: InventoryReport
             },
+            {
+                path: 'BrandEdit',
+                component: BrandEdit
+            }
         ]
     },
     {

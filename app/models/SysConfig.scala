@@ -118,6 +118,11 @@ object SysConfig {
       Filters.equal("_id", BrandList),
       Updates.addEachToSet(BrandList, brands: _*), UpdateOptions().upsert(true)).toFuture()
 
+  def setBrandList(brands: Seq[String]): Future[UpdateResult] = {
+    val doc = Document("_id" -> BrandList, BrandList -> brands)
+    collection.replaceOne(Filters.equal("_id", BrandList), doc, ReplaceOptions().upsert(true)).toFuture()
+  }
+
   val TrimOrderKey = "TrimOrder"
   def getTrimOrderConfig = get(TrimOrderKey, Document(TrimOrderKey -> false))
   def setTrimOrderConfig(v: Boolean) = upsert(TrimOrderKey, Document(TrimOrderKey -> v))

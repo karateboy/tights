@@ -391,11 +391,21 @@ object OrderManager extends Controller {
     })
   }
 
-  def getBrandList() = Security.Authenticated.async {
+  def getBrandList(): Action[AnyContent] = Security.Authenticated.async {
     val brandListF = SysConfig.getBrandList()
     for (brandList <- brandListF) yield {
       val sortedSeq = brandList.sortWith(_.compareTo(_) < 0)
       Ok(Json.toJson(sortedSeq))
+    }
+  }
+
+  def deleteBrandList(brands:String): Action[AnyContent] = Security.Authenticated.async {
+    val brandListF = SysConfig.getBrandList()
+    for (brandList <- brandListF) yield {
+      val toBeDeleted = brands.split(",").toSeq
+      val newBrands = brandList.filterNot(toBeDeleted.contains(_))
+      SysConfig.setBrandList(newBrands)
+      Ok(Json.obj("ok" -> true))
     }
   }
 }
