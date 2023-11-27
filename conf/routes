@@ -30,6 +30,7 @@ POST          /QueryOrder/count                                    controllers.O
 POST          /CloseOrder                                          controllers.OrderManager.closeOrder()
 POST          /ReopenOrder/:id                                     controllers.OrderManager.reopenOrder(id)
 GET           /OrderPDF/:id                                        controllers.OrderManager.getOrderPdf(id)
+GET           /OrderExcel/:id                                      controllers.OrderManager.getOrderExcel(id)
 
 GET           /DyeCardSpec                                         controllers.OrderManager.getDyeCardSpec
 POST          /ScheduleDyeWork                                     controllers.OrderManager.scheduleDyeWork

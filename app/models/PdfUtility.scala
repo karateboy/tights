@@ -16,8 +16,10 @@ import com.itextpdf.tool.xml.pipeline.css.CssResolverPipeline
 import com.itextpdf.tool.xml.pipeline.end.PdfWriterPipeline
 import com.itextpdf.tool.xml.pipeline.html.HtmlPipeline
 import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext
-import com.itextpdf.tool.xml.XMLWorkerHelper;
+import com.itextpdf.tool.xml.XMLWorkerHelper
 import com.github.nscala_time.time.Imports._
+
+import java.io.File
 
 /**
  * @author user
@@ -25,7 +27,7 @@ import com.github.nscala_time.time.Imports._
 object PdfUtility {
   val CSS_ROOT = "/public/"
 
-  def createPdf(htmlInput: String, landscape: Boolean = true) = {
+  def createPdf(htmlInput: String, landscape: Boolean = true): File = {
 
     //debug
     import java.io.FileOutputStream
@@ -110,7 +112,7 @@ object PdfUtility {
     }
   }
 
-  def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
+  def dyeCardProc(dyeCard: DyeCard, workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter): Unit = {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val defaultFont = new Font(bf, 12)
     val bigFont = new Font(bf, 18, Font.BOLD)
@@ -525,7 +527,7 @@ object PdfUtility {
     }
   }
 
-  def getBarCodeImg(code: String)(implicit writer: PdfWriter) = {
+  private def getBarCodeImg(code: String)(implicit writer: PdfWriter): Image = {
     val code128 = new Barcode128()
     code128.setCodeType(Barcode.CODE128_UCC)
     code128.setCode(code)
@@ -540,7 +542,7 @@ object PdfUtility {
     cell.setRowspan(2)
   }
 
-  def workSheetProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter) {
+  def workSheetProc(workSeq: Seq[WorkCard], orderMap: Map[String, Order])(doc: Document, writer: PdfWriter): Unit = {
     val bf = BaseFont.createFont("C:/Windows/Fonts/mingliu.ttc,0", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
     val font = new Font(bf, 13)
     def prepareCell(str: String, colspan: Int = 1, add: Boolean = true)(implicit tab: PdfPTable) = {
@@ -619,8 +621,8 @@ object PdfUtility {
           implicit val tab = new PdfPTable(2)
           tab.setWidthPercentage(100)
           tab.addCell(new PdfPCell(getBarCodeImg(workCard._id)(writer)))
-          val remarkStr = s"備註:${workCard.remark.getOrElse("")}"
-          val remarkCell = prepareCell(remarkStr, 1, false)
+          val remarkStr = s"備註:${workCard.remark.getOrElse("")}\n漂染卡號:${workCard.dyeCardID.getOrElse("")}"
+          val remarkCell = prepareCell(remarkStr, 1, add = false)
           remarkCell.setRowspan(3)
           tab.addCell(remarkCell)
 

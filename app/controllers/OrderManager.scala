@@ -1,18 +1,14 @@
 package controllers
 
-import play.api.mvc.Controller
-import play.api._
-import play.api.mvc._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.data._
-import play.api.data.Forms._
-import scala.concurrent.Future
-import play.api.libs.json._
 import com.github.nscala_time.time.Imports._
-import models._
-import scala.concurrent.ExecutionContext.Implicits.global
 import models.ModelHelper._
+import models._
+import play.api._
+import play.api.libs.json._
+import play.api.mvc._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
  * Created by user on 2017/1/13.
@@ -162,8 +158,7 @@ object OrderManager extends Controller {
         }
 
         val sortedDyeCardSpecList = dyeCardSpecList.toSeq.sortBy { x => x.due }
-
-        import Order._
+        implicit val orderDetailWrite = Json.writes[OrderDetail]
         implicit val workCardSpecWrite = Json.writes[WorkCardSpec]
         implicit val dyeCardSpecWrite = Json.writes[DyeCardSpec]
 
@@ -205,7 +200,7 @@ object OrderManager extends Controller {
 
   def scheduleDyeWork = Security.Authenticated.async(BodyParsers.parse.json) {
     implicit request =>
-      import WorkCard._
+
       implicit val scheduleParamRead = Json.reads[ScheduleParam]
       val result = request.body.validate[ScheduleParam]
       result.fold(
@@ -355,7 +350,7 @@ object OrderManager extends Controller {
     }
   }
 
-  def getOrderPdf(id: String) = Security.Authenticated.async {
+  def getOrderPdf(id: String): Action[AnyContent] = Security.Authenticated.async {
     import PdfUtility._
     val orderF = Order.getOrder(id)
     for (orderOpt <- orderF) yield {
@@ -368,7 +363,19 @@ object OrderManager extends Controller {
     }
   }
 
-  def getColorSeq() = Security.Authenticated.async {
+  def getOrderExcel(id: String): Action[AnyContent] = Security.Authenticated.async {
+    val orderF = Order.getOrder(id)
+    for (orderOpt <- orderF) yield {
+      if (orderOpt.isDefined)
+        Ok.sendFile(ExcelUtility.exportOrder(orderOpt.get),
+          fileName = _ =>
+            play.utils.UriEncoding.encodePathSegment(s"訂單${id}.xlsx", "UTF-8"))
+      else
+        BadRequest("No such order!")
+    }
+  }
+
+  def getColorSeq(): Action[AnyContent] = Security.Authenticated.async {
     val colorSeqF = SysConfig.getColorSeq()
     for (colorSeq <- colorSeqF) yield {
       val sortedSeq = colorSeq.sortWith(_.compareTo(_) < 0)

@@ -91,7 +91,7 @@
     <div v-else class="alert alert-info" role="alert">沒有符合的漂染卡</div>
     <hr />
     <div v-if="display == 'detail'">
-      <dye-card-detail :dyeCard="targetDyeCard" :edit="false"></dye-card-detail>
+      <dye-card-detail :dyeCard="targetDyeCard" :edit="true"></dye-card-detail>
     </div>
     <div v-else-if="display == 'workCards'">
       <work-card-list

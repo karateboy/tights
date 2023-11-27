@@ -14,7 +14,7 @@ object ExcelUtility {
   val docRoot = "/report_template/"
 
   def getTidyReport(title: String, cardList: Seq[TidyCard], workCardMap: Map[String, WorkCard], orderMap: Map[String, Order],
-                    start: DateTime, end: DateTime) = {
+                    start: DateTime, end: DateTime): File = {
     val (reportFilePath, pkg, wb) = prepareTemplate("tidyReport.xlsx")
     val evaluator = wb.getCreationHelper().createFormulaEvaluator()
     val format = wb.createDataFormat();
@@ -66,7 +66,7 @@ object ExcelUtility {
 
     val sumStyle = createSumStyle()(wb)
     val summaryRow = sheet.createRow(cardList.size + 4)
-    def createSummaryCell(col:Int, content:String)={
+    def createSummaryCell(col:Int, content:String): Unit ={
       val cell = summaryRow.createCell(col)
       cell.setCellValue(content)
       cell.setCellStyle(sumStyle)
@@ -83,7 +83,7 @@ object ExcelUtility {
   }
 
   def getStylingReport(cardList: Seq[WorkCard], operatorList: List[String], orderMap: Map[String, Order],
-                       start: DateTime, end: DateTime) = {
+                       start: DateTime, end: DateTime): File = {
     val (reportFilePath, pkg, wb) = prepareTemplate("stylingReport.xlsx")
     val evaluator = wb.getCreationHelper().createFormulaEvaluator()
     val format = wb.createDataFormat();
@@ -150,7 +150,7 @@ object ExcelUtility {
       toDozenStr(v.get)
   }
 
-  def getInventoryReport(inventories: Seq[Inventory], title: String) = {
+  def getInventoryReport(inventories: Seq[Inventory], title: String): File = {
     val (reportFilePath, pkg, wb) = prepareTemplate("inventory.xlsx")
     val sheet = wb.getSheetAt(0)
     sheet.getRow(0).getCell(0).setCellValue(title)
@@ -207,41 +207,41 @@ object ExcelUtility {
     finishExcel(reportFilePath, pkg, wb)
   }
 
-  private def prepareTemplate(templateFile: String) = {
+  private def prepareTemplate(templateFile: String): (Path, OPCPackage, XSSFWorkbook) = {
     val templatePath = Paths.get(current.path.getAbsolutePath + docRoot + templateFile)
     val reportFilePath = Files.createTempFile("temp", ".xlsx");
 
     Files.copy(templatePath, reportFilePath, StandardCopyOption.REPLACE_EXISTING)
 
     //Open Excel
-    val pkg = OPCPackage.open(new FileInputStream(reportFilePath.toAbsolutePath().toString()))
+    val pkg = OPCPackage.open(new FileInputStream(reportFilePath.toAbsolutePath.toString))
     val wb = new XSSFWorkbook(pkg);
 
     (reportFilePath, pkg, wb)
   }
 
-  def finishExcel(reportFilePath: Path, pkg: OPCPackage, wb: XSSFWorkbook) = {
-    val out = new FileOutputStream(reportFilePath.toAbsolutePath().toString());
+  private def finishExcel(reportFilePath: Path, pkg: OPCPackage, wb: XSSFWorkbook): File = {
+    val out = new FileOutputStream(reportFilePath.toAbsolutePath.toString);
     wb.write(out);
     out.close();
     pkg.close();
 
-    new File(reportFilePath.toAbsolutePath().toString())
+    new File(reportFilePath.toAbsolutePath.toString)
   }
 
-  def toDozenStr(v: Int) = {
+  def toDozenStr(v: Int): String = {
     val dozen = v / 12
-    val fract = v % 12
+    val fractal = v % 12
     val dozenStr = "%d".format(dozen)
-    if (fract == 0)
+    if (fractal == 0)
       dozenStr
     else {
-      val fractStr = "%02d".format(fract)
-      s"$dozenStr.$fractStr"
+      val fractalStr = "%02d".format(fractal)
+      s"$dozenStr.$fractalStr"
     }
   }
 
-  def createRightAlignStyle()(implicit wb: XSSFWorkbook) = {
+  private def createRightAlignStyle()(implicit wb: XSSFWorkbook) = {
     val style = wb.createCellStyle();
     val format = wb.createDataFormat();
     // Create a new font and alter it.
@@ -252,17 +252,17 @@ object ExcelUtility {
     style.setFont(font)
     style.setAlignment(HorizontalAlignment.RIGHT)
     style.setBorderBottom(BorderStyle.THIN);
-    style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBottomBorderColor(IndexedColors.BLACK.getIndex);
     style.setBorderLeft(BorderStyle.THIN);
-    style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+    style.setLeftBorderColor(IndexedColors.BLACK.getIndex);
     style.setBorderRight(BorderStyle.THIN);
-    style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+    style.setRightBorderColor(IndexedColors.BLACK.getIndex);
     style.setBorderTop(BorderStyle.THIN);
-    style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+    style.setTopBorderColor(IndexedColors.BLACK.getIndex);
     style
   }
 
-  def createSumStyle()(implicit wb: XSSFWorkbook) = {
+  private def createSumStyle()(implicit wb: XSSFWorkbook) = {
     val style = wb.createCellStyle();
     val format = wb.createDataFormat();
     // Create a new font and alter it.
@@ -274,13 +274,162 @@ object ExcelUtility {
     style.setFont(font)
     style.setAlignment(HorizontalAlignment.CENTER)
     style.setBorderBottom(BorderStyle.DOUBLE);
-    style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+    style.setBottomBorderColor(IndexedColors.BLACK.getIndex);
     style.setBorderLeft(BorderStyle.DOUBLE);
-    style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+    style.setLeftBorderColor(IndexedColors.BLACK.getIndex);
     style.setBorderRight(BorderStyle.DOUBLE);
-    style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+    style.setRightBorderColor(IndexedColors.BLACK.getIndex);
     style.setBorderTop(BorderStyle.DOUBLE);
-    style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+    style.setTopBorderColor(IndexedColors.BLACK.getIndex);
     style
+  }
+
+  def exportOrder(order: Order): File = {
+    val (reportFilePath, pkg, wb) = prepareTemplate("order.xlsx")
+    val sheet = wb.getSheetAt(0)
+    var row = sheet.createRow(0)
+    row.createCell(0).setCellValue("訂單明細")
+    row = sheet.createRow(1)
+    row.createCell(0).setCellValue("訂單編號:")
+    row.createCell(1).setCellValue(order._id)
+    row = sheet.createRow(2)
+    row.createCell(0).setCellValue("品牌:")
+    row.createCell(1).setCellValue(order.brand)
+    row = sheet.createRow(3)
+    row.createCell(0).setCellValue("品名:")
+    row.createCell(1).setCellValue(order.name)
+    row = sheet.createRow(4)
+    row.createCell(0).setCellValue("工廠代號:")
+    row.createCell(1).setCellValue(order.factoryId)
+    row = sheet.createRow(5)
+    row.createCell(0).setCellValue("客戶編號:")
+    row.createCell(1).setCellValue(order.customerId)
+    row = sheet.createRow(6)
+    row.createCell(0).setCellValue("預定出貨日:")
+    val expectedDeliverDate = new DateTime(order.expectedDeliverDate)
+    row.createCell(1).setCellValue(expectedDeliverDate.toString("YYYY/MM/dd"))
+    row = sheet.createRow(7)
+    row.createCell(0).setCellValue("訂單數量:")
+    val quantity = order.details.map {
+      _.quantity
+    }.sum
+    row.createCell(1).setCellValue(toDozenStr(Some(quantity)) + "打")
+    row = sheet.createRow(8)
+    row.createCell(0).setCellValue("修正出貨日:")
+    for(finalDeliverDateLong <- order.finalDeliverDate){
+      val finalDeliverDate = new DateTime(finalDeliverDateLong)
+      row.createCell(1).setCellValue(finalDeliverDate.toString("YYYY/MM/dd"))
+    }
+
+    row = sheet.createRow(9)
+    row.createCell(0).setCellValue("訂單細項:")
+    row = sheet.createRow(10)
+    row.createCell(0).setCellValue("顏色")
+    row.createCell(1).setCellValue("尺寸")
+    row.createCell(2).setCellValue("數量(打)")
+    for (detail <- order.details) {
+      row = sheet.createRow(sheet.getLastRowNum + 1)
+      row.createCell(0).setCellValue(detail.color)
+      row.createCell(1).setCellValue(detail.size)
+      row.createCell(2).setCellValue(s"${toDozenStr(Some(detail.quantity))}打")
+    }
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("注意事項:")
+    row.createCell(1).setCellValue("部門")
+    row.createCell(2).setCellValue("內容")
+    for(notice <- order.notices){
+      row = sheet.createRow(sheet.getLastRowNum + 1)
+      row.createCell(1).setCellValue(notice.department)
+      row.createCell(2).setCellValue(notice.msg)
+    }
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("採購包裝材料:")
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    val packageInfos =
+      for {
+        packageIdx <- order.packageInfo.packageOption.zipWithIndex
+        packageOpt = packageIdx._1 if packageOpt
+        idx = packageIdx._2
+      } yield {
+        val packageType = idx match {
+          case 0 => "(v)環帶"
+          case 1 => "(v)紙卡"
+          case 2 => "(v)紙盒"
+          case 3 => "(v)掛卡"
+          case 4 => "(v)掛盒"
+        }
+        packageType
+      }
+    row.createCell(0).setCellValue(packageInfos.mkString(","))
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("包裝備註:")
+    row.createCell(1).setCellValue(order.packageInfo.packageNote)
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("貼標:")
+    val labelInfos =
+      for {
+        labelIdx <- order.packageInfo.labelOption.zipWithIndex
+        label = labelIdx._1 if label
+        idx = labelIdx._2
+      } yield {
+
+        val labelType = idx match {
+          case 0 => "(v)成份標+Made in Taiwan"
+          case 1 => "(v)價標"
+          case 2 => "(v)條碼標"
+          case 3 => "(v)型號標"
+          case 4 => "(v)Size標"
+        }
+        labelType
+      }
+    row.createCell(0).setCellValue(labelInfos.mkString(","))
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("塑膠袋:")
+    val bagInfo = {
+      for {
+        bagIdx <- order.packageInfo.bagOption.zipWithIndex
+        bag = bagIdx._1 if bag
+        idx = bagIdx._2
+      } yield {
+        val bagType = idx match {
+          case 0 => "(v)單入OPP"
+          case 1 => "(v)單入PVC"
+          case 2 => "(v)自黏"
+          case 3 => "(v)高週波"
+          case 4 => "(v)彩印"
+          case 5 => "(v)掛孔"
+        }
+
+        if (idx == 1)
+          s"$bagType-(${order.packageInfo.pvcNote})"
+        else
+          bagType
+      }
+    }
+    row.createCell(1).setCellValue(bagInfo.mkString(","))
+    for(numInBag <- order.packageInfo.numInBag){
+      row = sheet.createRow(sheet.getLastRowNum + 1)
+      row.createCell(1).setCellValue(s"${numInBag}雙入大袋")
+    }
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(1).setCellValue(order.packageInfo.bagNote)
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("外銷箱:")
+    for {
+      boxIdx <-order.packageInfo.exportBoxOption.zipWithIndex
+      box = boxIdx._1 if box
+      idx = boxIdx._2
+    } {
+      val boxType = idx match {
+        case 0 => "(v)內盒"
+        case 1 => "(v)外箱"
+      }
+      row = sheet.createRow(sheet.getLastRowNum + 1)
+      row.createCell(1).setCellValue(s"$boxType-(${order.packageInfo.exportBoxNote(idx)})")
+    }
+    row = sheet.createRow(sheet.getLastRowNum + 1)
+    row.createCell(0).setCellValue("嘜頭:")
+    row.createCell(1).setCellValue(order.packageInfo.ShippingMark)
+    finishExcel(reportFilePath, pkg, wb)
   }
 }

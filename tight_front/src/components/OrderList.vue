@@ -29,10 +29,10 @@
             :key="index"
           >
             <td>
-              <button class="btn btn-primary" @click="displayOrder(index)">
+              <button class="btn btn-primary m-1" @click="displayOrder(index)">
                 <i class="fa fa-eye"></i>&nbsp;內容
               </button>
-              <button class="btn btn-primary" @click="prepareCloneOrder(index)">
+              <button class="btn btn-primarym m-1" @click="prepareCloneOrder(index)">
                 <i class="fa fa fa-clone"></i>&nbsp;複製
               </button>
               <button class="btn btn-primary" @click="displayProgress(index)">
@@ -40,6 +40,9 @@
               </button>
               <button class="btn btn-info" @click="getPdf(index)">
                 <i class="fa fa-pdf" aria-hidden="true"></i>&nbsp;列印
+              </button>
+              <button class="btn btn-info" @click="getExcel(index)">
+                <i class="fa fa-excel" aria-hidden="true"></i>&nbsp;Excel
               </button>
               <button
                 class="btn btn-success"
@@ -231,6 +234,10 @@ export default {
     },
     getPdf(idx) {
       let url = baseUrl() + '/OrderPDF/' + this.orderList[idx]._id;
+      window.open(url);
+    },
+    getExcel(idx) {
+      let url = baseUrl() + '/OrderExcel/' + this.orderList[idx]._id;
       window.open(url);
     },
     closeOrder(idx) {
