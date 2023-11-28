@@ -5,12 +5,22 @@ import axios from 'axios'
 export default {
     populateWorkCard(workCard) {
         workCard.order = {}
-        axios.get("/Order/" + workCard.orderId).then((resp) => {
+        let p1 = axios.get("/Order/" + workCard.orderId).then((resp) => {
+            console.log(resp.data)
             workCard.order = Object.assign({}, resp.data)
+            console.info(workCard.order)
+        }).catch((err) => {
+            console.error(err)
         })
-        axios.get("/WorkCard/ChangeTime/" + workCard._id).then((resp) => {
+
+        let p2 = axios.get("/WorkCard/ChangeTime/" + workCard._id).then((resp) => {
+            console.log(resp.data)
             workCard.changeTime = resp.data.changeTime
+        }).catch((err) => {
+            console.error(err)
         })
+
+        return Promise.all([p1, p2]);
     },
     populateTidyCard(tidyCard) {
         tidyCard.workCard = {}
