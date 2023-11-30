@@ -4,7 +4,7 @@
       <div class="form-group has-feedback">
         <label class="col-lg-3 control-label">流動工作卡號:</label>
         <div class="col-lg-5">
-          <input type="text" placeholder="掃描條碼" autofocus class="form-control" v-model="workCardID" />
+          <input ref="workCardId" type="text" placeholder="掃描條碼" class="form-control" v-model="workCardID" />
         </div>
       </div>
     </form>
@@ -109,6 +109,9 @@ export default {
       this.workCardID = '';
     },
   },  
+  mounted() {
+    this.$refs.workCardId.focus();
+  },
   components: {
     WorkCardDetail,
     StylingCard,

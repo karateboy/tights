@@ -12,7 +12,7 @@
                 </div>
             </div>
             <div class="form-group has-feedback"><label class="col-lg-3 control-label">漂染單編號:</label>
-                <div class="col-lg-5"><input type="text" placeholder="掃描條碼" autofocus
+                <div class="col-lg-5"><input ref="dyeCardId" type="text" placeholder="掃描條碼"
                                              class="form-control"
                                              v-model="id">
                     <span v-if="invalidId" class="help-block">無效的漂染包襪明細單號</span>
@@ -40,6 +40,9 @@
                 operatorList: ['康志明', '劉守任', '詹鎮岳', '陳炳翔', '許君豪'],
                 operator:'康志明'
             }
+        },
+        mounted(){
+            this.$refs.dyeCardId.focus()
         },
         methods: {
             startDye(){

@@ -8,7 +8,7 @@
         <label class="col-lg-1 control-label">定型日期:</label>
         <div class="col-lg-6">
           <datepicker
-            v-model="myCard.stylingDate"
+            v-model="stylingDate"
             language="zh"
             format="yyyy-MM-dd"
           ></datepicker>
@@ -99,9 +99,8 @@ export default {
   data() {
     let stylingDate;
     if (this.stylingCard.stylingDate)
-      stylingDate = moment(this.stylingCard.stylingDate).toDate();
-    else 
-      stylingDate = moment(this.defaultFinishDate).toDate();
+      stylingDate = moment(this.stylingCard.stylingDate).toDate();   
+      
 
     return {
       myCard: {
@@ -121,6 +120,22 @@ export default {
   },
   computed: {
     ...mapState(['defaultFinishDate']),
+    stylingDate: {
+      get: function() {
+        if (this.myCard.stylingDate)
+          return moment(this.myCard.stylingDate).toDate();
+        else {
+          this.myCard.stylingDate = this.defaultFinishDate;
+          return this.defaultFinishDate;
+        }
+      },
+      // setter
+      set: function(newValue) {
+        const value = newValue.getTime();
+        this.myCard.stylingDate = value;
+        this.setDefaultFinishDate(value);
+      },
+    },
   },
   watch: {
     stylingCard(newCard) {
@@ -136,9 +151,12 @@ export default {
       this.myCard.operator = newCard.operator.join();
       
       if (newCard.stylingDate)
-        this.myCard.stylingDate = moment(newCard.stylingDate).toDate();
-      else 
-        this.myCard.stylingDate = moment(this.defaultFinishDate).toDate();
+        this.myCard.stylingDate = newCard.stylingDate;
+      else{
+        console.info(`defaultFinishDate ${this.defaultFinishDate} applied`);
+        this.myCard.stylingDate = this.defaultFinishDate;
+      } 
+        
     },
   },
   methods: {
@@ -159,12 +177,7 @@ export default {
       this.stylingCard.notEven = fromDozenStr(this.myCard.notEven);
       this.stylingCard.head = fromDozenStr(this.myCard.head);
       this.stylingCard.operator = this.myCard.operator.trim().split('[,.]');
-
-      if (this.myCard.stylingDate) {
-        this.stylingCard.stylingDate = this.myCard.stylingDate.getTime();
-        this.setDefaultFinishDate(this.stylingCard.stylingDate);
-      }
-
+      
       if (
         this.stylingCard.operator == null ||
         this.stylingCard.operator.length == 0

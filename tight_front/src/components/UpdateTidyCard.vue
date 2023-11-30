@@ -5,6 +5,7 @@
         <label class="col-lg-3 control-label">流動工作卡號:</label>
         <div class="col-lg-5">
           <input
+            ref="workCardId"
             type="text"
             placeholder="掃描條碼"
             autofocus
@@ -46,8 +47,12 @@ export default {
   watch: {
     '$route.params.phase': function(phase) {
       this.cleanup();
+      this.$refs.workCardId.focus();
     },
   },
+  mounted() {
+    this.$refs.workCardId.focus();
+  },  
   methods: {
     query() {
       const phase = this.$route.params.phase;
