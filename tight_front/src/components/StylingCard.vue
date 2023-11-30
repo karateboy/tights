@@ -100,7 +100,8 @@ export default {
     let stylingDate;
     if (this.stylingCard.stylingDate)
       stylingDate = moment(this.stylingCard.stylingDate).toDate();
-    else stylingDate = moment(this.defaultFinishDate).toDate();
+    else 
+      stylingDate = moment(this.defaultFinishDate).toDate();
 
     return {
       myCard: {
@@ -133,6 +134,11 @@ export default {
       this.myCard.notEven = toDozenStr(newCard.notEven);
       this.myCard.head = toDozenStr(newCard.head);
       this.myCard.operator = newCard.operator.join();
+      
+      if (newCard.stylingDate)
+        this.myCard.stylingDate = moment(newCard.stylingDate).toDate();
+      else 
+        this.myCard.stylingDate = moment(this.defaultFinishDate).toDate();
     },
   },
   methods: {
